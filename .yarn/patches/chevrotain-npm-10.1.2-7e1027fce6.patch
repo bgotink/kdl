@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+index fe4db842f6c2d49cd8761cea96ba4ea54b16740d..fdfdf9c3232be6a43060acefcb4dda2e067617d9 100644
+--- a/package.json
++++ b/package.json
+@@ -40,6 +40,7 @@
+   "typings": "./chevrotain.d.ts",
+   "main": "./lib/src/api.js",
+   "exports": {
++    "types": "./chevrotain.d.ts",
+     "require": "./lib/src/api.js",
+     "import": "./lib_esm/api_esm.mjs"
+   },

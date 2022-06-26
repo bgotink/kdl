@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Fix code style & check for typos
+yarn express-check-in --staged
+
+# Check for duplicate dependencies
+if ! git diff --cached --quiet yarn.lock; then
+	yarn dedupe --check
+fi
