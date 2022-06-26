@@ -74,11 +74,13 @@ export function parse(text, {as = 'document', storeLocations = false} = {}) {
 	if (errors.length === 1) {
 		const [error] = errors;
 		throw new InvalidKdlError(
-			`Failed to parse KDL, ${error.message} at ${stringifyOffset(error)}`,
+			`Failed to parse KDL ${as}, ${error.message} at ${stringifyOffset(
+				error,
+			)}`,
 		);
 	} else if (errors.length > 0) {
 		throw new InvalidKdlError(
-			`Failed to parse KDL due to multiple errors:\n${errors
+			`Failed to parse KDL ${as} due to multiple errors:\n${errors
 				.map(error => `- ${error.message} at ${stringifyOffset(error)}`)
 				.join('\n')}`,
 		);
@@ -93,13 +95,13 @@ export function parse(text, {as = 'document', storeLocations = false} = {}) {
 		const [error] = parser.errors;
 		// console.log(error);
 		throw new InvalidKdlError(
-			`Failed to parse KDL, ${error.message} at ${stringifyTokenOffset(
+			`Failed to parse KDL ${as}, ${error.message} at ${stringifyTokenOffset(
 				error.token,
 			)}`,
 		);
 	} else if (parser.errors.length > 0) {
 		throw new InvalidKdlError(
-			`Failed to parse KDL due to multiple errors:\n${parser.errors
+			`Failed to parse KDL ${as} due to multiple errors:\n${parser.errors
 				.map(
 					error => `- ${error.message} at ${stringifyTokenOffset(error.token)}`,
 				)
