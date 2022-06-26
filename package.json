@@ -10,6 +10,12 @@
 		"type": "git",
 		"url": "https://github.com/bgotink/kdl"
 	},
+	"description": "Modification-friendly KDL parser and serializer.",
+	"keywords": [
+		"kdl",
+		"parser",
+		"serializer"
+	],
 	"type": "module",
 	"private": true,
 	"packageManager": "yarn@3.2.1",
