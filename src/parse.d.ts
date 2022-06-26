@@ -8,6 +8,8 @@ interface ParserResult {
 	entry: Entry;
 	node: Node;
 	document: Document;
+	['whitespace in node']: string[];
+	['whitespace in document']: string[];
 }
 
 type ParserTarget = keyof ParserResult;
@@ -60,6 +62,36 @@ export function parse(
 	text: string,
 	options?: {as?: 'document'; storeLocations?: boolean},
 ): Document;
+/**
+ * Split the given whitespace within a node (e.g. between the node name and its first value) text into parts
+ *
+ * This function splits the whitespace into its constituent parts:
+ * - inline space
+ * - a newline
+ * - an escaped newline (backslash)
+ * - a multiline comment (starts with `/*`)
+ * - a single line comment (starts with `//`, includes the trailing newline)
+ * - a slashdash comment (starts with `/-`, ends at the end of the commented value or property)
+ */
+export function parse(
+	text: string,
+	options?: {as: 'whitespace in node'},
+): string[];
+/**
+ * Split the given whitespace text outside of a node (e.g. between two nodes) into parts
+ *
+ * This function splits the whitespace into its constituent parts:
+ * - inline space
+ * - a newline
+ * - an escaped newline (backslash)
+ * - a multiline comment (starts with `/*`)
+ * - a single line comment (starts with `//`, includes the trailing newline)
+ * - a slashdash comment (starts with `/-`, ends at the end of the commented node, which is a newline, semicolon or the end of the string)
+ */
+export function parse(
+	text: string,
+	options?: {as: 'whitespace in document'},
+): string[];
 export function parse<T extends ParserTarget>(
 	text: string,
 	options: {as: T; storeLocations?: boolean},

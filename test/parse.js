@@ -108,4 +108,39 @@ test('parse with locations', () => {
 	});
 });
 
+test('parse whitespace', () => {
+	expect(
+		parse(
+			String.raw`/- lorem=(i64)0b10_10
+/*
+ * lorem ipsum dolor sit amet
+ */\// lorem ipsum dolor sit amet
+`,
+			{as: 'whitespace in node'},
+		),
+	).toEqual([
+		'/- lorem=(i64)0b10_10',
+		'\n',
+		`/*\n * lorem ipsum dolor sit amet\n */`,
+		'\\',
+		'// lorem ipsum dolor sit amet\n',
+	]);
+
+	expect(
+		parse(
+			String.raw`/- node lorem=(i64)0b10_10
+/*
+ * lorem ipsum dolor sit amet
+ */\// lorem ipsum dolor sit amet
+`,
+			{as: 'whitespace in document'},
+		),
+	).toEqual([
+		'/- node lorem=(i64)0b10_10\n',
+		`/*\n * lorem ipsum dolor sit amet\n */`,
+		'\\',
+		'// lorem ipsum dolor sit amet\n',
+	]);
+});
+
 test.run();

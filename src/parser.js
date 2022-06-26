@@ -637,6 +637,80 @@ export class KdlParser extends EmbeddedActionsParser {
 			return document;
 		});
 
+		this.whiteSpacePartsInDocument = $.RULE('whiteSpacePartsInDocument', () => {
+			/** @type {string[]} */
+			const parts = [];
+
+			$.MANY(() =>
+				parts.push(
+					$.OR([
+						{ALT: () => $.CONSUME(inlineWhitespace).image},
+						{ALT: () => $.CONSUME(escLine).image},
+						{ALT: () => $.SUBRULE(rMultilineComment)},
+						{ALT: () => $.SUBRULE(rSinglelineComment)},
+						{
+							ALT: () => {
+								const content = [$.CONSUME(slashDash).image];
+
+								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
+								const value = $.SUBRULE(rNode);
+
+								return $.ACTION(() => content.join('') + format(value));
+							},
+						},
+					]),
+				),
+			);
+
+			return parts;
+		});
+
+		this.whiteSpacePartsInNode = $.RULE('whiteSpacePartsInNode', () => {
+			/** @type {string[]} */
+			const parts = [];
+
+			$.MANY(() =>
+				parts.push(
+					$.OR([
+						{ALT: () => $.CONSUME(inlineWhitespace).image},
+						{ALT: () => $.CONSUME(escLine).image},
+						{ALT: () => $.CONSUME(newLine).image},
+						{ALT: () => $.SUBRULE(rMultilineComment)},
+						{ALT: () => $.SUBRULE(rSinglelineComment)},
+						{
+							ALT: () => {
+								const content = [$.CONSUME(slashDash).image];
+
+								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
+
+								return (
+									content.join('') +
+									$.OR1([
+										{
+											ALT: () => {
+												const entry = $.SUBRULE(rEntry);
+												// slice(1) to cut off the leading space added by format
+												return $.ACTION(() => format(entry).slice(1));
+											},
+										},
+										{
+											ALT: () => {
+												const children = $.SUBRULE(rChildren);
+												// slice(1) to cut off the leading space added by format
+												return $.ACTION(() => `{${format(children).slice(1)}}`);
+											},
+										},
+									])
+								);
+							},
+						},
+					]),
+				),
+			);
+
+			return parts;
+		});
+
 		this.performSelfAnalysis();
 	}
 }

@@ -50,17 +50,19 @@ const methods = /** @type {const} */ ({
 	node: parser.node,
 	entry: parser.entryWithOptionalLeading,
 	document: parser.document,
+	['whitespace in node']: parser.whiteSpacePartsInNode,
+	['whitespace in document']: parser.whiteSpacePartsInDocument,
 });
 
 /**
  * @param {string} text
  * @param {object} [options]
- * @param {'value' | 'identifier' | 'entry' | 'node' | 'document'} [options.as]
+ * @param {keyof typeof methods} [options.as]
  * @param {boolean} [options.storeLocations]
  */
 export function parse(text, {as = 'document', storeLocations = false} = {}) {
 	/**
-	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document>}
+	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document | string[]>}
 	 */
 	const parserMethod = methods[as];
 	if (parserMethod == null) {
