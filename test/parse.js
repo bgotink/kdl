@@ -5,6 +5,7 @@ import {
 	clearFormat,
 	Document,
 	Entry,
+	getLocation,
 	Identifier,
 	Node,
 	parse,
@@ -61,6 +62,50 @@ test('parse parts', () => {
 			new Entry(new Value(false), new Identifier('asdf')),
 		]),
 	);
+});
+
+test('parse with locations', () => {
+	const document = parse('node (string)"test"', {storeLocations: true});
+
+	expect(getLocation(document)).toEqual({
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 19,
+		endLine: 1,
+		endColumn: 19,
+	});
+
+	expect(getLocation(document.nodes[0])).toEqual({
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 19,
+		endLine: 1,
+		endColumn: 19,
+	});
+
+	expect(getLocation(document.nodes[0].name)).toEqual({
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 4,
+		endLine: 1,
+		endColumn: 4,
+	});
+
+	expect(getLocation(document.nodes[0].entries[0])).toEqual({
+		startOffset: 4,
+		startLine: 1,
+		startColumn: 5,
+
+		endOffset: 19,
+		endLine: 1,
+		endColumn: 19,
+	});
 });
 
 test.run();

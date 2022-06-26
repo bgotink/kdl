@@ -1,5 +1,6 @@
 import {EmbeddedActionsParser, EOF, Lexer} from 'chevrotain';
 import {format} from './format.js';
+import {storeLocation} from './locations.js';
 
 import {Document, Entry, Identifier, Node, Value} from './model.js';
 
@@ -41,6 +42,7 @@ import {
 	singleLineComment,
 	slashDash,
 	inlineWhitespace,
+	reContainsNewLine,
 } from './tokens/whitespace.js';
 
 const defaultMode = 'default';
@@ -96,6 +98,51 @@ export class KdlLexer extends Lexer {
 }
 
 export class KdlParser extends EmbeddedActionsParser {
+	storeLocationInfo = false;
+
+	/**
+	 * @param {Value | Identifier | Entry | Node | Document} el
+	 * @param {import('chevrotain').IToken} [start]
+	 */
+	#storeLocation(el, start) {
+		if (this.storeLocationInfo) {
+			const end = this.LA(0);
+			if (start == null) {
+				start = end;
+			}
+
+			if (isNaN(end.startOffset)) {
+				// startOffset is NaN if we reached the end of our file
+				const beforeEnd = this.LA(-1);
+				const singleLine = !reContainsNewLine.test(beforeEnd.image);
+
+				storeLocation(el, {
+					startOffset: start.startOffset,
+					startLine: start.startLine,
+					startColumn: start.startColumn,
+
+					endOffset: beforeEnd.startOffset + beforeEnd.image.length,
+					endLine: singleLine ? beforeEnd.startLine : undefined,
+					endColumn:
+						singleLine && beforeEnd.startColumn != null
+							? beforeEnd.startColumn + beforeEnd.image.length - 1
+							: undefined,
+				});
+				return;
+			}
+
+			storeLocation(el, {
+				startOffset: start.startOffset,
+				startLine: start.startLine,
+				startColumn: start.startColumn,
+
+				endOffset: end.startOffset + end.image.length,
+				endLine: end.endLine,
+				endColumn: end.endColumn,
+			});
+		}
+	}
+
 	constructor() {
 		super(tokens);
 
@@ -111,7 +158,8 @@ export class KdlParser extends EmbeddedActionsParser {
 		});
 
 		const rNumber = $.RULE('number', () => {
-			const s = $.OPTION(() => $.CONSUME(sign))?.image ?? '';
+			const start = $.OPTION(() => $.CONSUME(sign));
+			const s = start?.image ?? '';
 
 			/** @type {[number, string]} */
 			const number = $.OR([
@@ -150,13 +198,15 @@ export class KdlParser extends EmbeddedActionsParser {
 			return /** @type {const} */ ([
 				(s === '-' ? -1 : 1) * number[0],
 				s + number[1],
+				start,
 			]);
 		});
 
 		const rString = $.RULE('string', () => {
 			/** @type {string[]} */
 			const string = [];
-			const raw = [$.CONSUME(openQuote).image];
+			const start = $.CONSUME(openQuote);
+			const raw = [start.image];
 
 			$.MANY(() => {
 				/** @type {[string, string]} */
@@ -190,7 +240,7 @@ export class KdlParser extends EmbeddedActionsParser {
 
 			raw.push($.CONSUME(closeQuote).image);
 
-			return /** @type {const} */ ([string.join(''), raw.join('')]);
+			return /** @type {const} */ ([string.join(''), raw.join(''), start]);
 		});
 
 		const rRawString = $.RULE('rawString', () => {
@@ -360,18 +410,20 @@ export class KdlParser extends EmbeddedActionsParser {
 		 */
 		this.value;
 		const rValue = $.RULE('value', () => {
-			const value = /** @type {[Value['value'], string]} */ (
-				$.OR([
-					{ALT: () => $.SUBRULE(rBoolean)},
-					{ALT: () => $.SUBRULE(rNull)},
-					{ALT: () => $.SUBRULE(rNumber)},
-					{ALT: () => $.SUBRULE(rString)},
-					{ALT: () => $.SUBRULE(rRawString)},
-				])
-			);
+			const value =
+				/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
+					$.OR([
+						{ALT: () => $.SUBRULE(rBoolean)},
+						{ALT: () => $.SUBRULE(rNull)},
+						{ALT: () => $.SUBRULE(rNumber)},
+						{ALT: () => $.SUBRULE(rString)},
+						{ALT: () => $.SUBRULE(rRawString)},
+					])
+				);
 
 			const result = new Value(value[0]);
 			result.representation = value[1];
+			this.#storeLocation(result, value[2]);
 			return result;
 		});
 
@@ -386,18 +438,23 @@ export class KdlParser extends EmbeddedActionsParser {
 						const name = $.CONSUME(plainIdentifier).image;
 						const result = new Identifier(name);
 						result.representation = name;
+						this.#storeLocation(result);
 						return result;
 					},
 				},
 				{
 					ALT: () => {
-						const name = $.OR1([
-							{ALT: () => $.SUBRULE(rString)},
-							{ALT: () => $.SUBRULE(rRawString)},
-						]);
+						const name =
+							/** @type {[string, string, import('chevrotain').IToken?]} */ (
+								$.OR1([
+									{ALT: () => $.SUBRULE(rString)},
+									{ALT: () => $.SUBRULE(rRawString)},
+								])
+							);
 
 						const result = new Identifier(name[0]);
 						result.representation = name[1];
+						this.#storeLocation(result, name[2]);
 						return result;
 					},
 				},
@@ -446,10 +503,12 @@ export class KdlParser extends EmbeddedActionsParser {
 		const rEntryWithLeading = $.RULE('entryWithLeading', () => {
 			/** @type {string[]} */
 			const leading = [];
+			const start = $.LA(1);
 
 			$.AT_LEAST_ONE(() => leading.push($.SUBRULE(rNodeSpace)));
 
 			const entry = $.SUBRULE(rEntry);
+			this.#storeLocation(entry, start);
 
 			return $.ACTION(() => {
 				entry.leading = leading.join('');
@@ -460,10 +519,12 @@ export class KdlParser extends EmbeddedActionsParser {
 		this.entryWithOptionalLeading = $.RULE('entryWithOptionalLeading', () => {
 			/** @type {string[]} */
 			const leading = [];
+			const start = $.LA(1);
 
 			$.MANY(() => leading.push($.SUBRULE(rNodeSpace)));
 
 			const entry = $.SUBRULE(rEntry);
+			this.#storeLocation(entry, start);
 
 			return $.ACTION(() => {
 				entry.leading = leading.join('');
@@ -476,6 +537,7 @@ export class KdlParser extends EmbeddedActionsParser {
 		 */
 		this.node;
 		const rNode = $.RULE('node', () => {
+			const start = $.LA(1);
 			const leading = $.SUBRULE(rAllWhitespace);
 
 			const tag = $.OPTION(() => $.SUBRULE(rTag));
@@ -521,6 +583,7 @@ export class KdlParser extends EmbeddedActionsParser {
 			node.leading = leading;
 			node.trailing = trailing.join('');
 			node.tag = tag ?? null;
+			this.#storeLocation(node, start);
 
 			return $.ACTION(() => {
 				if (children) {
@@ -542,9 +605,13 @@ export class KdlParser extends EmbeddedActionsParser {
 		const rChildrenWithLeading = $.RULE('childrenWithLeading', () => {
 			/** @type {string[]} */
 			const before = [];
+			const start = $.LA(1);
 			$.AT_LEAST_ONE(() => before.push($.SUBRULE(rNodeSpace)));
 
-			return /** @type {const} */ ([before.join(''), $.SUBRULE(rChildren)]);
+			const children = $.SUBRULE(rChildren);
+			this.#storeLocation(children, start);
+
+			return /** @type {const} */ ([before.join(''), children]);
 		});
 
 		/**
@@ -552,6 +619,7 @@ export class KdlParser extends EmbeddedActionsParser {
 		 */
 		this.document;
 		const rDocument = $.RULE('document', () => {
+			const start = $.LA(1);
 			const leading = $.SUBRULE(rAllWhitespace);
 			/** @type {Node[]} */
 			const nodes = [];
@@ -564,6 +632,7 @@ export class KdlParser extends EmbeddedActionsParser {
 			const document = new Document(nodes);
 			document.leading = leading;
 			document.trailing = trailing;
+			this.#storeLocation(document, start);
 
 			return document;
 		});

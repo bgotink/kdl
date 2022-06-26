@@ -56,8 +56,9 @@ const methods = /** @type {const} */ ({
  * @param {string} text
  * @param {object} [options]
  * @param {'value' | 'identifier' | 'entry' | 'node' | 'document'} [options.as]
+ * @param {boolean} [options.storeLocations]
  */
-export function parse(text, {as = 'document'} = {}) {
+export function parse(text, {as = 'document', storeLocations = false} = {}) {
 	/**
 	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document>}
 	 */
@@ -83,6 +84,7 @@ export function parse(text, {as = 'document'} = {}) {
 
 	// console.log(tokens.map(t => ({name: t.tokenType.name, content: t.image})));
 	parser.input = tokens;
+	parser.storeLocationInfo = storeLocations;
 	const document = parserMethod.call(parser);
 
 	if (parser.errors.length === 1) {

@@ -18,34 +18,49 @@ type ParserTarget = keyof ParserResult;
  * The text should not contain anything other than the value, i.e. no leading
  * or trailing whitespace, no comments, no tags.
  */
-export function parse(text: string, options: {as: 'value'}): Value;
+export function parse(
+	text: string,
+	options: {as: 'value'; storeLocations?: boolean},
+): Value;
 /**
  * Parse the given text as a identifier.
  *
  * The text should not contain anything other than the identifier, i.e. no leading
  * or trailing whitespace, no comments, no tags.
  */
-export function parse(text: string, options: {as: 'identifier'}): Identifier;
+export function parse(
+	text: string,
+	options: {as: 'identifier'; storeLocations?: boolean},
+): Identifier;
 /**
  * Parse the given text as an entry.
  *
  * The text can contain extra whitespace, tags, and comments (though no slashdash
  * comments of entire nodes)
  */
-export function parse(text: string, options: {as: 'entry'}): Entry;
+export function parse(
+	text: string,
+	options: {as: 'entry'; storeLocations?: boolean},
+): Entry;
 /**
  * Parse the given text as a node.
  *
  * The text can contain extra whitespace, tags, and comments.
  */
-export function parse(text: string, options: {as: 'node'}): Node;
+export function parse(
+	text: string,
+	options: {as: 'node'; storeLocations?: boolean},
+): Node;
 /**
  * Parse the given text as a document.
  *
  * The text can contain extra whitespace, tags, and comments.
  */
-export function parse(text: string, options?: {as?: 'document'}): Document;
+export function parse(
+	text: string,
+	options?: {as?: 'document'; storeLocations?: boolean},
+): Document;
 export function parse<T extends ParserTarget>(
 	text: string,
-	options: {as: T},
+	options: {as: T; storeLocations?: boolean},
 ): ParserResult[T];

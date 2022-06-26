@@ -8,6 +8,8 @@ export const inlineWhitespace = createToken({
 	pattern: reInlineWhitespace,
 });
 
+export const reContainsNewLine = /[\x0A\x0C\x0D\x85\u2028\u2029]/;
+
 export const newLine = createToken({
 	name: 'NewLine',
 	pattern: /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/,
