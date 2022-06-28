@@ -500,22 +500,6 @@ export class KdlParser extends EmbeddedActionsParser {
 			]),
 		);
 
-		const rEntryWithLeading = $.RULE('entryWithLeading', () => {
-			/** @type {string[]} */
-			const leading = [];
-			const start = $.LA(1);
-
-			$.AT_LEAST_ONE(() => leading.push($.SUBRULE(rNodeSpace)));
-
-			const entry = $.SUBRULE(rEntry);
-			this.#storeLocation(entry, start);
-
-			return $.ACTION(() => {
-				entry.leading = leading.join('');
-				return entry;
-			});
-		});
-
 		this.entryWithOptionalLeading = $.RULE('entryWithOptionalLeading', () => {
 			/** @type {string[]} */
 			const leading = [];
@@ -546,20 +530,41 @@ export class KdlParser extends EmbeddedActionsParser {
 			/** @type {Entry[]} */
 			const entries = [];
 
+			let startOfTrailing = $.LA(1);
+			/** @type {string[]} */
+			let trailing = [];
+
+			$.MANY1(() => trailing.push($.SUBRULE(rNodeSpace)));
+
 			$.MANY({
-				GATE: $.BACKTRACK(rEntryWithLeading),
-				DEF: () => entries.push($.SUBRULE(rEntryWithLeading)),
+				GATE: () => trailing.length > 0,
+				DEF: () => {
+					const entry = $.SUBRULE(rEntry);
+					$.ACTION(() => (entry.leading = trailing.join('')));
+					this.#storeLocation(entry, startOfTrailing);
+					entries.push(entry);
+
+					startOfTrailing = $.LA(1);
+					trailing = [];
+
+					$.MANY2(() => trailing.push($.SUBRULE1(rNodeSpace)));
+				},
 			});
 
 			const children = $.OPTION1({
-				GATE: $.BACKTRACK(rChildrenWithLeading),
-				DEF: () => $.SUBRULE(rChildrenWithLeading),
+				GATE: () => trailing.length > 0,
+				DEF: () => {
+					const children = $.SUBRULE(rChildren);
+					this.#storeLocation(children, startOfTrailing);
+
+					const beforeChildren = trailing.join('');
+					trailing = [];
+
+					$.MANY3(() => trailing.push($.SUBRULE2(rNodeSpace)));
+
+					return /** @type {const} */ ([beforeChildren, children]);
+				},
 			});
-
-			/** @type {string[]} */
-			const trailing = [];
-
-			$.MANY1(() => trailing.push($.SUBRULE(rNodeSpace)));
 
 			trailing.push(
 				$.OR([
@@ -602,18 +607,6 @@ export class KdlParser extends EmbeddedActionsParser {
 			return children;
 		});
 
-		const rChildrenWithLeading = $.RULE('childrenWithLeading', () => {
-			/** @type {string[]} */
-			const before = [];
-			const start = $.LA(1);
-			$.AT_LEAST_ONE(() => before.push($.SUBRULE(rNodeSpace)));
-
-			const children = $.SUBRULE(rChildren);
-			this.#storeLocation(children, start);
-
-			return /** @type {const} */ ([before.join(''), children]);
-		});
-
 		/**
 		 * @type {import('chevrotain').ParserMethod<[], Document>}
 		 */
@@ -621,12 +614,11 @@ export class KdlParser extends EmbeddedActionsParser {
 		const rDocument = $.RULE('document', () => {
 			const start = $.LA(1);
 			const leading = $.SUBRULE(rAllWhitespace);
+
 			/** @type {Node[]} */
 			const nodes = [];
-			$.MANY({
-				GATE: $.BACKTRACK(rNode),
-				DEF: () => nodes.push($.SUBRULE(rNode)),
-			});
+			$.MANY(() => nodes.push($.SUBRULE(rNode)));
+
 			const trailing = $.SUBRULE1(rAllWhitespace);
 
 			const document = new Document(nodes);
