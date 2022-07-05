@@ -62,7 +62,7 @@ const methods = /** @type {const} */ ({
  */
 export function parse(text, {as = 'document', storeLocations = false} = {}) {
 	/**
-	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document | string[]>}
+	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document | (import('./model.js').Comment | import('./model.js').Whitespace)[]>}
 	 */
 	const parserMethod = methods[as];
 	if (parserMethod == null) {

@@ -2,7 +2,15 @@ import {EmbeddedActionsParser, EOF, Lexer} from 'chevrotain';
 import {format} from './format.js';
 import {storeLocation} from './locations.js';
 
-import {Document, Entry, Identifier, Node, Value} from './model.js';
+import {
+	Comment,
+	Document,
+	Entry,
+	Identifier,
+	Node,
+	Value,
+	Whitespace,
+} from './model.js';
 
 import {plainIdentifier} from './tokens/identifier.js';
 import {
@@ -630,16 +638,23 @@ export class KdlParser extends EmbeddedActionsParser {
 		});
 
 		this.whiteSpacePartsInDocument = $.RULE('whiteSpacePartsInDocument', () => {
-			/** @type {string[]} */
+			/** @type {(Comment | Whitespace)[]} */
 			const parts = [];
 
 			$.MANY(() =>
 				parts.push(
 					$.OR([
-						{ALT: () => $.CONSUME(inlineWhitespace).image},
-						{ALT: () => $.CONSUME(escLine).image},
-						{ALT: () => $.SUBRULE(rMultilineComment)},
-						{ALT: () => $.SUBRULE(rSinglelineComment)},
+						{
+							ALT: () =>
+								new Whitespace('space', $.CONSUME(inlineWhitespace).image),
+						},
+						{
+							ALT: () =>
+								new Whitespace('line-escape', $.CONSUME(escLine).image),
+						},
+						{ALT: () => new Whitespace('newline', $.CONSUME(newLine).image)},
+						{ALT: () => new Comment($.SUBRULE(rMultilineComment))},
+						{ALT: () => new Comment($.SUBRULE(rSinglelineComment))},
 						{
 							ALT: () => {
 								const content = [$.CONSUME(slashDash).image];
@@ -647,7 +662,9 @@ export class KdlParser extends EmbeddedActionsParser {
 								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
 								const value = $.SUBRULE(rNode);
 
-								return $.ACTION(() => content.join('') + format(value));
+								return $.ACTION(
+									() => new Comment(content.join('') + format(value)),
+								);
 							},
 						},
 					]),
@@ -658,41 +675,59 @@ export class KdlParser extends EmbeddedActionsParser {
 		});
 
 		this.whiteSpacePartsInNode = $.RULE('whiteSpacePartsInNode', () => {
-			/** @type {string[]} */
+			/** @type {(Comment | Whitespace)[]} */
 			const parts = [];
 
 			$.MANY(() =>
 				parts.push(
 					$.OR([
-						{ALT: () => $.CONSUME(inlineWhitespace).image},
-						{ALT: () => $.CONSUME(escLine).image},
-						{ALT: () => $.CONSUME(newLine).image},
-						{ALT: () => $.SUBRULE(rMultilineComment)},
-						{ALT: () => $.SUBRULE(rSinglelineComment)},
+						{
+							ALT: () =>
+								new Whitespace('space', $.CONSUME(inlineWhitespace).image),
+						},
+						{
+							ALT: () => {
+								const content = [$.CONSUME(escLine).image];
+
+								$.OPTION(() => {
+									$.OPTION1(() =>
+										content.push($.CONSUME1(inlineWhitespace).image),
+									);
+
+									content.push($.CONSUME(newLine).image);
+								});
+
+								return new Whitespace('line-escape', content.join(''));
+							},
+						},
+						{ALT: () => new Comment($.SUBRULE(rMultilineComment))},
+						{ALT: () => new Comment($.SUBRULE(rSinglelineComment))},
 						{
 							ALT: () => {
 								const content = [$.CONSUME(slashDash).image];
 
 								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
 
-								return (
+								return new Comment(
 									content.join('') +
-									$.OR1([
-										{
-											ALT: () => {
-												const entry = $.SUBRULE(rEntry);
-												// slice(1) to cut off the leading space added by format
-												return $.ACTION(() => format(entry).slice(1));
+										$.OR1([
+											{
+												ALT: () => {
+													const entry = $.SUBRULE(rEntry);
+													// slice(1) to cut off the leading space added by format
+													return $.ACTION(() => format(entry).slice(1));
+												},
 											},
-										},
-										{
-											ALT: () => {
-												const children = $.SUBRULE(rChildren);
-												// slice(1) to cut off the leading space added by format
-												return $.ACTION(() => `{${format(children).slice(1)}}`);
+											{
+												ALT: () => {
+													const children = $.SUBRULE(rChildren);
+													// slice(1) to cut off the leading space added by format
+													return $.ACTION(
+														() => `{${format(children).slice(1)}}`,
+													);
+												},
 											},
-										},
-									])
+										]),
 								);
 							},
 						},

@@ -1,5 +1,5 @@
 import {InvalidKdlError} from './index.js';
-import {Document, Entry, Identifier, kKind, Node, Value} from './model.js';
+import {Document, Entry, Identifier, Node, Value} from './model.js';
 
 /**
  * @param {Value} value
@@ -91,11 +91,11 @@ function clearFormatDocument(document) {
 
 const clearFormatters = new Map(
 	/** @type {[string, (value: any) => void][]} */ ([
-		[Value[kKind], clearFormatValue],
-		[Identifier[kKind], clearFormatIdentifier],
-		[Entry[kKind], clearFormatEntry],
-		[Node[kKind], clearFormatNode],
-		[Document[kKind], clearFormatDocument],
+		[Value.type, clearFormatValue],
+		[Identifier.type, clearFormatIdentifier],
+		[Entry.type, clearFormatEntry],
+		[Node.type, clearFormatNode],
+		[Document.type, clearFormatDocument],
 	]),
 );
 
@@ -105,7 +105,7 @@ const clearFormatters = new Map(
  * @returns {T}
  */
 export function clearFormat(v) {
-	const clearFormatter = clearFormatters.get(v[kKind]);
+	const clearFormatter = clearFormatters.get(v.type);
 	if (clearFormatter == null) {
 		throw new InvalidKdlError(`Cannot clear formatting on non-KDL ${v}`);
 	}

@@ -1,5 +1,5 @@
 import {InvalidKdlError} from './index.js';
-import {Document, Entry, Identifier, kKind, Node, Value} from './model.js';
+import {Document, Entry, Identifier, Node, Value} from './model.js';
 import {plainIdentifierRe} from './tokens/identifier.js';
 import {reInlineWhitespace} from './tokens/whitespace.js';
 
@@ -95,11 +95,11 @@ function formatDocument(document, indentation) {
 
 const formatters = new Map(
 	/** @type {[string, (value: any, indentation: number) => string][]} */ ([
-		[Value[kKind], formatValue],
-		[Identifier[kKind], formatIdentifier],
-		[Entry[kKind], formatEntry],
-		[Node[kKind], formatNode],
-		[Document[kKind], formatDocument],
+		[Value.type, formatValue],
+		[Identifier.type, formatIdentifier],
+		[Entry.type, formatEntry],
+		[Node.type, formatNode],
+		[Document.type, formatDocument],
 	]),
 );
 
@@ -108,7 +108,7 @@ const formatters = new Map(
  * @returns {string}
  */
 export function format(v) {
-	const formatter = formatters.get(v[kKind]);
+	const formatter = formatters.get(v.type);
 	if (formatter == null) {
 		throw new InvalidKdlError(`Cannot format non-KDL ${v}`);
 	}

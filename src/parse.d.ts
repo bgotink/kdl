@@ -1,4 +1,12 @@
-import type {Value, Identifier, Entry, Node, Document} from './model.js';
+import type {
+	Comment,
+	Document,
+	Entry,
+	Identifier,
+	Node,
+	Value,
+	Whitespace,
+} from './model.js';
 
 export class InvalidKdlError extends Error {}
 
@@ -8,8 +16,8 @@ interface ParserResult {
 	entry: Entry;
 	node: Node;
 	document: Document;
-	['whitespace in node']: string[];
-	['whitespace in document']: string[];
+	['whitespace in node']: (Comment | Whitespace)[];
+	['whitespace in document']: (Comment | Whitespace)[];
 }
 
 type ParserTarget = keyof ParserResult;
@@ -76,7 +84,7 @@ export function parse(
 export function parse(
 	text: string,
 	options?: {as: 'whitespace in node'},
-): string[];
+): (Comment | Whitespace)[];
 /**
  * Split the given whitespace text outside of a node (e.g. between two nodes) into parts
  *
@@ -91,7 +99,7 @@ export function parse(
 export function parse(
 	text: string,
 	options?: {as: 'whitespace in document'},
-): string[];
+): (Comment | Whitespace)[];
 export function parse<T extends ParserTarget>(
 	text: string,
 	options: {as: T; storeLocations?: boolean},
