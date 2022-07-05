@@ -88,9 +88,11 @@ function formatNode(node, indentation) {
  * @returns {string}
  */
 function formatDocument(document, indentation) {
-	return `${document.leading ?? (indentation ? '\n' : '')}${document.nodes
-		.map(node => formatNode(node, indentation))
-		.join('')}${document.trailing ?? '\t'.repeat((indentation || 1) - 1)}`;
+	return `${
+		document.nodes[0]?.leading == null && indentation ? '\n' : ''
+	}${document.nodes.map(node => formatNode(node, indentation)).join('')}${
+		document.trailing ?? '\t'.repeat((indentation || 1) - 1)
+	}`;
 }
 
 const formatters = new Map(

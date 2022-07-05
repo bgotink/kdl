@@ -16,7 +16,6 @@ node "value" r"value too" 2 0b10_10 0xfF null \
 		root.children
 	);
 	expect(getIndentation(root)).toBe('');
-	expect(children.leading).toBe('');
 	expect(getIndentation(children.nodes[0])).toBe('\t');
 	expect(getIndentation(children.nodes[1])).toBe(null);
 	expect(getIndentation(children.nodes[2])).toBe(null);

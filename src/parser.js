@@ -577,14 +577,7 @@ export class KdlParser extends EmbeddedActionsParser {
 			trailing.push(
 				$.OR([
 					{
-						ALT: () =>
-							$.CONSUME(semicolon).image +
-								$.OPTION2(() =>
-									$.OR1([
-										{ALT: () => $.SUBRULE(rLinespace)},
-										{ALT: () => $.CONSUME(EOF).image},
-									]),
-								) ?? '',
+						ALT: () => $.CONSUME(semicolon).image,
 					},
 					{ALT: () => $.CONSUME(newLine).image},
 					{ALT: () => $.SUBRULE(rSinglelineComment)},
@@ -627,14 +620,21 @@ export class KdlParser extends EmbeddedActionsParser {
 			const nodes = [];
 			$.MANY(() => nodes.push($.SUBRULE(rNode)));
 
-			const trailing = $.SUBRULE1(rAllWhitespace);
+			let trailing = $.SUBRULE1(rAllWhitespace);
 
-			const document = new Document(nodes);
-			document.leading = leading;
-			document.trailing = trailing;
-			this.#storeLocation(document, start);
+			return $.ACTION(() => {
+				if (nodes.length === 0) {
+					trailing = leading + trailing;
+				} else {
+					nodes[0].leading = leading + nodes[0].leading;
+				}
 
-			return document;
+				const document = new Document(nodes);
+				document.trailing = trailing;
+				this.#storeLocation(document, start);
+
+				return document;
+			});
 		});
 
 		this.whiteSpacePartsInDocument = $.RULE('whiteSpacePartsInDocument', () => {

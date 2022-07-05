@@ -81,7 +81,6 @@ function clearFormatNode(node) {
  * @returns {void}
  */
 function clearFormatDocument(document) {
-	document.leading = undefined;
 	document.trailing = undefined;
 
 	for (const node of document.nodes) {

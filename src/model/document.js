@@ -30,13 +30,6 @@ export class Document {
 	nodes;
 
 	/**
-	 * Leading whitespace
-	 *
-	 * @type {string=}
-	 */
-	leading;
-
-	/**
 	 * Trailing whitespace
 	 *
 	 * @type {string=}
@@ -58,7 +51,6 @@ export class Document {
 	clone() {
 		const clone = new Document(this.nodes.map(node => node.clone()));
 
-		clone.leading = this.leading;
 		clone.trailing = this.trailing;
 
 		return clone;

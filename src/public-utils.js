@@ -1,3 +1,4 @@
+import {reverseIterate} from './model/utils.js';
 import {parse} from './parse.js';
 import {reEndsWithNewline} from './tokens/whitespace.js';
 
@@ -20,16 +21,16 @@ export function getIndentation(node) {
 	/** @type {string[]} */
 	const indentation = [];
 
-	for (let i = parts.length - 1; i >= 0; i++) {
-		switch (parts[i].type) {
+	for (const part of reverseIterate(parts)) {
+		switch (part.type) {
 			case 'space':
-				indentation.push(parts[i].content);
+				indentation.push(part.content);
 				break;
 			case 'newline':
 			case 'singleline':
 				return indentation.join('');
 			case 'slashdash':
-				if (reEndsWithNewline.test(parts[i].content)) {
+				if (reEndsWithNewline.test(part.content)) {
 					return indentation.join('');
 				}
 			// fall through
