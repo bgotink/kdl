@@ -426,7 +426,7 @@ export class Node {
 	 * @returns {boolean}
 	 */
 	hasChildren() {
-		return !this.children?.isEmpty();
+		return this.children != null && !this.children.isEmpty();
 	}
 
 	/**
