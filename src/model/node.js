@@ -323,15 +323,15 @@ export class Node {
 	/**
 	 * Return a snapshot of all properties of this node
 	 *
-	 * Changes to the returned array are not reflected back onto this node
-	 * itself, and updates to the node won't reflect in the returned array.
+	 * Changes to the returned object are not reflected back onto this node
+	 * itself, and updates to the node won't reflect in the returned object.
 	 *
 	 * @returns {Map<string, Value['value']>}
 	 */
 	getProperties() {
 		return new Map(
 			this.getPropertyEntries().map(entry => [
-				/** @type {string} */ (entry.getValue()),
+				/** @type {string} */ (entry.getName()),
 				entry.getValue(),
 			]),
 		);
