@@ -47,8 +47,8 @@ function stringifyTokenOffset(offset) {
 const methods = /** @type {const} */ ({
 	value: parser.value,
 	identifier: parser.identifier,
-	node: parser.node,
-	entry: parser.entryWithOptionalLeading,
+	node: parser.nodeWithTrailing,
+	entry: parser.entryWithOptionalLeadingTrailing,
 	document: parser.document,
 	['whitespace in node']: parser.whiteSpacePartsInNode,
 	['whitespace in document']: parser.whiteSpacePartsInDocument,

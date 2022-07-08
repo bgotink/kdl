@@ -508,26 +508,31 @@ export class KdlParser extends EmbeddedActionsParser {
 			]),
 		);
 
-		this.entryWithOptionalLeading = $.RULE('entryWithOptionalLeading', () => {
-			/** @type {string[]} */
-			const leading = [];
-			const start = $.LA(1);
+		this.entryWithOptionalLeadingTrailing = $.RULE(
+			'entryWithOptionalLeadingTrailing',
+			() => {
+				/** @type {string[]} */
+				const leading = [];
+				/** @type {string[]} */
+				const trailing = [];
+				const start = $.LA(1);
 
-			$.MANY(() => leading.push($.SUBRULE(rNodeSpace)));
+				$.MANY(() => leading.push($.SUBRULE(rNodeSpace)));
 
-			const entry = $.SUBRULE(rEntry);
-			this.#storeLocation(entry, start);
+				const entry = $.SUBRULE(rEntry);
 
-			return $.ACTION(() => {
-				entry.leading = leading.join('');
-				return entry;
-			});
-		});
+				$.MANY1(() => trailing.push($.SUBRULE1(rNodeSpace)));
 
-		/**
-		 * @type {import('chevrotain').ParserMethod<[], Node>}
-		 */
-		this.node;
+				this.#storeLocation(entry, start);
+
+				return $.ACTION(() => {
+					entry.leading = leading.join('');
+					entry.trailing = trailing.join('');
+					return entry;
+				});
+			},
+		);
+
 		const rNode = $.RULE('node', () => {
 			const start = $.LA(1);
 			const leading = $.SUBRULE(rAllWhitespace);
@@ -596,6 +601,19 @@ export class KdlParser extends EmbeddedActionsParser {
 					[node.beforeChildren, node.children] = children;
 				}
 
+				return node;
+			});
+		});
+
+		/**
+		 * @type {import('chevrotain').ParserMethod<[], Node>}
+		 */
+		this.nodeWithTrailing = $.RULE('nodeWithTrailing', () => {
+			const node = $.SUBRULE(rNode);
+			const trailing = $.SUBRULE(rAllWhitespace);
+
+			return $.ACTION(() => {
+				node.trailing = trailing;
 				return node;
 			});
 		});
