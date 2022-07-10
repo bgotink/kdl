@@ -23,6 +23,15 @@ const knownBrokenTests = new Set([
 ]);
 
 /**
+ * Pass the given KDL text through parse() and then format()
+ *
+ * @param {string} text
+ */
+function roundTrip(text) {
+	return format(parse(text));
+}
+
+/**
  * Format the given KDL text in the format the upstream test suite expects.
  *
  * @param {string} text
@@ -116,6 +125,7 @@ for (const testCase of readdirSync(new URL('input', testCasesFolder))) {
 				expect(parseAndFormat(input)).toBe(expectedOutput);
 			}).toThrow();
 		} else {
+			expect(roundTrip(input)).toBe(input);
 			expect(parseAndFormat(input)).toBe(expectedOutput);
 		}
 	});

@@ -89,7 +89,11 @@ function formatNode(node, indentation) {
  */
 function formatDocument(document, indentation) {
 	return `${
-		document.nodes[0]?.leading == null && indentation ? '\n' : ''
+		document.nodes[0] != null &&
+		document.nodes[0].leading == null &&
+		indentation
+			? '\n'
+			: ''
 	}${document.nodes.map(node => formatNode(node, indentation)).join('')}${
 		document.trailing ?? '\t'.repeat((indentation || 1) - 1)
 	}`;

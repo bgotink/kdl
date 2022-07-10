@@ -628,9 +628,9 @@ export class KdlParser extends EmbeddedActionsParser {
 				this.#storeLocation(document, start);
 
 				if (nodes.length === 0) {
-					document.trailing = leading + trailing.join('');
+					document.trailing = leading.join('') + trailing.join('');
 				} else {
-					nodes[0].leading = leading + (nodes[0].leading ?? '');
+					nodes[0].leading = leading.join('') + (nodes[0].leading ?? '');
 					document.trailing = trailing.join('');
 				}
 
