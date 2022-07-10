@@ -41,6 +41,22 @@ expect(format(doc)).toBe(String.raw`
 `);
 ```
 
+## Quirks
+
+This package turns KDL documents into JavaScript objects and vice versa. It is therefore limited by the JavaScript language.
+
+### Properties
+
+Multiple properties with the same name are allowed. All duplicated will be preserved, meaning those documents will correctly round-trip. When using `node.getProperty()`/`node.getProperties()`/`node.getPropertyEntry()`, the last property with that name's value will be returned, effectively shadowing any earlier duplicates. Using `node.getPropertyEntries()`/`node.entries` does expose the shadowed duplicates, leaving it up to the caller to handle these. Passing the node through `clearFormat()` removes these shadowed duplicates.
+
+### Numbers
+
+JavaScript stores all numbers as 64-bit [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) floating point numbers. This limits what integer values can be used safely. These limits are lower than you might expect if you're used to working in environments that have a separate 64-bit integer data type.
+
+The original representation of parsed numbers is retained, unless `clearFormat` is called on the value or any entry/node/document containing the value.
+
+Numbers that evaluate to `Infinity`, `-Infinity`, or `NaN` will be represented as such in the value. While formatting the document will print the original representation, clearing the format of these values will result in an invalid KDL document.
+
 ## License & Notice
 
 This package is licensed under the MIT license, which can be found in `LICENSE.md`.
@@ -52,7 +68,7 @@ This package wouldn't be possible without software that other people graciously 
 The code in this package is heavily influenced by the [`kdl` crate][kdl-rs], available under the Apache 2.0 license.  
 Some token expressions have been copied out of the official [`kdljs`][kdljs] parser, available under the MIT license.
 
-This package bundles it dependencies when published to npm, which includes:
+This package bundles it dependencies when published to npm:
 
 - [Chevrotain](https://chevrotain.io/), available under the Apache 2.0 license  
   Copyright (c) 2021 the original author or authors from the Chevrotain project  
