@@ -38,4 +38,15 @@ test('issue #1: leading/trailing whitespace', () => {
 	).toEqual(Entry.createArgument('value'));
 });
 
+test('issue #3: slashdash children should count as children', () => {
+	expect(() => parse(String.raw`node /- {children;} {children;}`)).toThrow();
+	expect(() => parse(String.raw`node /- {children;} /- {children;}`)).toThrow();
+
+	expect(() => parse(String.raw`node /- {children;} "arg"`)).toThrow();
+	expect(() => parse(String.raw`node /- {children;} prop="value"`)).toThrow();
+
+	expect(() => parse(String.raw`node {children;} /- "arg"`)).toThrow();
+	expect(() => parse(String.raw`node {children;} /- prop="value"`)).toThrow();
+});
+
 test.run();

@@ -295,61 +295,13 @@ export class KdlParser extends EmbeddedActionsParser {
 			]),
 		);
 
-		const rInlineWhitespace = $.RULE('inlineWhitespace', () =>
-			$.OR({
-				DEF: [
-					{
-						ALT: () => {
-							/** @type {string[]} */
-							const parts = [];
-
-							$.AT_LEAST_ONE(() => parts.push($.SUBRULE(rWhitespace)));
-
-							return parts.join('');
-						},
-					},
-					{
-						ALT: () => {
-							/** @type {string[]} */
-							const parts = [];
-
-							$.AT_LEAST_ONE1(() => {
-								parts.push($.SUBRULE(rEscLine));
-								parts.push($.SUBRULE1(rWhitespace));
-							});
-
-							return parts.join('');
-						},
-					},
-				],
-				MAX_LOOKAHEAD: 1,
-			}),
-		);
-
 		const rLinespace = $.RULE('linespace', () =>
 			$.OR([
-				{ALT: () => $.CONSUME(inlineWhitespace).image},
+				{ALT: () => $.SUBRULE(rWhitespace)},
 				{ALT: () => $.CONSUME(newLine).image},
 				{ALT: () => $.SUBRULE(rSinglelineComment)},
 			]),
 		);
-
-		const rAllWhitespace = $.RULE('allWhitespace', () => {
-			/** @type {string[]} */
-			const parts = [];
-
-			$.MANY(() =>
-				parts.push(
-					$.OR([
-						{ALT: () => $.SUBRULE(rComment)},
-						{ALT: () => $.CONSUME(inlineWhitespace).image},
-						{ALT: () => $.CONSUME(newLine).image},
-					]),
-				),
-			);
-
-			return parts.join('');
-		});
 
 		const rEscLine = $.RULE('escline', () => {
 			const parts = [$.CONSUME(escLine).image];
@@ -366,51 +318,12 @@ export class KdlParser extends EmbeddedActionsParser {
 			return parts.join('');
 		});
 
-		const rSlashdashNode = $.RULE('slashdashNode', () => {
-			$.CONSUME(slashDash);
-			const node = $.SUBRULE(rNode);
-			return `/-${$.ACTION(() => format(node))}`;
-		});
+		const rTag = $.RULE('tag', () => {
+			$.CONSUME(openParenthesis);
+			const identifier = $.SUBRULE(rIdentifier);
+			$.CONSUME(closeParenthesis);
 
-		const rComment = $.RULE('comment', () =>
-			$.OR({
-				DEF: [
-					{ALT: () => $.SUBRULE(rSinglelineComment)},
-					{ALT: () => $.SUBRULE(rMultilineComment)},
-					{ALT: () => $.SUBRULE(rSlashdashNode)},
-				],
-				MAX_LOOKAHEAD: 1,
-			}),
-		);
-
-		const rNodeSpace = $.RULE('nodeSpace', () =>
-			$.OR({
-				DEF: [
-					{
-						ALT: () => $.SUBRULE(rInlineWhitespace),
-					},
-					{
-						ALT: () => $.SUBRULE(rSlashdashInNode),
-					},
-				],
-				MAX_LOOKAHEAD: 1,
-			}),
-		);
-
-		const rSlashdashInNode = $.RULE('slashdashInNode', () => {
-			const leading = [$.CONSUME(slashDash).image];
-
-			$.MANY(() => leading.push($.SUBRULE(rInlineWhitespace)));
-
-			/** @type {Entry | Document} */
-			const el = $.OR([
-				{ALT: () => $.SUBRULE(rEntry)},
-				{ALT: () => $.SUBRULE(rChildren)},
-			]);
-
-			// a leading whitespace is added to entry and children if none are set,
-			// remove it here
-			return $.ACTION(() => leading.join('') + format(el).slice(1));
+			return identifier;
 		});
 
 		/**
@@ -469,14 +382,6 @@ export class KdlParser extends EmbeddedActionsParser {
 			]),
 		);
 
-		const rTag = $.RULE('tag', () => {
-			$.CONSUME(openParenthesis);
-			const identifier = $.SUBRULE(rIdentifier);
-			$.CONSUME(closeParenthesis);
-
-			return identifier;
-		});
-
 		const rArgument = $.RULE('argument', () => {
 			const tag = $.OPTION(() => $.SUBRULE(rTag));
 			const value = $.SUBRULE(rValue);
@@ -508,34 +413,53 @@ export class KdlParser extends EmbeddedActionsParser {
 			]),
 		);
 
-		this.entryWithOptionalLeadingTrailing = $.RULE(
-			'entryWithOptionalLeadingTrailing',
-			() => {
-				/** @type {string[]} */
-				const leading = [];
-				/** @type {string[]} */
-				const trailing = [];
-				const start = $.LA(1);
+		this.entryWithSpace = $.RULE('entryWithOptionalLeadingTrailing', () => {
+			/** @type {string[]} */
+			const leading = [];
+			/** @type {string[]} */
+			const trailing = [];
+			const start = $.LA(1);
 
-				$.MANY(() => leading.push($.SUBRULE(rNodeSpace)));
-
-				const entry = $.SUBRULE(rEntry);
-
-				$.MANY1(() => trailing.push($.SUBRULE1(rNodeSpace)));
-
-				this.#storeLocation(entry, start);
-
-				return $.ACTION(() => {
-					entry.leading = leading.join('');
-					entry.trailing = trailing.join('');
-					return entry;
+			$.MANY(() => {
+				$.OPTION(() => {
+					leading.push($.SUBRULE(rSlashDash));
+					const commentedEntry = $.SUBRULE(rEntry);
+					leading.push($.ACTION(() => format(commentedEntry).slice(1)));
 				});
-			},
+
+				leading.push($.SUBRULE(rNodeSpace));
+			});
+
+			const entry = $.SUBRULE1(rEntry);
+
+			$.MANY1(() => trailing.push($.SUBRULE1(rNodeSpace)));
+
+			this.#storeLocation(entry, start);
+
+			return $.ACTION(() => {
+				entry.leading = leading.join('');
+				entry.trailing = trailing.join('');
+				return entry;
+			});
+		});
+
+		const rNodeSpace = $.RULE('nodeSpace', () =>
+			$.OR([
+				{ALT: () => $.SUBRULE(rWhitespace)},
+				{ALT: () => $.SUBRULE(rEscLine)},
+			]),
 		);
+
+		const rSlashDash = $.RULE('slashDash', () => {
+			const parts = [$.CONSUME(slashDash).image];
+
+			$.MANY(() => parts.push($.SUBRULE(rNodeSpace)));
+
+			return parts.join('');
+		});
 
 		const rNode = $.RULE('node', () => {
 			const start = $.LA(1);
-			const leading = $.SUBRULE(rAllWhitespace);
 
 			const tag = $.OPTION(() => $.SUBRULE(rTag));
 			const name = $.SUBRULE(rIdentifier);
@@ -547,36 +471,74 @@ export class KdlParser extends EmbeddedActionsParser {
 			/** @type {string[]} */
 			let trailing = [];
 
-			$.MANY1(() => trailing.push($.SUBRULE(rNodeSpace)));
+			let hasTrailing = false;
+			let slashDash = false;
 
-			$.MANY({
-				GATE: () => trailing.length > 0,
+			$.MANY(() => {
+				trailing.push($.SUBRULE(rNodeSpace));
+				hasTrailing = true;
+			});
+			$.OPTION1(() => {
+				trailing.push($.SUBRULE(rSlashDash));
+				slashDash = true;
+			});
+
+			$.MANY1({
+				GATE: () => hasTrailing,
 				DEF: () => {
 					const entry = $.SUBRULE(rEntry);
-					$.ACTION(() => (entry.leading = trailing.join('')));
-					this.#storeLocation(entry, startOfTrailing);
-					entries.push(entry);
+
+					$.ACTION(() => {
+						if (slashDash) {
+							trailing.push(format(entry).slice(1));
+							slashDash = false;
+							return;
+						}
+
+						entry.leading = trailing.join('');
+						trailing = [];
+
+						this.#storeLocation(entry, startOfTrailing);
+						entries.push(entry);
+					});
 
 					startOfTrailing = $.LA(1);
-					trailing = [];
 
-					$.MANY2(() => trailing.push($.SUBRULE1(rNodeSpace)));
+					hasTrailing = false;
+					$.MANY2(() => {
+						trailing.push($.SUBRULE1(rNodeSpace));
+						hasTrailing = true;
+					});
+					$.OPTION2(() => {
+						trailing.push($.SUBRULE1(rSlashDash));
+						slashDash = true;
+					});
 				},
 			});
 
-			const children = $.OPTION1({
-				GATE: () => trailing.length > 0,
-				DEF: () => {
-					const children = $.SUBRULE(rChildren);
-					this.#storeLocation(children, startOfTrailing);
+			const children = $.OPTION3(() => {
+				$.CONSUME(openBrace);
+				const children = $.SUBRULE(rDocument);
+				$.CONSUME(closeBrace);
 
-					const beforeChildren = trailing.join('');
-					trailing = [];
+				/** @type {string[]} */
+				const afterChildren = [];
+				$.MANY3(() => afterChildren.push($.SUBRULE2(rNodeSpace)));
 
-					$.MANY3(() => trailing.push($.SUBRULE2(rNodeSpace)));
+				return $.ACTION(() => {
+					if (slashDash) {
+						trailing.push(`{${format(children)}}`, afterChildren.join(''));
 
-					return /** @type {const} */ ([beforeChildren, children]);
-				},
+						return undefined;
+					} else {
+						this.#storeLocation(children, startOfTrailing);
+
+						const beforeChildren = trailing.join('');
+						trailing = afterChildren;
+
+						return /** @type {const} */ ([beforeChildren, children]);
+					}
+				});
 			});
 
 			trailing.push(
@@ -591,7 +553,6 @@ export class KdlParser extends EmbeddedActionsParser {
 			);
 
 			const node = new Node(name, entries);
-			node.leading = leading;
 			node.trailing = trailing.join('');
 			node.tag = tag ?? null;
 			this.#storeLocation(node, start);
@@ -608,22 +569,22 @@ export class KdlParser extends EmbeddedActionsParser {
 		/**
 		 * @type {import('chevrotain').ParserMethod<[], Node>}
 		 */
-		this.nodeWithTrailing = $.RULE('nodeWithTrailing', () => {
+		this.nodeWithSpace = $.RULE('nodeWithSpace', () => {
+			/** @type {string[]} */
+			const leading = [];
+			$.MANY(() => leading.push($.SUBRULE(rLinespace)));
+
 			const node = $.SUBRULE(rNode);
-			const trailing = $.SUBRULE(rAllWhitespace);
+
+			/** @type {string[]} */
+			const trailing = [];
+			$.MANY1(() => trailing.push($.SUBRULE1(rLinespace)));
 
 			return $.ACTION(() => {
-				node.trailing = trailing;
+				node.leading = `${leading.join('')}${node.leading ?? ''}`;
+				node.trailing = `${node.trailing ?? ''}${trailing.join('')}`;
 				return node;
 			});
-		});
-
-		const rChildren = $.RULE('children', () => {
-			$.CONSUME(openBrace);
-			const children = $.SUBRULE(rDocument);
-			$.CONSUME(closeBrace);
-
-			return children;
 		});
 
 		/**
@@ -632,24 +593,46 @@ export class KdlParser extends EmbeddedActionsParser {
 		this.document;
 		const rDocument = $.RULE('document', () => {
 			const start = $.LA(1);
-			const leading = $.SUBRULE(rAllWhitespace);
+			/** @type {string[]} */
+			let leading = [];
+
+			$.MANY(() => leading.push($.SUBRULE(rLinespace)));
 
 			/** @type {Node[]} */
 			const nodes = [];
-			$.MANY(() => nodes.push($.SUBRULE(rNode)));
 
-			let trailing = $.SUBRULE1(rAllWhitespace);
+			$.MANY1(() => {
+				$.MANY2(() => leading.push($.SUBRULE1(rLinespace)));
+
+				const slashDash = $.OPTION(() => $.SUBRULE(rSlashDash));
+
+				const node = $.SUBRULE(rNode);
+
+				$.ACTION(() => {
+					if (slashDash) {
+						leading.push(slashDash, format(node));
+					} else {
+						node.leading = leading.join('');
+						leading = [];
+						nodes.push(node);
+					}
+				});
+			});
+
+			/** @type {string[]} */
+			const trailing = [];
+			$.MANY3(() => trailing.push($.SUBRULE2(rLinespace)));
 
 			return $.ACTION(() => {
-				if (nodes.length === 0) {
-					trailing = leading + trailing;
-				} else {
-					nodes[0].leading = leading + nodes[0].leading;
-				}
-
 				const document = new Document(nodes);
-				document.trailing = trailing;
 				this.#storeLocation(document, start);
+
+				if (nodes.length === 0) {
+					document.trailing = leading + trailing.join('');
+				} else {
+					nodes[0].leading = leading + (nodes[0].leading ?? '');
+					document.trailing = trailing.join('');
+				}
 
 				return document;
 			});
@@ -677,7 +660,7 @@ export class KdlParser extends EmbeddedActionsParser {
 							ALT: () => {
 								const content = [$.CONSUME(slashDash).image];
 
-								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
+								$.MANY1(() => content.push($.SUBRULE(rWhitespace)));
 								const value = $.SUBRULE(rNode);
 
 								return $.ACTION(
@@ -724,7 +707,7 @@ export class KdlParser extends EmbeddedActionsParser {
 							ALT: () => {
 								const content = [$.CONSUME(slashDash).image];
 
-								$.MANY1(() => content.push($.SUBRULE(rInlineWhitespace)));
+								$.MANY1(() => content.push($.SUBRULE(rWhitespace)));
 
 								return new Comment(
 									content.join('') +
@@ -738,7 +721,10 @@ export class KdlParser extends EmbeddedActionsParser {
 											},
 											{
 												ALT: () => {
-													const children = $.SUBRULE(rChildren);
+													$.CONSUME(openBrace);
+													const children = $.SUBRULE(rDocument);
+													$.CONSUME(closeBrace);
+
 													// slice(1) to cut off the leading space added by format
 													return $.ACTION(
 														() => `{${format(children).slice(1)}}`,
