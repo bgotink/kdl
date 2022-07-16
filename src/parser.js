@@ -1,6 +1,6 @@
 import {EmbeddedActionsParser, EOF, Lexer} from 'chevrotain';
 import {format} from './format.js';
-import {storeLocation} from './locations.js';
+import {getLocation, storeLocation} from './locations.js';
 
 import {
 	Comment,
@@ -113,42 +113,44 @@ export class KdlParser extends EmbeddedActionsParser {
 	 * @param {import('chevrotain').IToken} [start]
 	 */
 	#storeLocation(el, start) {
-		if (this.storeLocationInfo) {
-			const end = this.LA(0);
-			if (start == null) {
-				start = end;
-			}
+		if (!this.storeLocationInfo) {
+			return;
+		}
 
-			if (isNaN(end.startOffset)) {
-				// startOffset is NaN if we reached the end of our file
-				const beforeEnd = this.LA(-1);
-				const singleLine = !reContainsNewLine.test(beforeEnd.image);
+		const end = this.LA(0);
+		if (start == null) {
+			start = end;
+		}
 
-				storeLocation(el, {
-					startOffset: start.startOffset,
-					startLine: start.startLine,
-					startColumn: start.startColumn,
-
-					endOffset: beforeEnd.startOffset + beforeEnd.image.length,
-					endLine: singleLine ? beforeEnd.startLine : undefined,
-					endColumn:
-						singleLine && beforeEnd.startColumn != null
-							? beforeEnd.startColumn + beforeEnd.image.length - 1
-							: undefined,
-				});
-				return;
-			}
+		if (isNaN(end.startOffset)) {
+			// startOffset is NaN if we reached the end of our file
+			const beforeEnd = this.LA(-1);
+			const singleLine = !reContainsNewLine.test(beforeEnd.image);
 
 			storeLocation(el, {
 				startOffset: start.startOffset,
 				startLine: start.startLine,
 				startColumn: start.startColumn,
 
-				endOffset: end.startOffset + end.image.length,
-				endLine: end.endLine,
-				endColumn: end.endColumn,
+				endOffset: beforeEnd.startOffset + beforeEnd.image.length,
+				endLine: singleLine ? beforeEnd.startLine : undefined,
+				endColumn:
+					singleLine && beforeEnd.startColumn != null
+						? beforeEnd.startColumn + beforeEnd.image.length - 1
+						: undefined,
 			});
+			return;
 		}
+
+		storeLocation(el, {
+			startOffset: start.startOffset,
+			startLine: start.startLine,
+			startColumn: start.startColumn,
+
+			endOffset: end.startOffset + end.image.length,
+			endLine: end.endLine,
+			endColumn: end.endColumn,
+		});
 	}
 
 	constructor() {
@@ -348,70 +350,136 @@ export class KdlParser extends EmbeddedActionsParser {
 			return result;
 		});
 
+		const rPlainIdentifier = $.RULE('plainIdentifier', () => {
+			const name = $.CONSUME(plainIdentifier).image;
+			const result = new Identifier(name);
+			result.representation = name;
+			this.#storeLocation(result);
+			return result;
+		});
+
+		const rStringIdentifier = $.RULE('stringIdentifier', () => {
+			const name =
+				/** @type {[string, string, import('chevrotain').IToken?]} */ (
+					$.OR1([
+						{ALT: () => $.SUBRULE(rString)},
+						{ALT: () => $.SUBRULE(rRawString)},
+					])
+				);
+
+			const result = new Identifier(name[0]);
+			result.representation = name[1];
+			this.#storeLocation(result, name[2]);
+			return result;
+		});
+
 		/**
 		 * @type {import('chevrotain').ParserMethod<[], Identifier>}
 		 */
 		this.identifier;
 		const rIdentifier = $.RULE('identifier', () =>
 			$.OR([
-				{
-					ALT: () => {
-						const name = $.CONSUME(plainIdentifier).image;
-						const result = new Identifier(name);
-						result.representation = name;
-						this.#storeLocation(result);
-						return result;
-					},
-				},
-				{
-					ALT: () => {
-						const name =
-							/** @type {[string, string, import('chevrotain').IToken?]} */ (
-								$.OR1([
-									{ALT: () => $.SUBRULE(rString)},
-									{ALT: () => $.SUBRULE(rRawString)},
-								])
-							);
-
-						const result = new Identifier(name[0]);
-						result.representation = name[1];
-						this.#storeLocation(result, name[2]);
-						return result;
-					},
-				},
+				{ALT: () => $.SUBRULE(rPlainIdentifier)},
+				{ALT: () => $.SUBRULE(rStringIdentifier)},
 			]),
 		);
 
-		const rArgument = $.RULE('argument', () => {
-			const tag = $.OPTION(() => $.SUBRULE(rTag));
-			const value = $.SUBRULE(rValue);
+		const rEntry = $.RULE('entry', () => {
+			const start = $.LA(1);
 
-			const entry = new Entry(value, null);
-			entry.tag = tag ?? null;
+			const entry = $.OR({
+				MAX_LOOKAHEAD: 1,
+				DEF: [
+					// start with tag -> must be argument
+					{
+						ALT: () => {
+							const tag = $.SUBRULE(rTag);
+							const value = $.SUBRULE(rValue);
+
+							const entry = new Entry(value, null);
+							entry.tag = tag;
+							return entry;
+						},
+					},
+					// non-string -> must be argument
+					{
+						ALT: () => {
+							const rawValue =
+								/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
+									$.OR1([
+										{ALT: () => $.SUBRULE(rBoolean)},
+										{ALT: () => $.SUBRULE(rNull)},
+										{ALT: () => $.SUBRULE(rNumber)},
+									])
+								);
+
+							const value = new Value(rawValue[0]);
+							value.representation = rawValue[1];
+							this.#storeLocation(value, rawValue[2]);
+
+							const entry = new Entry(value, null);
+							return entry;
+						},
+					},
+					// plain identifier -> must be a property
+					{
+						ALT: () => {
+							const name = $.SUBRULE(rPlainIdentifier);
+
+							$.CONSUME(equals);
+
+							const tag = $.OPTION(() => $.SUBRULE1(rTag));
+							const value = $.SUBRULE1(rValue);
+
+							const entry = new Entry(value, name);
+							entry.tag = tag ?? null;
+							return entry;
+						},
+					},
+					// string -> could be argument or property
+					{
+						ALT: () => {
+							const nameOrValue = $.SUBRULE(rStringIdentifier);
+
+							const property = $.OPTION2({
+								MAX_LOOKAHEAD: 1,
+								DEF: () => {
+									$.CONSUME1(equals);
+
+									const tag = $.OPTION1(() => $.SUBRULE2(rTag));
+									const value = $.SUBRULE2(rValue);
+
+									const entry = new Entry(value, nameOrValue);
+									entry.tag = tag ?? null;
+									return entry;
+								},
+							});
+
+							if (property) {
+								return property;
+							}
+
+							const value = new Value(nameOrValue.name);
+							value.representation = nameOrValue.representation;
+
+							if (this.storeLocationInfo) {
+								storeLocation(
+									value,
+									/** @type {import('./locations.js').Location} */ (
+										getLocation(nameOrValue)
+									),
+								);
+							}
+
+							return new Entry(value, null);
+						},
+					},
+				],
+			});
+
+			this.#storeLocation(entry, start);
 			return entry;
 		});
-
-		const rProperty = $.RULE('property', () => {
-			const name = $.SUBRULE(rIdentifier);
-			$.CONSUME(equals);
-
-			const tag = $.OPTION(() => $.SUBRULE(rTag));
-			const value = $.SUBRULE(rValue);
-
-			const entry = new Entry(value, name);
-			entry.tag = tag ?? null;
-			return entry;
-		});
-
-		const rEntry = $.RULE('entry', () =>
-			$.OR([
-				{
-					GATE: $.BACKTRACK(rProperty),
-					ALT: () => $.SUBRULE(rProperty),
-				},
-				{GATE: $.BACKTRACK(rArgument), ALT: () => $.SUBRULE(rArgument)},
-			]),
-		);
 
 		this.entryWithSpace = $.RULE('entryWithOptionalLeadingTrailing', () => {
 			/** @type {string[]} */
