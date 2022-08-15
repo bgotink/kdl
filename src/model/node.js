@@ -8,7 +8,7 @@ import {Value} from './value.js';
  * @param {Node} node
  */
 function getOrCreateDocument(node) {
-	return (node.children ??= new Document());
+	return node.children ?? (node.children = new Document());
 }
 
 export class Node {
