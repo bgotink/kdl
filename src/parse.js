@@ -1,3 +1,4 @@
+import {EOF} from 'chevrotain';
 import {KdlLexer, KdlParser} from './parser.js';
 
 const lexer = new KdlLexer();
@@ -29,19 +30,20 @@ function stringifyOffset(offset) {
 }
 
 /**
- * @param {object} offset
- * @param {number} [offset.startLine]
- * @param {number} [offset.startColumn]
- * @param {number} offset.startOffset
+ * @param {import('chevrotain').IToken} token
  */
-function stringifyTokenOffset(offset) {
-	if (offset.startLine != null && offset.startColumn != null) {
-		return `${offset.startLine}:${offset.startColumn}`;
-	} else if (offset.startLine != null) {
-		return `${offset.startLine}`;
+function stringifyTokenOffset(token) {
+	if (token.tokenType === EOF) {
+		return `end of input`;
 	}
 
-	return `${offset.startOffset}`;
+	if (token.startLine != null && token.startColumn != null) {
+		return `${token.startLine}:${token.startColumn}`;
+	} else if (token.startLine != null) {
+		return `${token.startLine}`;
+	}
+
+	return `${token.startOffset}`;
 }
 
 const methods = /** @type {const} */ ({

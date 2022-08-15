@@ -1,4 +1,10 @@
-import {EmbeddedActionsParser, EOF, Lexer} from 'chevrotain';
+import {
+	defaultLexerErrorProvider,
+	defaultParserErrorProvider,
+	EmbeddedActionsParser,
+	EOF,
+	Lexer,
+} from 'chevrotain';
 import {format} from './format.js';
 import {getLocation, storeLocation} from './locations.js';
 
@@ -51,6 +57,8 @@ import {
 	slashDash,
 	inlineWhitespace,
 	reContainsNewLine,
+	newlineCharacters,
+	reAllNewlines,
 } from './tokens/whitespace.js';
 
 const defaultMode = 'default';
@@ -101,9 +109,77 @@ const tokens = {
 
 export class KdlLexer extends Lexer {
 	constructor() {
-		super(tokens);
+		super(tokens, {
+			lineTerminatorCharacters: newlineCharacters,
+			lineTerminatorsPattern: reAllNewlines,
+
+			errorMessageProvider: {
+				...defaultLexerErrorProvider,
+
+				buildUnexpectedCharactersMessage(fullText, startOffset, length) {
+					const unexpectedText = fullText.slice(
+						startOffset,
+						startOffset + length,
+					);
+
+					switch (unexpectedText) {
+						case '=':
+							return 'encountered unexpected "=", did you add a tag to the property name instead of the value?';
+						default:
+							return `encountered unexpected ${JSON.stringify(
+								unexpectedText,
+							)}, did you forget to quote an identifier?`;
+					}
+				},
+			},
+		});
 	}
 }
+
+/** @type {import('chevrotain').IParserErrorMessageProvider} */
+const errorMessageProvider = {
+	...defaultParserErrorProvider,
+
+	buildMismatchTokenMessage(options) {
+		if (options.expected === equals && options.ruleName === 'entry') {
+			return 'missing ";" or newline between two sibling nodes, or missing "=" to define a property';
+		}
+
+		return defaultParserErrorProvider.buildMismatchTokenMessage(options);
+	},
+
+	buildNoViableAltMessage(options) {
+		if (options.actual[0]?.tokenType === equals) {
+			switch (options.previous.tokenType) {
+				case closeQuote:
+				case rawString:
+				case plainIdentifier:
+					break;
+				default:
+					return 'encountered unexpected "=", did you forget to quote a property name that isn\'t a valid identifier?';
+			}
+		}
+
+		switch (options.customUserDescription) {
+			case 'no node terminator':
+				switch (options.actual[0]?.tokenType) {
+					case closeBrace:
+						return 'missing ";" between child node and "}"';
+					case plainIdentifier:
+					case rawString:
+					case openQuote:
+					case openParenthesis:
+						return 'missing ";" or newline between two nodes';
+				}
+
+				return `expecting to find a node terminator (newline or ";") but found ${JSON.stringify(
+					options.actual[0]?.image,
+				)}`;
+		}
+
+		return defaultParserErrorProvider.buildNoViableAltMessage(options);
+	},
+};
 
 export class KdlParser extends EmbeddedActionsParser {
 	storeLocationInfo = false;
@@ -154,7 +230,9 @@ export class KdlParser extends EmbeddedActionsParser {
 	}
 
 	constructor() {
-		super(tokens);
+		super(tokens, {
+			errorMessageProvider,
+		});
 
 		const $ = this;
 
@@ -610,14 +688,17 @@ export class KdlParser extends EmbeddedActionsParser {
 			});
 
 			trailing.push(
-				$.OR([
-					{
-						ALT: () => $.CONSUME(semicolon).image,
-					},
-					{ALT: () => $.CONSUME(newLine).image},
-					{ALT: () => $.SUBRULE(rSinglelineComment)},
-					{ALT: () => $.CONSUME1(EOF).image},
-				]),
+				$.OR({
+					ERR_MSG: 'no node terminator',
+					DEF: [
+						{
+							ALT: () => $.CONSUME(semicolon).image,
+						},
+						{ALT: () => $.CONSUME(newLine).image},
+						{ALT: () => $.SUBRULE(rSinglelineComment)},
+						{ALT: () => $.CONSUME1(EOF).image},
+					],
+				}),
 			);
 
 			const node = new Node(name, entries);
