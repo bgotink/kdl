@@ -1,0 +1,73 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+name: 'Test'
+jobs:
+  validations:
+    name: Install and validate dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+
+      - name: Install
+        shell: bash
+        run: |
+          yarn install --immutable --check-cache
+
+      - name: Check for duplicate dependencies (fix w/ `yarn dedupe`)
+        shell: bash
+        run: |
+          yarn dedupe --check
+
+      - if: ${{ github.event_name == 'pull_request' }}
+        name: Review Dependencies
+        uses: actions/dependency-review-action@v1
+
+      - name: 'Check for formatting errors (fix w/ "yarn prettier --write path/to/file")'
+        run: |
+          yarn prettier --check .
+        shell: bash
+
+      - name: Type-Check
+        shell: bash
+        run: |
+          yarn tsc
+
+  tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 14.x
+          - 16.x
+          - 18.x
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{matrix.node}}
+
+      - name: Install
+        shell: bash
+        run: |
+          yarn install --immutable
+
+      - name: Run tests
+        shell: bash
+        run: |
+          yarn test

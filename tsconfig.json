@@ -7,5 +7,6 @@
 		"target": "es2022",
 
 		"strict": true
-	}
+	},
+	"include": ["src/**/*", "test/*.js"]
 }
