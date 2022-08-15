@@ -5,7 +5,7 @@
 		"emitDeclarationOnly": true,
 		"declaration": true,
 		"outDir": "out",
-		"rootDir": "src",
+		"rootDir": "src"
 	},
 	"files": ["src/index.js"]
 }
