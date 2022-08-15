@@ -74,7 +74,7 @@ function parseAndFormat(text) {
 	formatted = formatted.replace(/\t/g, '    ');
 
 	// Turn empty output into a newline, as expected in the test
-	formatted ||= '\n';
+	formatted = formatted || '\n';
 
 	return formatted;
 }
