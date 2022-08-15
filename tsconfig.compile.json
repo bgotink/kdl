@@ -7,5 +7,6 @@
 		"outDir": "out",
 		"rootDir": "src"
 	},
-	"files": ["src/index.js"]
+	"files": ["src/index.js"],
+	"include": ["src/**/*"]
 }

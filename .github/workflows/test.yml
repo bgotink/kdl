@@ -41,10 +41,10 @@ jobs:
           yarn prettier --check .
         shell: bash
 
-      - name: Type-Check
+      - name: Build
         shell: bash
         run: |
-          yarn tsc
+          yarn build
 
   tests:
     name: Run tests
