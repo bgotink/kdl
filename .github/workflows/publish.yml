@@ -1,0 +1,45 @@
+name: Publish
+on:
+  release:
+    types: [created]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Set up
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Prepare for release
+      - name: Install dependencies
+        run: |
+          yarn install --immutable
+      - name: Build
+        run: |
+          yarn build
+      - name: Run tests
+        run: |
+          yarn test
+
+      # Release to NPM
+      - name: Publish package on NPM
+        run: cd out && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Release to GitHub Packages
+      - name: Setup Node for GitHub Packages
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://npm.pkg.github.com'
+      - name: Publish package on GitHub Packages
+        run: cd out && npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

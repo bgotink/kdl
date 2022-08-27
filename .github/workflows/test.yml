@@ -25,7 +25,7 @@ jobs:
       - name: Install
         shell: bash
         run: |
-          yarn install --immutable --check-cache
+          yarn install --immutable
 
       - name: Check for duplicate dependencies (fix w/ `yarn dedupe`)
         shell: bash
