@@ -29,7 +29,7 @@ copyFileSync('src/parse.d.ts', 'out/parse.d.ts');
 // Build code for `require()`
 // Bundle dependencies, because chevrotain is huge and we only use (small) parts
 execSync(
-	'esbuild --bundle --platform=node src/index.js --outfile=out/index.cjs --target=node14 --format=cjs',
+	'esbuild --bundle --platform=node src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14 --format=cjs',
 );
 // Make `import()` work
 writeFileSync(
@@ -65,9 +65,14 @@ delete packageJson.packageManager;
 packageJson.main = './index.cjs';
 packageJson.types = './index.d.ts';
 packageJson.exports = {
-	types: './index.d.ts',
-	require: './index.cjs',
-	default: './index.mjs',
+	'.': {
+		types: './index.d.ts',
+		default: './index.cjs',
+	},
+	'./json': {
+		types: './json.d.ts',
+		default: './json.cjs',
+	},
 };
 
 writeFileSync('out/package.json', JSON.stringify(packageJson, null, 2));
