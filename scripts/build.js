@@ -73,6 +73,7 @@ packageJson.exports = {
 		types: './json.d.ts',
 		default: './json.cjs',
 	},
+	'./package.json': './package.json',
 };
 
 writeFileSync('out/package.json', JSON.stringify(packageJson, null, 2));

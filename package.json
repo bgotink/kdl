@@ -22,6 +22,7 @@
 	"exports": {
 		".": "./src/index.js",
 		"./json": "./src/json.js",
+		"./package.json": "./package.json"
 	},
 	"scripts": {
 		"postinstall": "is-ci || husky install",
