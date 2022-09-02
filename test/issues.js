@@ -49,4 +49,8 @@ test('issue #3: slashdash children should count as children', () => {
 	expect(() => parse(String.raw`node {children;} /- prop="value"`)).toThrow();
 });
 
+test('issue #5: trailing comments', () => {
+	expect(() => parse(`node "arg"\n\n// test\n`)).not.toThrow();
+});
+
 test.run();

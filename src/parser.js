@@ -743,45 +743,36 @@ export class KdlParser extends EmbeddedActionsParser {
 		const rDocument = $.RULE('document', () => {
 			const start = $.LA(1);
 			/** @type {string[]} */
-			let leading = [];
+			let space = [];
 
-			$.MANY(() => leading.push($.SUBRULE(rLinespace)));
+			$.MANY(() => space.push($.SUBRULE(rLinespace)));
 
 			/** @type {Node[]} */
 			const nodes = [];
 
 			$.MANY1(() => {
-				$.MANY2(() => leading.push($.SUBRULE1(rLinespace)));
-
 				const slashDash = $.OPTION(() => $.SUBRULE(rSlashDash));
 
 				const node = $.SUBRULE(rNode);
 
 				$.ACTION(() => {
 					if (slashDash) {
-						leading.push(slashDash, format(node));
+						space.push(slashDash, format(node));
 					} else {
-						node.leading = leading.join('');
-						leading = [];
+						node.leading = space.join('');
+						space = [];
 						nodes.push(node);
 					}
 				});
-			});
 
-			/** @type {string[]} */
-			const trailing = [];
-			$.MANY3(() => trailing.push($.SUBRULE2(rLinespace)));
+				$.MANY2(() => space.push($.SUBRULE1(rLinespace)));
+			});
 
 			return $.ACTION(() => {
 				const document = new Document(nodes);
-				this.#storeLocation(document, start);
+				document.trailing = space.join('');
 
-				if (nodes.length === 0) {
-					document.trailing = leading.join('') + trailing.join('');
-				} else {
-					nodes[0].leading = leading.join('') + (nodes[0].leading ?? '');
-					document.trailing = trailing.join('');
-				}
+				this.#storeLocation(document, start);
 
 				return document;
 			});
