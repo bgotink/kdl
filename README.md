@@ -41,6 +41,35 @@ expect(format(doc)).toBe(String.raw`
 `);
 ```
 
+## JSON-in-KDL (JiK)
+
+This package exports a function `toJson` from `@bgotink/kdl/json` that parses a KDL document or node as JSON-in-KDL (JiK) 3.0.0. For information on JiK, see [the JiK 3.0.0 specification][jik-spec].
+
+```js
+import {parse} from '@bgotink/kdl';
+import {toJson} from '@bgotink/kdl/json';
+
+expect(
+	toJson(
+		parse(
+			String.raw`
+				- {
+					prop false
+					otherProp {
+						- 0
+						- 2
+						- 4
+					}
+				}
+			`,
+		),
+	),
+).toEqual({
+	prop: false,
+	otherProp: [0, 2, 4],
+});
+```
+
 ## Quirks
 
 This package turns KDL documents into JavaScript objects and vice versa. It is therefore limited by the JavaScript language.
@@ -80,3 +109,4 @@ This package bundles it dependencies when published to npm:
 [kdl-spec-repo]: https://github.com/kdl-org/kdl
 [kdl-rs]: https://github.com/kdl-org/kdl-rs
 [kdljs]: https://github.com/kdl-org/kdljs
+[jik-spec]: https://github.com/kdl-org/kdl/blob/fb80016011b74e259f830cf119e9b0b19049d586/JSON-IN-KDL.md

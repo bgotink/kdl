@@ -9,9 +9,19 @@ test('parse null', () => {
 		toJson(
 			parse(
 				String.raw`
-					node null
+					- null
 				`,
 				{as: 'node'},
+			),
+		),
+	).toEqual(null);
+
+	expect(
+		toJson(
+			parse(
+				String.raw`
+					- null
+				`,
 			),
 		),
 	).toEqual(null);
@@ -22,9 +32,19 @@ test('parse number', () => {
 		toJson(
 			parse(
 				String.raw`
-					node 0xdead_beef
+					- 0xdead_beef
 				`,
 				{as: 'node'},
+			),
+		),
+	).toEqual(0xdeadbeef);
+
+	expect(
+		toJson(
+			parse(
+				String.raw`
+					- 0xdead_beef
+				`,
 			),
 		),
 	).toEqual(0xdeadbeef);
@@ -35,59 +55,64 @@ test('parse boolean', () => {
 		toJson(
 			parse(
 				String.raw`
-					node false
+					- false
 				`,
 				{as: 'node'},
 			),
 		),
 	).toEqual(false);
-});
 
-test('parse node object', () => {
 	expect(
 		toJson(
 			parse(
 				String.raw`
-					node prop=false
+					- false
+				`,
+			),
+		),
+	).toEqual(false);
+});
+
+test('parse object', () => {
+	expect(
+		toJson(
+			parse(
+				String.raw`
+					- prop=false
 				`,
 				{as: 'node'},
 			),
 		),
 	).toEqual({prop: false});
-});
 
-test('parse node array', () => {
 	expect(
 		toJson(
 			parse(
 				String.raw`
-					node 0 false
+					- prop=false
+				`,
+			),
+		),
+	).toEqual({prop: false});
+});
+
+test('parse array', () => {
+	expect(
+		toJson(
+			parse(
+				String.raw`
+					- 0 false
 				`,
 				{as: 'node'},
 			),
 		),
 	).toEqual([0, false]);
-});
 
-test('parse document object', () => {
 	expect(
 		toJson(
 			parse(
 				String.raw`
-					prop false
-				`,
-			),
-		),
-	).toEqual({prop: false});
-});
-
-test('parse document array', () => {
-	expect(
-		toJson(
-			parse(
-				String.raw`
-					- 0
-					- false
+					- 0 false
 				`,
 			),
 		),
@@ -99,33 +124,35 @@ test('extensive', () => {
 		toJson(
 			parse(
 				String.raw`
-					- 0
-					- prop=false
-					- {
-						prop false
-					}
-					- 1 2 3 {
-						- 4
-						- 5 6
-					}
-					- prop=false {
-						other true
-					}
-					- prop=false {
-						- true
-					}
-
-					// check (object) handling
 					- {
 						- 0
-					}
-					(object)- {
-						- 0
-					}
+						- prop=false
+						- {
+							prop false
+						}
+						- 1 2 3 {
+							- 4
+							- 5 6
+						}
+						- prop=false {
+							other true
+						}
+						- prop=false {
+							- true
+						}
 
-					// check (array) handling
-					- 0
-					(array)- 0
+						// check (object) handling
+						- {
+							- 0
+						}
+						(object)- {
+							- 0
+						}
+
+						// check (array) handling
+						- 0
+						(array)- 0
+					}
 				`,
 			),
 		),
@@ -141,6 +168,18 @@ test('extensive', () => {
 		0,
 		[0],
 	]);
+});
+
+test('support any root node name', () => {
+	expect(
+		toJson(
+			parse(
+				String.raw`
+					any_name_works 0
+				`,
+			),
+		),
+	).toEqual(0);
 });
 
 test.run();

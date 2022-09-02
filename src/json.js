@@ -1,4 +1,5 @@
-import {Document, Identifier, Node} from './model.js';
+/** @typedef {import('./model.js').Document} Document */
+/** @typedef {import('./model.js').Node} Node */
 
 const arrayItemKey = '-';
 
@@ -78,9 +79,18 @@ function nodeToJsonValue(node) {
  * @param {Node | Document} nodeOrDocument
  */
 export function toJson(nodeOrDocument) {
-	if (nodeOrDocument.type === 'document') {
-		nodeOrDocument = new Node(new Identifier(''), undefined, nodeOrDocument);
+	let node;
+	if (nodeOrDocument.type === 'node') {
+		node = nodeOrDocument;
+	} else {
+		if (nodeOrDocument.nodes.length !== 1) {
+			throw new InvalidJsonInKdlError(
+				'JSON-in-KDL requires a single node in the document',
+			);
+		}
+
+		node = nodeOrDocument.nodes[0];
 	}
 
-	return nodeToJsonValue(nodeOrDocument);
+	return nodeToJsonValue(node);
 }
