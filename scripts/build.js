@@ -26,24 +26,10 @@ copyFileSync('src/parse.d.ts', 'out/parse.d.ts');
 
 // JavaScript
 
-// Build code for `require()`
+// Build code for `require()`, move to ESM only once prettier supports ESM plugins...
 // Bundle dependencies, because chevrotain is huge and we only use (small) parts
 execSync(
-	'esbuild --bundle --platform=node src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14 --format=cjs',
-);
-// Make `import()` work
-writeFileSync(
-	'out/index.mjs',
-	`import kdl from './index.cjs';
-
-export const Document = kdl.Document;
-export const Entry = kdl.Entry;
-export const Identifier = kdl.Identifier;
-export const InvalidKdlError = kdl.InvalidKdlError;
-export const Node = kdl.Node;
-export const Value = kdl.Value;
-export const parse = kdl.parse;
-`,
+	'esbuild --bundle --platform=node src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14.8 --format=cjs',
 );
 
 // Write metadata

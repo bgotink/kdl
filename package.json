@@ -36,7 +36,7 @@
 	"devDependencies": {
 		"@types/benchmark": "^2.1.1",
 		"benchmark": "^2.1.4",
-		"esbuild": "^0.14.47",
+		"esbuild": "^0.15.6",
 		"expect": "^28.1.1",
 		"express-check-in": "^0.1.0",
 		"husky": "^8.0.1",
