@@ -1,7 +1,7 @@
 import {expect} from 'expect';
 import {test} from 'uvu';
 
-import {parse} from '../src/index.js';
+import {Node, parse} from '../src/index.js';
 import {toJson} from '../src/json.js';
 
 test('parse null', () => {
@@ -127,12 +127,12 @@ test('extensive', () => {
 					- {
 						- 0
 						- prop=false
-						- {
+						(object)- {
 							prop false
 						}
 						- 1 2 3 {
 							- 4
-							- 5 6
+							(array)- 5 6
 						}
 						- prop=false {
 							other true
@@ -180,6 +180,18 @@ test('support any root node name', () => {
 			),
 		),
 	).toEqual(0);
+});
+
+test('empty values', () => {
+	const node = Node.create('-');
+
+	expect(() => toJson(node)).toThrow();
+
+	node.setTag('object');
+	expect(toJson(node)).toEqual({});
+
+	node.setTag('array');
+	expect(toJson(node)).toEqual([]);
 });
 
 test.run();
