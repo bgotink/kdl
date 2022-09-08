@@ -29,7 +29,7 @@ copyFileSync('src/parse.d.ts', 'out/parse.d.ts');
 // Build code for `require()`, move to ESM only once prettier supports ESM plugins...
 // Bundle dependencies, because chevrotain is huge and we only use (small) parts
 execSync(
-	'esbuild --bundle --platform=node src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14.8 --format=cjs',
+	'esbuild --bundle --external:@bgotink/kdl --platform=node src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14.8 --format=cjs',
 );
 
 // Write metadata

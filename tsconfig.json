@@ -6,7 +6,10 @@
 		"module": "Node16",
 		"target": "es2022",
 
-		"strict": true
+		"strict": true,
+		"paths": {
+			"@bgotink/kdl": ["./src/index.js"]
+		}
 	},
 	"include": ["src/**/*", "test/*.js"]
 }

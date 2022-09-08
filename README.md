@@ -43,32 +43,34 @@ expect(format(doc)).toBe(String.raw`
 
 ## JSON-in-KDL (JiK)
 
-This package exports a function `toJson` from `@bgotink/kdl/json` that parses a KDL document or node as JSON-in-KDL (JiK) 3.0.1. For information on JiK, see [the JiK 3.0.1 specification][jik-spec].
+This package exports function from `@bgotink/kdl/json` to parse and stringify KDL documents as JSON-in-KDL (JiK) 3.0.1. For information on the format, see [the JiK 3.0.1 specification][jik-spec].
 
 ```js
-import {parse} from '@bgotink/kdl';
-import {toJson} from '@bgotink/kdl/json';
+import {parse} from '@bgotink/kdl/json';
 
 expect(
-	toJson(
-		parse(
-			String.raw`
-				- {
-					prop false
-					otherProp {
-						- 0
-						- 2
-						- 4
-					}
+	parse(
+		String.raw`
+			- {
+				prop false
+				otherProp {
+					- 0
+					- 2
+					- 4
 				}
-			`,
-		),
+			}
+		`,
 	),
 ).toEqual({
 	prop: false,
 	otherProp: [0, 2, 4],
 });
 ```
+
+There are four functions:
+
+- `parse` and `stringify` turn text into the encoded JSON value and back. These functions are useful for encoding/decoding entire JiK files.
+- `toJson` and `fromJson` turn KDL nodes into the encoded JSON value and back. These functions give more fine-grained control over the output, and can be used for e.g. encoding/decoding a JiK node embedded in a KDL document.
 
 ## Quirks
 

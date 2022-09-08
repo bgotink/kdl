@@ -1,0 +1,7 @@
+- {
+  boolean true
+  otherBoolean false
+
+  number 0
+  otherNumber 0xdeadbeef
+}

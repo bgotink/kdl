@@ -18,6 +18,7 @@
 	],
 	"type": "module",
 	"private": true,
+	"sideEffects": false,
 	"packageManager": "yarn@3.2.1",
 	"exports": {
 		".": "./src/index.js",
