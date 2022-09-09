@@ -234,6 +234,14 @@ function fromJsonValue(
 	},
 	parents,
 ) {
+	if (
+		value != null &&
+		typeof value === 'object' &&
+		typeof (/** @type {{toJSON: Function}} */ (value).toJSON) === 'function'
+	) {
+		value = /** @type {{toJSON: Function}} */ (value).toJSON();
+	}
+
 	if (isLiteral(value)) {
 		const node = Node.create(nodeName);
 		node.addArgument(value ?? null);

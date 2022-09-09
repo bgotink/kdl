@@ -230,4 +230,16 @@ test('parse reviver', () => {
 	]);
 });
 
+test('stringify supports toJSON methods', () => {
+	expect(stringify(new Date('2022-09-09T10:23:23.445Z'))).toBe(
+		'- "2022-09-09T10:23:23.445Z"\n',
+	);
+
+	expect(
+		stringify({
+			toJSON: () => ['an', 'array'],
+		}),
+	).toBe('- "an" "array"\n');
+});
+
 test.run();

@@ -308,4 +308,4 @@ export function parse(text: string, reviver: JiKReviver<unknown>): unknown;
  * @param value The JSON value to encode
  * @throws If the given JSON value contains cycles.
  */
-export function stringify(value: JsonValue): string;
+export function stringify(value: unknown): string;
