@@ -20,6 +20,7 @@ export class InvalidJsonInKdlError extends Error {
  * @typedef {object} ToJsonOptions
  * @prop {boolean} [ignoreValues]
  * @prop {string} [type]
+ * @prop {(value: unknown, key: string | number, data: {location: Node | import('@bgotink/kdl').Entry}) => unknown} [reviver]
  */
 
 /**
@@ -28,12 +29,14 @@ export class InvalidJsonInKdlError extends Error {
  */
 function nodeToJsonValue(
 	node,
-	{ignoreValues = false, type = node.getTag() ?? undefined} = {},
+	{ignoreValues = false, type = node.getTag() ?? undefined, reviver} = {},
 ) {
-	/** @type {unknown[]} */
-	const args = ignoreValues ? [] : node.getArguments();
-	/** @type {Map<string, unknown>} */
-	const props = node.getProperties();
+	const args = ignoreValues ? [] : node.getArgumentEntries();
+	const props = new Map(
+		node
+			.getPropertyEntries()
+			.map(node => [/** @type {string} */ (node.getName()), node]),
+	);
 
 	if (
 		type === 'object' ||
@@ -45,20 +48,42 @@ function nodeToJsonValue(
 			throw new InvalidJsonInKdlError('A JSON object cannot have arguments');
 		}
 
+		/** @type {Map<string, unknown>} */
+		const properties = new Map();
+		for (const [name, prop] of props) {
+			/** @type {unknown} */
+			let property = prop.getValue();
+			if (reviver != null) {
+				property = reviver(property, name, {location: prop});
+				if (property === undefined) {
+					continue;
+				}
+			}
+			properties.set(name, property);
+		}
+
 		if (node.children) {
 			for (const child of node.children.nodes) {
 				const name = child.getName();
-				if (props.has(name)) {
+				if (properties.has(name)) {
 					throw new InvalidJsonInKdlError(
 						`Duplicate key ${JSON.stringify(name)} in JSON object`,
 					);
 				}
 
-				props.set(name, nodeToJsonValue(child));
+				/** @type {unknown} */
+				let property = nodeToJsonValue(child, {reviver});
+				if (reviver != null) {
+					property = reviver(property, name, {location: child});
+					if (property === undefined) {
+						continue;
+					}
+				}
+				properties.set(name, property);
 			}
 		}
 
-		return Object.fromEntries(props);
+		return Object.fromEntries(properties);
 	}
 
 	if (type === 'array' || args.length > 1 || node.hasChildren()) {
@@ -71,13 +96,39 @@ function nodeToJsonValue(
 			);
 		}
 
+		/** @type {unknown[]} */
+		const values = [];
+		let index = 0;
+
+		for (const arg of args) {
+			/** @type {unknown} */
+			let value = arg.getValue();
+			if (reviver != null) {
+				value = reviver(value, index, {location: arg});
+				index++;
+				if (value === undefined) {
+					continue;
+				}
+			}
+			values.push(value);
+		}
+
 		if (node.children) {
 			for (const child of node.children.nodes) {
-				args.push(nodeToJsonValue(child));
+				/** @type {unknown} */
+				let value = nodeToJsonValue(child, {reviver});
+				if (reviver != null) {
+					value = reviver(value, index, {location: child});
+					index++;
+					if (value === undefined) {
+						continue;
+					}
+				}
+				values.push(value);
 			}
 		}
 
-		return args;
+		return values;
 	}
 
 	if (args.length === 0) {
@@ -86,7 +137,7 @@ function nodeToJsonValue(
 		);
 	}
 
-	return args[0];
+	return args[0].getValue();
 }
 
 /**
@@ -107,6 +158,10 @@ export function toJson(nodeOrDocument, options) {
 		node = nodeOrDocument.nodes[0];
 	}
 
+	const value = nodeToJsonValue(node, options);
+	if (options?.reviver != null) {
+		return options.reviver(value, '', {location: node});
+	}
 	return nodeToJsonValue(node, options);
 }
 
@@ -277,9 +332,10 @@ function fromJsonValue(
 
 /**
  * @param {string} string
+ * @param {(value: unknown, key: string | number, data: {location: Node | import('@bgotink/kdl').Entry}) => unknown} [reviver]
  */
-export function parse(string) {
-	return toJson(parseKdl(string));
+export function parse(string, reviver) {
+	return toJson(parseKdl(string), {reviver});
 }
 
 /**

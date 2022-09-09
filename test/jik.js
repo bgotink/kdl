@@ -201,4 +201,33 @@ test('fromJson options', () => {
 	);
 });
 
+test('parse reviver', () => {
+	const text = String.raw`
+		- 0 "string" (date)"2022-09-09T10:23:23.445Z"
+	`;
+
+	expect(parse(text, value => value)).toEqual([
+		0,
+		'string',
+		'2022-09-09T10:23:23.445Z',
+	]);
+
+	/** @type {[unknown, string | number][]}*/
+	const reviverCalls = [];
+
+	expect(
+		parse(text, (value, key, {location}) => {
+			reviverCalls.push([value, key]);
+			return location.getTag() === 'date' ? new Date(String(value)) : value;
+		}),
+	).toEqual([0, 'string', new Date('2022-09-09T10:23:23.445Z')]);
+
+	expect(reviverCalls).toEqual([
+		[0, 0],
+		['string', 1],
+		['2022-09-09T10:23:23.445Z', 2],
+		[[0, 'string', new Date('2022-09-09T10:23:23.445Z')], ''],
+	]);
+});
+
 test.run();
