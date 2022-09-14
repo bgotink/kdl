@@ -173,6 +173,7 @@ export function toJson(nodeOrDocument, options) {
  * @param {boolean} [options.allowEntriesInArrays]
  * @param {boolean} [options.allowEntriesInObjects]
  * @param {boolean} [options.allowEntriesInRoot]
+ * @param {string | number} [options.indentation]
  */
 export function fromJson(
 	value,
@@ -182,18 +183,35 @@ export function fromJson(
 		allowEntriesInArrays = allowEntries,
 		allowEntriesInObjects = allowEntries,
 		allowEntriesInRoot,
+		indentation: indentationStep,
 	} = {},
 ) {
-	return fromJsonValue(
+	if (typeof indentationStep === 'string') {
+		indentationStep = indentationStep;
+	} else if (typeof indentationStep === 'number' && indentationStep > 0) {
+		indentationStep = ' '.repeat(indentationStep);
+	} else {
+		indentationStep = '';
+	}
+
+	const result = fromJsonValue(
 		value,
 		{
 			nodeName,
 			allowEntriesInArrays,
 			allowEntriesInObjects,
 			allowEntriesInCurrent: allowEntriesInRoot,
+			indentation: '',
+			indentationStep,
 		},
 		new Set(),
 	);
+
+	if (!indentationStep) {
+		result.trailing = '';
+	}
+
+	return result;
 }
 
 /**
@@ -218,6 +236,8 @@ function isLiteral(value) {
  * @param {unknown} value
  * @param {object} options
  * @param {string} options.nodeName
+ * @param {string} options.indentation
+ * @param {string} options.indentationStep
  * @param {boolean} options.allowEntriesInArrays
  * @param {boolean} options.allowEntriesInObjects
  * @param {boolean} [options.allowEntriesInCurrent]
@@ -228,6 +248,8 @@ function fromJsonValue(
 	value,
 	{
 		nodeName,
+		indentation,
+		indentationStep,
 		allowEntriesInArrays,
 		allowEntriesInObjects,
 		allowEntriesInCurrent,
@@ -242,8 +264,11 @@ function fromJsonValue(
 		value = /** @type {{toJSON: Function}} */ (value).toJSON();
 	}
 
+	const node = Node.create(nodeName);
+	node.leading = indentation;
+	node.trailing = indentationStep ? '\n' : ';';
+
 	if (isLiteral(value)) {
-		const node = Node.create(nodeName);
 		node.addArgument(value ?? null);
 		return node;
 	}
@@ -256,8 +281,6 @@ function fromJsonValue(
 
 	parents.add(value);
 	try {
-		const node = Node.create(nodeName);
-
 		if (Array.isArray(value)) {
 			let useChild = !(allowEntriesInCurrent ?? allowEntriesInArrays);
 
@@ -279,6 +302,8 @@ function fromJsonValue(
 									nodeName: arrayItemKey,
 									allowEntriesInArrays,
 									allowEntriesInObjects,
+									indentation: indentation + indentationStep,
+									indentationStep,
 								},
 								parents,
 							),
@@ -307,6 +332,8 @@ function fromJsonValue(
 							nodeName: arrayItemKey,
 							allowEntriesInArrays,
 							allowEntriesInObjects,
+							indentation: indentation + indentationStep,
+							indentationStep,
 						},
 						parents,
 					),
@@ -323,6 +350,8 @@ function fromJsonValue(
 									nodeName: name,
 									allowEntriesInArrays,
 									allowEntriesInObjects,
+									indentation: indentation + indentationStep,
+									indentationStep,
 								},
 								parents,
 							),
@@ -330,6 +359,16 @@ function fromJsonValue(
 					}
 				}
 			}
+		}
+
+		if (node.children) {
+			if (indentationStep) {
+				node.children.nodes[0].leading = `\n${
+					node.children.nodes[0].leading ?? ''
+				}`;
+			}
+
+			node.children.trailing = indentation;
 		}
 
 		return node;
@@ -348,7 +387,9 @@ export function parse(string, reviver) {
 
 /**
  * @param {unknown} value
+ * @param {unknown} [_]
+ * @param {string | number} [indentation]
  */
-export function stringify(value) {
-	return formatKdl(fromJson(value));
+export function stringify(value, _, indentation) {
+	return formatKdl(fromJson(value, {indentation}));
 }

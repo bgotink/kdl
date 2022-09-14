@@ -85,26 +85,50 @@ test('fromJson options', () => {
 		arrayProp: [0, 1, [2, 3], 4, 5],
 	};
 
+	expect(format(clearFormat(fromJson(value)))).toEqual(
+		format(
+			clearFormat(
+				parseKdl(
+					String.raw`
+						- prop1=false prop2=false {
+							objectProp prop=true
+							arrayProp 0 1 {
+								- 2 3
+								- 4
+								- 5
+							}
+						}
+					`,
+				),
+			),
+		),
+	);
+
 	expect(format(fromJson(value))).toEqual(
 		format(
-			clearFormat(
-				parseKdl(
-					String.raw`
-						- prop1=false prop2=false {
-							objectProp prop=true
-							arrayProp 0 1 {
-								- 2 3
-								- 4
-								- 5
-							}
-						}
-					`,
-				),
+			parseKdl(
+				`- prop1=false prop2=false {objectProp prop=true;arrayProp 0 1 {- 2 3;- 4;- 5;};}`,
 			),
 		),
 	);
 
-	expect(format(fromJson(value, {allowEntries: false}))).toEqual(
+	expect(format(fromJson(value, {indentation: 1}))).toEqual(
+		format(
+			parseKdl(
+				`- prop1=false prop2=false {\n objectProp prop=true\n arrayProp 0 1 {\n  - 2 3\n  - 4\n  - 5\n }\n}\n`,
+			),
+		),
+	);
+
+	expect(format(fromJson(value, {indentation: '\t'}))).toEqual(
+		format(
+			parseKdl(
+				`- prop1=false prop2=false {\n\tobjectProp prop=true\n\tarrayProp 0 1 {\n\t\t- 2 3\n\t\t- 4\n\t\t- 5\n\t}\n}\n`,
+			),
+		),
+	);
+
+	expect(format(clearFormat(fromJson(value, {allowEntries: false})))).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -132,7 +156,9 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value, {allowEntriesInArrays: false}))).toEqual(
+	expect(
+		format(clearFormat(fromJson(value, {allowEntriesInArrays: false}))),
+	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -156,7 +182,9 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value, {allowEntriesInObjects: false}))).toEqual(
+	expect(
+		format(clearFormat(fromJson(value, {allowEntriesInObjects: false}))),
+	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -179,7 +207,9 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value, {allowEntriesInRoot: false}))).toEqual(
+	expect(
+		format(clearFormat(fromJson(value, {allowEntriesInRoot: false}))),
+	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -232,14 +262,14 @@ test('parse reviver', () => {
 
 test('stringify supports toJSON methods', () => {
 	expect(stringify(new Date('2022-09-09T10:23:23.445Z'))).toBe(
-		'- "2022-09-09T10:23:23.445Z"\n',
+		'- "2022-09-09T10:23:23.445Z"',
 	);
 
 	expect(
 		stringify({
 			toJSON: () => ['an', 'array'],
 		}),
-	).toBe('- "an" "array"\n');
+	).toBe('- "an" "array"');
 });
 
 test.run();

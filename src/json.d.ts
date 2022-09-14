@@ -277,6 +277,15 @@ interface FromJsonOptions {
 	 * The default value of this option is the value of `allowEntriesInArrays` or `allowEntriesInObjects`, depending on the type of the value.
 	 */
 	allowEntriesInRoot?: boolean;
+
+	/**
+	 * The indentation to give each nested level of node
+	 *
+	 * If a string is passed, that string is used as indentation.
+	 * If a number higher than zero is passed, the indentation is set to the whitespace character repeated for that number of times.
+	 * If zero is passed or no indentation is given, no newlines with indentation will be inserted into the output.
+	 */
+	indentation?: string | number;
 }
 
 /**
@@ -306,6 +315,11 @@ export function parse(text: string, reviver: JiKReviver<unknown>): unknown;
  * Stringify the given JSON value into JiK text
  *
  * @param value The JSON value to encode
+ * @param indentation The indentation to give each nested level of node, either the actual indentation string or the number of spaces
  * @throws If the given JSON value contains cycles.
  */
-export function stringify(value: unknown): string;
+export function stringify(
+	value: unknown,
+	replacer?: null,
+	indentation?: string | number,
+): string;
