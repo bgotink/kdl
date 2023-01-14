@@ -229,7 +229,7 @@ export function toJson(
 		Partial<ToJsonReviver<unknown>>,
 ): unknown;
 
-interface FromJsonOptions {
+interface FromJsonOptions extends StringifyOptions {
 	/**
 	 * Name of the root node to create
 	 *
@@ -277,15 +277,6 @@ interface FromJsonOptions {
 	 * The default value of this option is the value of `allowEntriesInArrays` or `allowEntriesInObjects`, depending on the type of the value.
 	 */
 	allowEntriesInRoot?: boolean;
-
-	/**
-	 * The indentation to give each nested level of node
-	 *
-	 * If a string is passed, that string is used as indentation.
-	 * If a number higher than zero is passed, the indentation is set to the whitespace character repeated for that number of times.
-	 * If zero is passed or no indentation is given, no newlines with indentation will be inserted into the output.
-	 */
-	indentation?: string | number;
 }
 
 /**
@@ -311,6 +302,56 @@ interface JiKReviver<T> {
 export function parse(text: string, reviver?: JiKReviver<JsonValue>): JsonValue;
 export function parse(text: string, reviver: JiKReviver<unknown>): unknown;
 
+interface StringifyOptions {
+	/**
+	 * The indentation to give each nested level of node
+	 *
+	 * If a string is passed, that string is used as indentation.
+	 * If a number higher than zero is passed, the indentation is set to the whitespace character repeated for that number of times.
+	 * If zero is passed or no indentation is given, no newlines with indentation will be inserted into the output.
+	 */
+	indentation?: string | number;
+
+	/**
+	 * Replacer function called for every JSON value in the data being transformed
+	 *
+	 * The replacer can return any JSON value, which will be used instead of the
+	 * original value. If `undefined` is returned, the value will be discarded.
+	 *
+	 * If the `originalValue` had a `toJSON` method, it will be called and the
+	 * result will be the `value` parameter. In all other cases `value` and
+	 * `originalValue` will be the same value.
+	 *
+	 * @param key The name of the property or the index inside an array
+	 * @param value The value being handled
+	 * @param originalValue The original value
+	 */
+	replaceJsonValue?: (
+		key: string | number,
+		value: unknown,
+		originalValue: unknown,
+	) => unknown;
+
+	/**
+	 * Replacer function called for every KDL node or entry created
+	 *
+	 * The replacer can return an entry or node. If an entry is returned but an
+	 * entry would not be valid in the given location, it will be transformed into
+	 * a node. If `undefined` is returned, the value will be discarded.
+	 *
+	 * @param key The name of the property or the index inside an array
+	 * @param value The entry or node that was created
+	 * @param jsonValue The JSON value that was transformed into the KDL `value`
+	 * @param originalJsonValue
+	 */
+	replaceKdlValue?: (
+		key: string | number,
+		value: Entry | Node,
+		jsonValue: unknown,
+		originalJsonValue: unknown,
+	) => Entry | Node | undefined;
+}
+
 /**
  * Stringify the given JSON value into JiK text
  *
@@ -318,8 +359,9 @@ export function parse(text: string, reviver: JiKReviver<unknown>): unknown;
  * @param indentation The indentation to give each nested level of node, either the actual indentation string or the number of spaces
  * @throws If the given JSON value contains cycles.
  */
+export function stringify(value: unknown, replacer?: StringifyOptions): string;
 export function stringify(
 	value: unknown,
-	replacer?: null,
+	replacer?: StringifyOptions['replaceJsonValue'],
 	indentation?: string | number,
 ): string;

@@ -2,7 +2,13 @@ import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import {expect} from 'expect';
 import {test} from 'uvu';
 
-import {parse as parseKdl, clearFormat, format} from '../src/index.js';
+import {
+	parse as parseKdl,
+	clearFormat,
+	Entry,
+	format,
+	Node,
+} from '../src/index.js';
 import {fromJson, parse, stringify, toJson} from '../src/json.js';
 
 const testCasesFolder = new URL('jik/', import.meta.url);
@@ -115,7 +121,7 @@ test('fromJson options', () => {
 	expect(format(fromJson(value, {indentation: 1}))).toEqual(
 		format(
 			parseKdl(
-				`- prop1=false prop2=false {\n objectProp prop=true\n arrayProp 0 1 {\n  - 2 3\n  - 4\n  - 5\n }\n}\n`,
+				`- prop1=false prop2=false {\n objectProp prop=true\n arrayProp 0 1 {\n  - 2 3\n  - 4\n  - 5\n }\n}`,
 			),
 		),
 	);
@@ -123,7 +129,7 @@ test('fromJson options', () => {
 	expect(format(fromJson(value, {indentation: '\t'}))).toEqual(
 		format(
 			parseKdl(
-				`- prop1=false prop2=false {\n\tobjectProp prop=true\n\tarrayProp 0 1 {\n\t\t- 2 3\n\t\t- 4\n\t\t- 5\n\t}\n}\n`,
+				`- prop1=false prop2=false {\n\tobjectProp prop=true\n\tarrayProp 0 1 {\n\t\t- 2 3\n\t\t- 4\n\t\t- 5\n\t}\n}`,
 			),
 		),
 	);
@@ -270,6 +276,70 @@ test('stringify supports toJSON methods', () => {
 			toJSON: () => ['an', 'array'],
 		}),
 	).toBe('- "an" "array"');
+});
+
+test('stringify supports replacers', () => {
+	expect(
+		stringify(
+			new Date('2022-09-09T10:23:23.445Z'),
+			(_key, _value, originalValue) =>
+				/** @type {Date} */ (originalValue).valueOf(),
+		),
+	).toBe('- 1662719003445');
+
+	expect(
+		stringify(new Date('2022-09-09T10:23:23.445Z'), {
+			replaceJsonValue: (_key, _value, originalValue) =>
+				/** @type {Date} */ (originalValue).valueOf(),
+		}),
+	).toBe('- 1662719003445');
+
+	expect(
+		stringify(new Date('2022-09-09T10:23:23.445Z'), {
+			replaceJsonValue: (_key, _jsonValue, originalJsonValue) =>
+				/** @type {Date} */ (originalJsonValue).valueOf(),
+			replaceKdlValue: (_key, value, _jsonValue, originalJsonValue) => {
+				if (originalJsonValue instanceof Date) {
+					value.setTag('date');
+				}
+
+				return value;
+			},
+		}),
+	).toBe('(date)- 1662719003445');
+
+	// turn entries into nodes, because why not?
+	expect(
+		stringify([true, 0, false, null, {prop: 0, other: 2}], {
+			replaceKdlValue: (_key, value) => {
+				if (value.type !== 'entry') {
+					return value;
+				}
+
+				const node = value.name ? new Node(value.name) : Node.create('-');
+				node.entries.push(new Entry(value.value, null));
+				return node;
+			},
+		}),
+	).toBe('- {- true;- 0;- false;- null;- {prop 0;other 2;};}');
+
+	// Add indentation
+	expect(
+		stringify([true, 0, false, null, {prop: 0, other: 2}], {
+			indentation: 2,
+			replaceKdlValue: (_key, value) => {
+				if (value.type !== 'entry') {
+					return value;
+				}
+
+				const node = value.name ? new Node(value.name) : Node.create('-');
+				node.entries.push(new Entry(value.value, null));
+				return node;
+			},
+		}),
+	).toBe(
+		'- {\n  - true\n  - 0\n  - false\n  - null\n  - {\n    prop 0\n    other 2\n  }\n}',
+	);
 });
 
 test.run();
