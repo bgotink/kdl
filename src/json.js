@@ -26,7 +26,7 @@ export class InvalidJsonInKdlError extends Error {
 
 /**
  * @param {Node} node
- * @param {ToJsonOptions} [options]
+ * @param {ToJsonOptions} options
  */
 function nodeToJsonValue(
 	node,
@@ -168,7 +168,7 @@ export function toJson(nodeOrDocument, options) {
 
 /**
  * @param {unknown} value
- * @param {object} [options]
+ * @param {object} options
  * @param {string} [options.nodeName]
  * @param {boolean} [options.allowEntries]
  * @param {boolean} [options.allowEntriesInArrays]

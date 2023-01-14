@@ -58,7 +58,7 @@ const methods = /** @type {const} */ ({
 
 /**
  * @param {string} text
- * @param {object} [options]
+ * @param {object} options
  * @param {keyof typeof methods} [options.as]
  * @param {boolean} [options.storeLocations]
  */

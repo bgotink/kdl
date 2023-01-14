@@ -6,7 +6,7 @@ import * as dev from '../src/index.js';
 
 let built;
 try {
-	built = await import('../out/index.mjs');
+	built = await import('../out/index.cjs');
 } catch {
 	stderr.write(
 		'No out folder found, run `yarn build` to include the built version of @bgotink/kdl\n',
@@ -41,7 +41,7 @@ node \
   r#"no really,"#="a lot" \
   r#"no really,"#="a lot" \
   r#"no really,"#="a lot" \
-	"of" "children" 4.20;
+	"of" "arguments" 4.20;
 `;
 
 // sanity check: assert document parses
@@ -49,7 +49,7 @@ kdljs.parse(document);
 dev.parse(document);
 built?.parse(document);
 
-suite.add('kdljs#parse', () => {
+suite.add('kdljs #parse', () => {
 	kdljs.parse(document);
 });
 

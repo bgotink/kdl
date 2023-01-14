@@ -32,22 +32,19 @@
 		"bench": "node scripts/bench.js"
 	},
 	"dependencies": {
-		"chevrotain": "^10.1.2"
+		"chevrotain": "^10.4.2"
 	},
 	"devDependencies": {
-		"@types/benchmark": "^2.1.1",
+		"@types/benchmark": "^2.1.2",
 		"benchmark": "^2.1.4",
-		"esbuild": "^0.15.6",
-		"expect": "^28.1.1",
-		"express-check-in": "^0.1.0",
-		"husky": "^8.0.1",
+		"esbuild": "^0.17.0",
+		"expect": "^29.3.1",
+		"express-check-in": "^0.1.1",
+		"husky": "^8.0.3",
 		"is-ci": "^3.0.1",
-		"kdljs": "^0.1.4",
-		"prettier": "^2.7.1",
-		"typescript": "^4.7.4",
-		"uvu": "^0.5.4"
-	},
-	"resolutions": {
-		"chevrotain@^10.1.2": "patch:chevrotain@npm:10.1.2#.yarn/patches/chevrotain-npm-10.1.2-7e1027fce6.patch"
+		"kdljs": "^0.1.5",
+		"prettier": "^2.8.3",
+		"typescript": "^4.9.4",
+		"uvu": "^0.5.6"
 	}
 }
