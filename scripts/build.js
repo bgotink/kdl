@@ -23,6 +23,7 @@ mkdirSync('out');
 execSync('tsc -p tsconfig.compile.json');
 // tsc doesn't copy .d.ts files out of the source folder
 copyFileSync('src/parse.d.ts', 'out/parse.d.ts');
+copyFileSync('src/json.d.ts', 'out/json.d.ts');
 
 // JavaScript
 
