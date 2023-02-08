@@ -163,7 +163,7 @@ export function toJson(nodeOrDocument, options) {
 	if (options?.reviver != null) {
 		return options.reviver(value, '', {location: node});
 	}
-	return nodeToJsonValue(node, options);
+	return value;
 }
 
 /**
