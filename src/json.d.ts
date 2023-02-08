@@ -114,7 +114,7 @@ export function toJson(
  */
 export function toJson(
 	node: Node,
-	options: ToJsonOptions & ToJsonType<'document'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK document.
@@ -127,7 +127,7 @@ export function toJson(
  */
 export function toJson(
 	document: Document,
-	options: ToJsonOptions & ToJsonType<'document'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK node or document.
@@ -140,7 +140,7 @@ export function toJson(
  */
 export function toJson(
 	nodeOrDocument: Node | Document,
-	options: ToJsonOptions & ToJsonType<'document'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK node.
