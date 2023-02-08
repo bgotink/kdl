@@ -1,15 +1,7 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
-import {
-	Document,
-	Entry,
-	Identifier,
-	Node,
-	format,
-	Value,
-	parse,
-} from '../src/index.js';
+import {Document, format, parse} from '../src/index.js';
 
 test('readme code sample', () => {
 	const doc = parse(String.raw`
@@ -27,13 +19,16 @@ test('readme code sample', () => {
 		),
 	);
 
-	expect(format(doc)).toBe(String.raw`
+	assert.equal(
+		format(doc),
+		String.raw`
 		node "value" r#"other value"# 2.0 4 false \
 				null -0 {
 			child /-lorem="ipsum" \
 				dolor=true; "child too"
 		}
-	`);
+	`,
+	);
 });
 
 test.run();

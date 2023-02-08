@@ -19,7 +19,7 @@
 	"type": "module",
 	"private": true,
 	"sideEffects": false,
-	"packageManager": "yarn@3.2.1",
+	"packageManager": "yarn@3.4.1",
 	"exports": {
 		".": "./src/index.js",
 		"./json": "./src/json.js",
@@ -38,7 +38,6 @@
 		"@types/benchmark": "^2.1.2",
 		"benchmark": "^2.1.4",
 		"esbuild": "^0.17.0",
-		"expect": "^29.3.1",
 		"express-check-in": "^0.1.1",
 		"husky": "^8.0.3",
 		"is-ci": "^3.0.1",

@@ -1,4 +1,4 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
 import {
@@ -11,7 +11,7 @@ import {
 } from '../src/index.js';
 
 test('format document', () => {
-	expect(
+	assert.equal(
 		format(
 			new Document([
 				new Node(
@@ -30,11 +30,12 @@ test('format document', () => {
 				),
 			]),
 		),
-	).toBe(`node "value" 2 null true false {
+		`node "value" 2 null true false {
 	child
 	"child too"
 }
-`);
+`,
+	);
 });
 
 test.run();

@@ -1,5 +1,5 @@
+import assert from 'node:assert/strict';
 import {readFileSync, readdirSync, existsSync} from 'node:fs';
-import {expect} from 'expect';
 import {test} from 'uvu';
 
 import {
@@ -27,8 +27,8 @@ for (const testCase of readdirSync(new URL('kdl', testCasesFolder))) {
 		);
 
 		if (!existsSync(expectedOutputFile)) {
-			expect(() => toJson(input)).toThrow();
-			expect(() => parse(text)).toThrow();
+			assert.throws(() => toJson(input));
+			assert.throws(() => parse(text));
 
 			return;
 		}
@@ -36,24 +36,24 @@ for (const testCase of readdirSync(new URL('kdl', testCasesFolder))) {
 		const expectedOutput = readFileSync(expectedOutputFile, 'utf8').trim();
 		const outputJson = JSON.parse(expectedOutput);
 
-		expect(JSON.stringify(toJson(input), null, 2)).toBe(expectedOutput);
-		expect(JSON.stringify(parse(text), null, 2)).toBe(expectedOutput);
+		assert.equal(JSON.stringify(toJson(input), null, 2), expectedOutput);
+		assert.equal(JSON.stringify(parse(text), null, 2), expectedOutput);
 
-		expect(toJson(fromJson(outputJson))).toEqual(outputJson);
-		expect(parse(stringify(outputJson))).toEqual(outputJson);
+		assert.deepEqual(toJson(fromJson(outputJson)), outputJson);
+		assert.deepEqual(parse(stringify(outputJson)), outputJson);
 	});
 }
 
 test('toJson options', () => {
-	expect(toJson(parseKdl('- 0'))).toBe(0);
-	expect(toJson(parseKdl('- 0'), {type: 'array'})).toEqual([0]);
+	assert.equal(toJson(parseKdl('- 0')), 0);
+	assert.deepEqual(toJson(parseKdl('- 0'), {type: 'array'}), [0]);
 
-	expect(toJson(parseKdl('- { - 0; }'))).toEqual([0]);
-	expect(toJson(parseKdl('- { - 0; }'), {type: 'object'})).toEqual({'-': 0});
+	assert.deepEqual(toJson(parseKdl('- { - 0; }')), [0]);
+	assert.deepEqual(toJson(parseKdl('- { - 0; }'), {type: 'object'}), {'-': 0});
 
-	expect(() => toJson(parseKdl('-'))).toThrow();
-	expect(toJson(parseKdl('-'), {type: 'array'})).toEqual([]);
-	expect(toJson(parseKdl('-'), {type: 'object'})).toEqual({});
+	assert.throws(() => toJson(parseKdl('-')));
+	assert.deepEqual(toJson(parseKdl('-'), {type: 'array'}), []);
+	assert.deepEqual(toJson(parseKdl('-'), {type: 'object'}), {});
 
 	const document = parseKdl(String.raw`
 		book "The Fellowship of the Ring" {
@@ -65,22 +65,23 @@ test('toJson options', () => {
 			author "Frank Herbert"
 		}
 	`);
-	expect(
+	assert.deepEqual(
 		Object.fromEntries(
 			document
 				.findNodesByName('book')
 				.map(node => [node.getArgument(0), toJson(node, {ignoreValues: true})]),
 		),
-	).toEqual({
-		'The Fellowship of the Ring': {
-			author: 'J.R.R. Tolkien',
-			publicationYear: 1954,
+		{
+			'The Fellowship of the Ring': {
+				author: 'J.R.R. Tolkien',
+				publicationYear: 1954,
+			},
+			Dune: {
+				publicationYear: 1965,
+				author: 'Frank Herbert',
+			},
 		},
-		Dune: {
-			publicationYear: 1965,
-			author: 'Frank Herbert',
-		},
-	});
+	);
 });
 
 test('fromJson options', () => {
@@ -91,7 +92,8 @@ test('fromJson options', () => {
 		arrayProp: [0, 1, [2, 3], 4, 5],
 	};
 
-	expect(format(clearFormat(fromJson(value)))).toEqual(
+	assert.equal(
+		format(clearFormat(fromJson(value))),
 		format(
 			clearFormat(
 				parseKdl(
@@ -110,7 +112,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value))).toEqual(
+	assert.equal(
+		format(fromJson(value)),
 		format(
 			parseKdl(
 				`- prop1=false prop2=false {objectProp prop=true;arrayProp 0 1 {- 2 3;- 4;- 5;};}`,
@@ -118,7 +121,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value, {indentation: 1}))).toEqual(
+	assert.equal(
+		format(fromJson(value, {indentation: 1})),
 		format(
 			parseKdl(
 				`- prop1=false prop2=false {\n objectProp prop=true\n arrayProp 0 1 {\n  - 2 3\n  - 4\n  - 5\n }\n}`,
@@ -126,7 +130,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(fromJson(value, {indentation: '\t'}))).toEqual(
+	assert.equal(
+		format(fromJson(value, {indentation: '\t'})),
 		format(
 			parseKdl(
 				`- prop1=false prop2=false {\n\tobjectProp prop=true\n\tarrayProp 0 1 {\n\t\t- 2 3\n\t\t- 4\n\t\t- 5\n\t}\n}`,
@@ -134,7 +139,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(format(clearFormat(fromJson(value, {allowEntries: false})))).toEqual(
+	assert.equal(
+		format(clearFormat(fromJson(value, {allowEntries: false}))),
 		format(
 			clearFormat(
 				parseKdl(
@@ -162,9 +168,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(
+	assert.equal(
 		format(clearFormat(fromJson(value, {allowEntriesInArrays: false}))),
-	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -188,9 +193,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(
+	assert.equal(
 		format(clearFormat(fromJson(value, {allowEntriesInObjects: false}))),
-	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -213,9 +217,8 @@ test('fromJson options', () => {
 		),
 	);
 
-	expect(
+	assert.equal(
 		format(clearFormat(fromJson(value, {allowEntriesInRoot: false}))),
-	).toEqual(
 		format(
 			clearFormat(
 				parseKdl(
@@ -242,23 +245,23 @@ test('parse reviver', () => {
 		- 0 "string" (date)"2022-09-09T10:23:23.445Z"
 	`;
 
-	expect(parse(text, value => value)).toEqual([
-		0,
-		'string',
-		'2022-09-09T10:23:23.445Z',
-	]);
+	assert.deepEqual(
+		parse(text, value => value),
+		[0, 'string', '2022-09-09T10:23:23.445Z'],
+	);
 
 	/** @type {[unknown, string | number][]}*/
 	const reviverCalls = [];
 
-	expect(
+	assert.deepEqual(
 		parse(text, (value, key, {location}) => {
 			reviverCalls.push([value, key]);
 			return location.getTag() === 'date' ? new Date(String(value)) : value;
 		}),
-	).toEqual([0, 'string', new Date('2022-09-09T10:23:23.445Z')]);
+		[0, 'string', new Date('2022-09-09T10:23:23.445Z')],
+	);
 
-	expect(reviverCalls).toEqual([
+	assert.deepEqual(reviverCalls, [
 		[0, 0],
 		['string', 1],
 		['2022-09-09T10:23:23.445Z', 2],
@@ -267,34 +270,38 @@ test('parse reviver', () => {
 });
 
 test('stringify supports toJSON methods', () => {
-	expect(stringify(new Date('2022-09-09T10:23:23.445Z'))).toBe(
+	assert.equal(
+		stringify(new Date('2022-09-09T10:23:23.445Z')),
 		'- "2022-09-09T10:23:23.445Z"',
 	);
 
-	expect(
+	assert.equal(
 		stringify({
 			toJSON: () => ['an', 'array'],
 		}),
-	).toBe('- "an" "array"');
+		'- "an" "array"',
+	);
 });
 
 test('stringify supports replacers', () => {
-	expect(
+	assert.equal(
 		stringify(
 			new Date('2022-09-09T10:23:23.445Z'),
 			(_key, _value, originalValue) =>
 				/** @type {Date} */ (originalValue).valueOf(),
 		),
-	).toBe('- 1662719003445');
+		'- 1662719003445',
+	);
 
-	expect(
+	assert.equal(
 		stringify(new Date('2022-09-09T10:23:23.445Z'), {
 			replaceJsonValue: (_key, _value, originalValue) =>
 				/** @type {Date} */ (originalValue).valueOf(),
 		}),
-	).toBe('- 1662719003445');
+		'- 1662719003445',
+	);
 
-	expect(
+	assert.equal(
 		stringify(new Date('2022-09-09T10:23:23.445Z'), {
 			replaceJsonValue: (_key, _jsonValue, originalJsonValue) =>
 				/** @type {Date} */ (originalJsonValue).valueOf(),
@@ -306,10 +313,11 @@ test('stringify supports replacers', () => {
 				return value;
 			},
 		}),
-	).toBe('(date)- 1662719003445');
+		'(date)- 1662719003445',
+	);
 
 	// turn entries into nodes, because why not?
-	expect(
+	assert.equal(
 		stringify([true, 0, false, null, {prop: 0, other: 2}], {
 			replaceKdlValue: (_key, value) => {
 				if (value.type !== 'entry') {
@@ -321,10 +329,11 @@ test('stringify supports replacers', () => {
 				return node;
 			},
 		}),
-	).toBe('- {- true;- 0;- false;- null;- {prop 0;other 2;};}');
+		'- {- true;- 0;- false;- null;- {prop 0;other 2;};}',
+	);
 
 	// Add indentation
-	expect(
+	assert.equal(
 		stringify([true, 0, false, null, {prop: 0, other: 2}], {
 			indentation: 2,
 			replaceKdlValue: (_key, value) => {
@@ -337,7 +346,6 @@ test('stringify supports replacers', () => {
 				return node;
 			},
 		}),
-	).toBe(
 		'- {\n  - true\n  - 0\n  - false\n  - null\n  - {\n    prop 0\n    other 2\n  }\n}',
 	);
 });

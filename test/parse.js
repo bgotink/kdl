@@ -1,4 +1,4 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
 import {
@@ -24,7 +24,8 @@ node "value" r"value too" 2 0b10_10 0xfF null \
 `),
 	);
 
-	expect(parsed).toEqual(
+	assert.deepEqual(
+		parsed,
 		new Document([
 			new Node(
 				new Identifier('node'),
@@ -49,17 +50,23 @@ node "value" r"value too" 2 0b10_10 0xfF null \
 });
 
 test('parse parts', () => {
-	expect(clearFormat(parse('0b1_0_1_0', {as: 'value'}))).toEqual(new Value(10));
+	assert.deepEqual(
+		clearFormat(parse('0b1_0_1_0', {as: 'value'})),
+		new Value(10),
+	);
 
-	expect(clearFormat(parse('0b1_0_1_0', {as: 'entry'}))).toEqual(
+	assert.deepEqual(
+		clearFormat(parse('0b1_0_1_0', {as: 'entry'})),
 		new Entry(new Value(10), null),
 	);
 
-	expect(clearFormat(parse('/-"lorem" asdf=false', {as: 'entry'}))).toEqual(
+	assert.deepEqual(
+		clearFormat(parse('/-"lorem" asdf=false', {as: 'entry'})),
 		new Entry(new Value(false), new Identifier('asdf')),
 	);
 
-	expect(clearFormat(parse('lorem asdf=false', {as: 'node'}))).toEqual(
+	assert.deepEqual(
+		clearFormat(parse('lorem asdf=false', {as: 'node'})),
 		new Node(new Identifier('lorem'), [
 			new Entry(new Value(false), new Identifier('asdf')),
 		]),
@@ -69,7 +76,7 @@ test('parse parts', () => {
 test('parse with locations', () => {
 	const document = parse('node (string)"test"', {storeLocations: true});
 
-	expect(getLocation(document)).toEqual({
+	assert.deepEqual(getLocation(document), {
 		startOffset: 0,
 		startLine: 1,
 		startColumn: 1,
@@ -79,7 +86,7 @@ test('parse with locations', () => {
 		endColumn: 19,
 	});
 
-	expect(getLocation(document.nodes[0])).toEqual({
+	assert.deepEqual(getLocation(document.nodes[0]), {
 		startOffset: 0,
 		startLine: 1,
 		startColumn: 1,
@@ -89,7 +96,7 @@ test('parse with locations', () => {
 		endColumn: 19,
 	});
 
-	expect(getLocation(document.nodes[0].name)).toEqual({
+	assert.deepEqual(getLocation(document.nodes[0].name), {
 		startOffset: 0,
 		startLine: 1,
 		startColumn: 1,
@@ -99,7 +106,7 @@ test('parse with locations', () => {
 		endColumn: 4,
 	});
 
-	expect(getLocation(document.nodes[0].entries[0])).toEqual({
+	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
 		startOffset: 4,
 		startLine: 1,
 		startColumn: 5,
@@ -111,7 +118,7 @@ test('parse with locations', () => {
 });
 
 test('parse whitespace', () => {
-	expect(
+	assert.deepEqual(
 		parse(
 			String.raw`/- lorem=(i64)0b10_10 \
 /*
@@ -120,16 +127,17 @@ test('parse whitespace', () => {
 `,
 			{as: 'whitespace in node'},
 		),
-	).toEqual([
-		new Comment('/- lorem=(i64)0b10_10'),
-		new Whitespace('space', ' '),
-		new Whitespace('line-escape', '\\\n'),
-		new Comment(`/*\n * lorem ipsum dolor sit amet\n */`),
-		new Whitespace('line-escape', '\\'),
-		new Comment('// lorem ipsum dolor sit amet\n'),
-	]);
+		[
+			new Comment('/- lorem=(i64)0b10_10'),
+			new Whitespace('space', ' '),
+			new Whitespace('line-escape', '\\\n'),
+			new Comment(`/*\n * lorem ipsum dolor sit amet\n */`),
+			new Whitespace('line-escape', '\\'),
+			new Comment('// lorem ipsum dolor sit amet\n'),
+		],
+	);
 
-	expect(
+	assert.deepEqual(
 		parse(
 			String.raw`/- node lorem=(i64)0b10_10
 /*
@@ -138,12 +146,13 @@ test('parse whitespace', () => {
 `,
 			{as: 'whitespace in document'},
 		),
-	).toEqual([
-		new Comment('/- node lorem=(i64)0b10_10\n'),
-		new Comment(`/*\n * lorem ipsum dolor sit amet\n */`),
-		new Whitespace('line-escape', '\\'),
-		new Comment('// lorem ipsum dolor sit amet\n'),
-	]);
+		[
+			new Comment('/- node lorem=(i64)0b10_10\n'),
+			new Comment(`/*\n * lorem ipsum dolor sit amet\n */`),
+			new Whitespace('line-escape', '\\'),
+			new Comment('// lorem ipsum dolor sit amet\n'),
+		],
+	);
 });
 
 test.run();

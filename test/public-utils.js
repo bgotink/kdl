@@ -1,4 +1,4 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
 import {getIndentation, parse} from '../src/index.js';
@@ -15,10 +15,10 @@ node "value" r"value too" 2 0b10_10 0xfF null \
 	const children = /** @type {import('../src/index.js').Document} */ (
 		root.children
 	);
-	expect(getIndentation(root)).toBe('');
-	expect(getIndentation(children.nodes[0])).toBe('\t');
-	expect(getIndentation(children.nodes[1])).toBe(null);
-	expect(getIndentation(children.nodes[2])).toBe(null);
+	assert.equal(getIndentation(root), '');
+	assert.equal(getIndentation(children.nodes[0]), '\t');
+	assert.equal(getIndentation(children.nodes[1]), null);
+	assert.equal(getIndentation(children.nodes[2]), null);
 });
 
 test.run();

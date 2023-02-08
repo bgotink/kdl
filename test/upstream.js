@@ -1,5 +1,5 @@
+import assert from 'node:assert/strict';
 import {readFileSync, readdirSync, existsSync} from 'node:fs';
-import {expect} from 'expect';
 import {suite} from 'uvu';
 
 import {clearFormat, format, parse} from '../src/index.js';
@@ -108,9 +108,9 @@ for (const testCase of readdirSync(new URL('input', testCasesFolder))) {
 
 		if (!existsSync(expectedOutputFile)) {
 			if (knownBrokenTests.has(testCase)) {
-				expect(() => parse(input)).not.toThrow();
+				assert.doesNotThrow(() => parse(input));
 			} else {
-				expect(() => parse(input)).toThrow();
+				assert.throws(() => parse(input));
 			}
 
 			return;
@@ -121,12 +121,12 @@ for (const testCase of readdirSync(new URL('input', testCasesFolder))) {
 		);
 
 		if (knownBrokenTests.has(testCase)) {
-			expect(() => {
-				expect(parseAndFormat(input)).toBe(expectedOutput);
-			}).toThrow();
+			assert.throws(() => {
+				assert.equal(parseAndFormat(input), expectedOutput);
+			});
 		} else {
-			expect(roundTrip(input)).toBe(input);
-			expect(parseAndFormat(input)).toBe(expectedOutput);
+			assert.equal(roundTrip(input), input);
+			assert.equal(parseAndFormat(input), expectedOutput);
 		}
 	});
 }

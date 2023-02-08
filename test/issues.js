@@ -1,10 +1,10 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
 import {clearFormat, Entry, Node, parse} from '../src/index.js';
 
 test('issue #1: leading/trailing whitespace', () => {
-	expect(
+	assert.deepEqual(
 		clearFormat(
 			parse(
 				String.raw`
@@ -13,9 +13,10 @@ test('issue #1: leading/trailing whitespace', () => {
 				{as: 'node'},
 			),
 		),
-	).toEqual(Node.create('node'));
+		Node.create('node'),
+	);
 
-	expect(
+	assert.deepEqual(
 		clearFormat(
 			parse(
 				String.raw`    \
@@ -24,9 +25,10 @@ test('issue #1: leading/trailing whitespace', () => {
 				{as: 'entry'},
 			),
 		),
-	).toEqual(Entry.createProperty('prop', 'value'));
+		Entry.createProperty('prop', 'value'),
+	);
 
-	expect(
+	assert.deepEqual(
 		clearFormat(
 			parse(
 				String.raw` \
@@ -35,22 +37,23 @@ test('issue #1: leading/trailing whitespace', () => {
 				{as: 'entry'},
 			),
 		),
-	).toEqual(Entry.createArgument('value'));
+		Entry.createArgument('value'),
+	);
 });
 
 test('issue #3: slashdash children should count as children', () => {
-	expect(() => parse(String.raw`node /- {children;} {children;}`)).toThrow();
-	expect(() => parse(String.raw`node /- {children;} /- {children;}`)).toThrow();
+	assert.throws(() => parse(String.raw`node /- {children;} {children;}`));
+	assert.throws(() => parse(String.raw`node /- {children;} /- {children;}`));
 
-	expect(() => parse(String.raw`node /- {children;} "arg"`)).toThrow();
-	expect(() => parse(String.raw`node /- {children;} prop="value"`)).toThrow();
+	assert.throws(() => parse(String.raw`node /- {children;} "arg"`));
+	assert.throws(() => parse(String.raw`node /- {children;} prop="value"`));
 
-	expect(() => parse(String.raw`node {children;} /- "arg"`)).toThrow();
-	expect(() => parse(String.raw`node {children;} /- prop="value"`)).toThrow();
+	assert.throws(() => parse(String.raw`node {children;} /- "arg"`));
+	assert.throws(() => parse(String.raw`node {children;} /- prop="value"`));
 });
 
 test('issue #5: trailing comments', () => {
-	expect(() => parse(`node "arg"\n\n// test\n`)).not.toThrow();
+	assert.doesNotThrow(() => parse(`node "arg"\n\n// test\n`));
 });
 
 test.run();

@@ -1,28 +1,34 @@
-import {expect} from 'expect';
+import assert from 'node:assert/strict';
 import {test} from 'uvu';
 
 import {parse} from '../src/index.js';
 
 test('unterminated node', () => {
-	expect(() => parse(`node {child}`)).toThrowError(
+	assert.throws(
+		() => parse(`node {child}`),
 		/missing ";" between child node and "}" at 1:12/,
 	);
-	expect(() => parse(`node sibling "lorem"`)).toThrowError(
+	assert.throws(
+		() => parse(`node sibling "lorem"`),
 		/missing ";" or newline between two sibling nodes, or missing "=" to define a property at 1:13/,
 	);
-	expect(() => parse(`node sibling`)).toThrowError(
+	assert.throws(
+		() => parse(`node sibling`),
 		/missing ";" or newline between two sibling nodes, or missing "=" to define a property at end of input/,
 	);
 });
 
 test('invalid identifiers', () => {
-	expect(() => parse('lorem/ipsum')).toThrowError(
+	assert.throws(
+		() => parse('lorem/ipsum'),
 		/encountered unexpected "\/", did you forget to quote an identifier\? at 1:6/,
 	);
-	expect(() => parse('lorem[ipsum')).toThrowError(
+	assert.throws(
+		() => parse('lorem[ipsum'),
 		/encountered unexpected "\[", did you forget to quote an identifier\? at 1:6/,
 	);
-	expect(() => parse('lorem 2=3')).toThrowError(
+	assert.throws(
+		() => parse('lorem 2=3'),
 		/encountered unexpected "=", did you forget to quote a property name that isn't a valid identifier\? at 1:8/,
 	);
 });
