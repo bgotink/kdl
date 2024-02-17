@@ -1,6 +1,6 @@
 {
-  "boolean": true,
-  "number": 0,
-  "otherBoolean": false,
-  "otherNumber": 42
+	"boolean": true,
+	"number": 0,
+	"otherBoolean": false,
+	"otherNumber": 42
 }

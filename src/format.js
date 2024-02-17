@@ -1,18 +1,19 @@
-import {InvalidKdlError} from './index.js';
-import {Document, Entry, Identifier, Node, Value} from './model.js';
-import {plainIdentifierRe} from './tokens/identifier.js';
-import {reInlineWhitespace} from './tokens/whitespace.js';
+import {InvalidKdlError} from "./index.js";
+import {Document, Entry, Identifier, Node, Value} from "./model.js";
+import {Tag} from "./model/tag.js";
+import {rePlainIdentifier} from "./tokens/identifier.js";
+import {reInlineWhitespace} from "./tokens/whitespace.js";
 
 /**
- * @param {Identifier | null} tag
+ * @param {Tag | null} tag
  * @returns {string}
  */
 function formatTag(tag) {
 	if (tag == null) {
-		return '';
+		return "";
 	}
 
-	return `(${formatIdentifier(tag)})`;
+	return `(${tag.leading ?? ""}${formatIdentifier(tag)}${tag.trailing ?? ""})`;
 }
 
 /**
@@ -21,7 +22,7 @@ function formatTag(tag) {
  */
 function ensureStartsWithWhitespace(text) {
 	if (text == null) {
-		return ' ';
+		return " ";
 	}
 
 	return reInlineWhitespace.exec(text)?.index === 0 ? text : ` ${text}`;
@@ -32,11 +33,35 @@ function ensureStartsWithWhitespace(text) {
  * @returns {string}
  */
 function formatValue(value) {
-	return value.representation ?? JSON.stringify(value.value);
+	if (value.representation != null) {
+		return value.representation;
+	}
+
+	if (typeof value.value === "boolean" || value.value === null) {
+		return `#${value.value}`;
+	}
+
+	if (typeof value.value === "string") {
+		const plainMatch = rePlainIdentifier.exec(value.value);
+		if (plainMatch && plainMatch[0].length === plainMatch.input.length) {
+			return value.value;
+		}
+	}
+
+	if (typeof value.value === "number") {
+		if (Number.isNaN(value.value)) {
+			return "#nan";
+		}
+		if (!Number.isFinite(value.value)) {
+			return value.value > 0 ? "#inf" : "#-inf";
+		}
+	}
+
+	return JSON.stringify(value.value);
 }
 
 /**
- * @param {Identifier} identifier
+ * @param {Pick<Identifier, 'name' | 'representation'>} identifier
  * @returns {string}
  */
 function formatIdentifier(identifier) {
@@ -44,7 +69,7 @@ function formatIdentifier(identifier) {
 		return identifier.representation;
 	}
 
-	const plainMatch = plainIdentifierRe.exec(identifier.name);
+	const plainMatch = rePlainIdentifier.exec(identifier.name);
 	if (plainMatch && plainMatch[0].length === plainMatch.input.length) {
 		return identifier.name;
 	}
@@ -58,8 +83,10 @@ function formatIdentifier(identifier) {
  */
 function formatEntry(entry) {
 	return `${ensureStartsWithWhitespace(entry.leading)}${
-		entry.name ? `${formatIdentifier(entry.name)}=` : ''
-	}${formatTag(entry.tag)}${formatValue(entry.value)}${entry.trailing ?? ''}`;
+		entry.name ? `${formatIdentifier(entry.name)}${entry.equals ?? "="}` : ""
+	}${formatTag(entry.tag)}${entry.betweenTagAndValue ?? ""}${formatValue(
+		entry.value,
+	)}${entry.trailing ?? ""}`;
 }
 
 /**
@@ -68,18 +95,18 @@ function formatEntry(entry) {
  * @returns {string}
  */
 function formatNode(node, indentation) {
-	return `${node.leading ?? '\t'.repeat(indentation)}${formatTag(
-		node.tag,
-	)}${formatIdentifier(node.name)}${node.entries
-		.map(entry => formatEntry(entry))
-		.join('')}${
+	return `${node.leading ?? "\t".repeat(indentation)}${formatTag(node.tag)}${
+		node.betweenTagAndName ?? ""
+	}${formatIdentifier(node.name)}${node.entries
+		.map((entry) => formatEntry(entry))
+		.join("")}${
 		node.children
 			? `${ensureStartsWithWhitespace(node.beforeChildren)}{${formatDocument(
 					node.children,
 					indentation + 1,
-			  )}}`
-			: ''
-	}${node.trailing ?? '\n'}`;
+				)}}`
+			: ""
+	}${node.trailing ?? "\n"}`;
 }
 
 /**
@@ -92,10 +119,10 @@ function formatDocument(document, indentation) {
 		document.nodes[0] != null &&
 		document.nodes[0].leading == null &&
 		indentation
-			? '\n'
-			: ''
-	}${document.nodes.map(node => formatNode(node, indentation)).join('')}${
-		document.trailing ?? '\t'.repeat((indentation || 1) - 1)
+			? "\n"
+			: ""
+	}${document.nodes.map((node) => formatNode(node, indentation)).join("")}${
+		document.trailing ?? "\t".repeat((indentation || 1) - 1)
 	}`;
 }
 

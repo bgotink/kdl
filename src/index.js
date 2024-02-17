@@ -1,17 +1,9 @@
-export {clearFormat} from './clear-format.js';
-export {
-	Comment,
-	Document,
-	Entry,
-	Identifier,
-	Node,
-	Value,
-	Whitespace,
-} from './model.js';
-export {format} from './format.js';
-export {getLocation} from './locations.js';
-export {InvalidKdlError, parse} from './parse.js';
-export {getIndentation} from './public-utils.js';
+export {clearFormat} from "./clear-format.js";
+export {Document, Entry, Identifier, Node, Value} from "./model.js";
+export {InvalidKdlError} from "./error.js";
+export {format} from "./format.js";
+export {getLocation} from "./locations.js";
+export {parse} from "./parse.js";
 
 /**
  * @typedef {import('./locations.js').Location} Location

@@ -1,5 +1,6 @@
-import {InvalidKdlError} from './index.js';
-import {Document, Entry, Identifier, Node, Value} from './model.js';
+import {InvalidKdlError} from "./index.js";
+import {Document, Entry, Identifier, Node, Value} from "./model.js";
+import {Tag} from "./model/tag.js";
 
 /**
  * @param {Value} value
@@ -17,11 +18,24 @@ function clearFormatIdentifier(identifier) {
 }
 
 /**
+ * @param {Tag} tag
+ * @returns {void}
+ */
+function clearFormatTag(tag) {
+	tag.leading = undefined;
+	tag.trailing = undefined;
+
+	tag.representation = undefined;
+}
+
+/**
  * @param {Entry} entry
  * @returns {void}
  */
 function clearFormatEntry(entry) {
 	entry.leading = undefined;
+	entry.equals = undefined;
+	entry.betweenTagAndValue = undefined;
 	entry.trailing = undefined;
 
 	clearFormatValue(entry.value);
@@ -29,7 +43,7 @@ function clearFormatEntry(entry) {
 		clearFormatIdentifier(entry.name);
 	}
 	if (entry.tag) {
-		clearFormatIdentifier(entry.tag);
+		clearFormatTag(entry.tag);
 	}
 }
 
@@ -40,10 +54,11 @@ function clearFormatEntry(entry) {
 function clearFormatNode(node) {
 	node.leading = undefined;
 	node.beforeChildren = undefined;
+	node.betweenTagAndName = undefined;
 	node.trailing = undefined;
 
 	if (node.tag) {
-		clearFormatIdentifier(node.tag);
+		clearFormatTag(node.tag);
 	}
 	clearFormatIdentifier(node.name);
 
@@ -66,7 +81,7 @@ function clearFormatNode(node) {
 		...args,
 		...Array.from(properties.keys())
 			.sort()
-			.map(key => /** @type {Entry} */ (properties.get(key))),
+			.map((key) => /** @type {Entry} */ (properties.get(key))),
 	];
 
 	if (node.children?.nodes.length) {

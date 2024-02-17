@@ -1,15 +1,14 @@
-import {createToken} from 'chevrotain';
+import {createToken} from "chevrotain";
 
-import {plainIdentifier} from './identifier.js';
+import {plainIdentifier} from "./identifier.js";
 
-export const _null = createToken({
-	name: 'Null',
-	pattern: /null/,
-	longer_alt: plainIdentifier,
+export const keyword = createToken({
+	name: "Keyword",
+	pattern: /#(?:true|false|null|-?inf|nan)/,
 });
 
-export const boolean = createToken({
-	name: 'Boolean',
-	pattern: /true|false/,
+export const invalidKeyword = createToken({
+	name: "InvalidKeyword",
+	pattern: /(?:true|false|null)/,
 	longer_alt: plainIdentifier,
 });

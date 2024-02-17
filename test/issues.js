@@ -1,19 +1,19 @@
-import assert from 'node:assert/strict';
-import {test} from 'uvu';
+import assert from "node:assert/strict";
+import {test} from "uvu";
 
-import {clearFormat, Entry, Node, parse} from '../src/index.js';
+import {clearFormat, Entry, Node, parse} from "../src/index.js";
 
-test('issue #1: leading/trailing whitespace', () => {
+test("issue #1: leading/trailing whitespace", () => {
 	assert.deepEqual(
 		clearFormat(
 			parse(
 				String.raw`
 					node {}
 				`,
-				{as: 'node'},
+				{as: "node"},
 			),
 		),
-		Node.create('node'),
+		Node.create("node"),
 	);
 
 	assert.deepEqual(
@@ -22,10 +22,10 @@ test('issue #1: leading/trailing whitespace', () => {
 				String.raw`    \
 					prop="value" \
 				`,
-				{as: 'entry'},
+				{as: "entry"},
 			),
 		),
-		Entry.createProperty('prop', 'value'),
+		Entry.createProperty("prop", "value"),
 	);
 
 	assert.deepEqual(
@@ -34,25 +34,14 @@ test('issue #1: leading/trailing whitespace', () => {
 				String.raw` \
 					"value"   \
 				`,
-				{as: 'entry'},
+				{as: "entry"},
 			),
 		),
-		Entry.createArgument('value'),
+		Entry.createArgument("value"),
 	);
 });
 
-test('issue #3: slashdash children should count as children', () => {
-	assert.throws(() => parse(String.raw`node /- {children;} {children;}`));
-	assert.throws(() => parse(String.raw`node /- {children;} /- {children;}`));
-
-	assert.throws(() => parse(String.raw`node /- {children;} "arg"`));
-	assert.throws(() => parse(String.raw`node /- {children;} prop="value"`));
-
-	assert.throws(() => parse(String.raw`node {children;} /- "arg"`));
-	assert.throws(() => parse(String.raw`node {children;} /- prop="value"`));
-});
-
-test('issue #5: trailing comments', () => {
+test("issue #5: trailing comments", () => {
 	assert.doesNotThrow(() => parse(`node "arg"\n\n// test\n`));
 });
 

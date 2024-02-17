@@ -2,12 +2,12 @@ export class Value {
 	/**
 	 * @readonly
 	 */
-	type = 'value';
+	type = "value";
 
 	/**
 	 * @readonly
 	 */
-	static type = 'value';
+	static type = "value";
 
 	/**
 	 * String representation of the value
@@ -28,7 +28,7 @@ export class Value {
 		 */
 		this.value;
 
-		Object.defineProperty(this, 'value', {
+		Object.defineProperty(this, "value", {
 			enumerable: true,
 			configurable: true,
 			writable: false,

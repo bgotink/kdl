@@ -1,48 +1,31 @@
-import {createToken} from 'chevrotain';
+import {createToken} from "chevrotain";
 
 export const rawString = createToken({
-	name: 'RawString',
-	pattern: /r(#*)"(?:.|[\x0A\x0C\x0D\x85\u2028\u2029])*?"\1/,
-	start_chars_hint: ['r'],
+	name: "RawString",
+	pattern: /(#+)"(?:.|[\x0A\x0C\x0D\x85\u2028\u2029])*?"\1/,
+	start_chars_hint: ["#"],
 	line_breaks: true,
 });
 
-export const stringMode = 'string';
-
-export const openQuote = createToken({
-	name: 'OpenQuote',
-	pattern: /"/,
-	label: '"',
-	push_mode: stringMode,
-});
-
-export const unicode = createToken({
-	name: 'Unicode',
-	pattern: /[^\\"]+/,
+export const quotedString = createToken({
+	name: "QuotedString",
+	pattern:
+		/"(?:[^\\"]|\\.|\\[\x0A\x0C\x0D\x85\u2028\u2029]|[\x0A\x0C\x0D\x85\u2028\u2029])*"/,
+	start_chars_hint: ['"'],
 	line_breaks: true,
 });
 
-export const escape = createToken({name: 'Escape', pattern: /\\[nrt\\/"bf]/});
+export const escapedWhitespace =
+	/(?<=(?:^|[^\\])(?:\\\\)*)\\[\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g;
+export const escape = /\\(?:[^u]|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\})/g;
 
 export const escapedValues = new Map([
-	['\\n', '\n'],
-	['\\r', '\r'],
-	['\\t', '\t'],
-	['\\\\', '\\'],
-	['\\/', '/'],
+	["\\n", "\n"],
+	["\\r", "\r"],
+	["\\t", "\t"],
+	["\\\\", "\\"],
 	['\\"', '"'],
-	['\\b', '\b'],
-	['\\f', '\f'],
+	["\\b", "\b"],
+	["\\f", "\f"],
+	["\\s", " "],
 ]);
-
-export const unicodeEscape = createToken({
-	name: 'UnicodeEscape',
-	pattern: /\\u\{(?:[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}/,
-});
-
-export const closeQuote = createToken({
-	name: 'CloseQuote',
-	pattern: /"/,
-	label: '"',
-	pop_mode: true,
-});

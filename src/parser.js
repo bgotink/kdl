@@ -4,21 +4,19 @@ import {
 	EmbeddedActionsParser,
 	EOF,
 	Lexer,
-} from 'chevrotain';
-import {format} from './format.js';
-import {getLocation, storeLocation} from './locations.js';
+} from "chevrotain";
 
+import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
+import {format} from "./format.js";
+import {storeLocation} from "./locations.js";
+import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
 import {
-	Comment,
-	Document,
-	Entry,
-	Identifier,
-	Node,
-	Value,
-	Whitespace,
-} from './model.js';
+	removeEscapedWhitespace,
+	removeLeadingWhitespace,
+	replaceEscapes,
+} from "./string-utils.js";
 
-import {plainIdentifier} from './tokens/identifier.js';
+import {plainIdentifier} from "./tokens/identifier.js";
 import {
 	binaryNumber,
 	float,
@@ -26,8 +24,8 @@ import {
 	integer,
 	octalNumber,
 	sign,
-} from './tokens/numbers.js';
-import {_null, boolean} from './tokens/other-values.js';
+} from "./tokens/numbers.js";
+import {keyword, invalidKeyword} from "./tokens/other-values.js";
 import {
 	closeBrace,
 	closeParenthesis,
@@ -36,17 +34,8 @@ import {
 	openBrace,
 	openParenthesis,
 	semicolon,
-} from './tokens/punctuation.js';
-import {
-	closeQuote,
-	escape,
-	escapedValues,
-	openQuote,
-	rawString,
-	stringMode,
-	unicode,
-	unicodeEscape,
-} from './tokens/strings.js';
+} from "./tokens/punctuation.js";
+import {quotedString, rawString} from "./tokens/strings.js";
 import {
 	closeMultiLineComment,
 	multiLineCommentContent,
@@ -59,9 +48,9 @@ import {
 	reContainsNewLine,
 	newlineCharacters,
 	reAllNewlines,
-} from './tokens/whitespace.js';
+} from "./tokens/whitespace.js";
 
-const defaultMode = 'default';
+const defaultMode = "default";
 
 /** @type {import('chevrotain').IMultiModeLexerDefinition} */
 const tokens = {
@@ -74,9 +63,10 @@ const tokens = {
 			singleLineComment,
 			openMultiLineComment,
 
-			boolean,
-			_null,
+			keyword,
+			invalidKeyword,
 			rawString,
+			quotedString,
 			sign,
 			binaryNumber,
 			hexadecimalNumber,
@@ -94,11 +84,9 @@ const tokens = {
 			closeParenthesis,
 
 			escLine,
-			openQuote,
 
 			plainIdentifier,
 		],
-		[stringMode]: [unicode, escape, unicodeEscape, closeQuote],
 		[multiLineCommentMode]: [
 			closeMultiLineComment,
 			openMultiLineComment,
@@ -123,7 +111,7 @@ export class KdlLexer extends Lexer {
 					);
 
 					switch (unexpectedText) {
-						case '=':
+						case "=":
 							return 'encountered unexpected "=", did you add a tag to the property name instead of the value?';
 						default:
 							return `encountered unexpected ${JSON.stringify(
@@ -141,7 +129,7 @@ const errorMessageProvider = {
 	...defaultParserErrorProvider,
 
 	buildMismatchTokenMessage(options) {
-		if (options.expected === equals && options.ruleName === 'entry') {
+		if (options.expected === equals && options.ruleName === "entry") {
 			return 'missing ";" or newline between two sibling nodes, or missing "=" to define a property';
 		}
 
@@ -151,7 +139,7 @@ const errorMessageProvider = {
 	buildNoViableAltMessage(options) {
 		if (options.actual[0]?.tokenType === equals) {
 			switch (options.previous.tokenType) {
-				case closeQuote:
+				case quotedString:
 				case rawString:
 				case plainIdentifier:
 					break;
@@ -160,24 +148,15 @@ const errorMessageProvider = {
 			}
 		}
 
-		switch (options.customUserDescription) {
-			case 'no node terminator':
-				switch (options.actual[0]?.tokenType) {
-					case closeBrace:
-						return 'missing ";" between child node and "}"';
-					case plainIdentifier:
-					case rawString:
-					case openQuote:
-					case openParenthesis:
-						return 'missing ";" or newline between two nodes';
-				}
+		return defaultParserErrorProvider.buildNoViableAltMessage(options);
+	},
 
-				return `expecting to find a node terminator (newline or ";") but found ${JSON.stringify(
-					options.actual[0]?.image,
-				)}`;
+	buildNotAllInputParsedMessage(options) {
+		if (options.firstRedundant.tokenType === equals) {
+			return 'encountered unexpected "=", did you forget to quote a property name that isn\'t a valid identifier?';
 		}
 
-		return defaultParserErrorProvider.buildNoViableAltMessage(options);
+		return defaultParserErrorProvider.buildNotAllInputParsedMessage(options);
 	},
 };
 
@@ -185,7 +164,7 @@ export class KdlParser extends EmbeddedActionsParser {
 	storeLocationInfo = false;
 
 	/**
-	 * @param {Value | Identifier | Entry | Node | Document} el
+	 * @param {Value | Identifier | Tag | Entry | Node | Document} el
 	 * @param {import('chevrotain').IToken} [start]
 	 */
 	#storeLocation(el, start) {
@@ -232,250 +211,407 @@ export class KdlParser extends EmbeddedActionsParser {
 	constructor() {
 		super(tokens, {
 			errorMessageProvider,
+			maxLookahead: 1,
 		});
 
 		const $ = this;
 
-		const rNull = $.RULE(
-			'null',
-			() => /** @type {const} */ ([null, $.CONSUME(_null).image]),
+		/** @type {import("chevrotain").ParserMethod<[], Document>} */
+		this.document;
+		const rDocument = $.RULE("document", () => {
+			const startOfDocument = $.LA(1);
+
+			/** @type {Node[]} */
+			const nodes = [];
+
+			let hasSeparator = true;
+
+			let space = $.SUBRULE(rLineSpace);
+
+			$.MANY1({
+				GATE: () => hasSeparator,
+				DEF: () => {
+					const node = $.SUBRULE(rBaseNode);
+					const trailing = $.SUBRULE(rOptionalNodeSpace)[0];
+					const terminator = $.OPTION(() => $.SUBRULE(rNodeTerminator));
+
+					$.ACTION(() => {
+						node.trailing =
+							(node.trailing ?? "") + trailing + (terminator ?? "");
+						nodes.push(node);
+
+						node.leading = space;
+					});
+
+					space = $.SUBRULE1(rLineSpace);
+
+					hasSeparator = terminator != null;
+				},
+			});
+
+			const document = new Document(nodes);
+			this.#storeLocation(document, startOfDocument);
+
+			document.trailing = space;
+			return document;
+		});
+
+		const rPlainLineSpace = $.RULE("plainLineSpace", () =>
+			$.OR([
+				{
+					ALT: () => $.CONSUME(newLine).image,
+				},
+				{
+					ALT: () => $.CONSUME(inlineWhitespace).image,
+				},
+				{
+					ALT: () => $.SUBRULE(rMultilineComment),
+				},
+				{
+					ALT: () => $.SUBRULE(rSingleLineComment),
+				},
+			]),
 		);
-		const rBoolean = $.RULE('boolean', () => {
-			const raw = $.CONSUME(boolean).image;
-			return /** @type {const} */ ([raw === 'true', raw]);
-		});
+		const rPlainNodeSpace = $.RULE("plainNodeSpace", () =>
+			$.OR({
+				DEF: [
+					{
+						ALT: () => $.SUBRULE(rEscLine),
+					},
+					{
+						ALT: () => $.CONSUME(inlineWhitespace).image,
+					},
+					{
+						ALT: () => $.SUBRULE(rMultilineComment),
+					},
+				],
+			}),
+		);
 
-		const rNumber = $.RULE('number', () => {
-			const start = $.OPTION(() => $.CONSUME(sign));
-			const s = start?.image ?? '';
-
-			/** @type {[number, string]} */
-			const number = $.OR([
-				{
-					ALT: () => {
-						const raw = $.CONSUME(binaryNumber).image;
-						return [parseInt(raw.slice(2).replace(/_/g, ''), 2), raw];
-					},
-				},
-				{
-					ALT: () => {
-						const raw = $.CONSUME(octalNumber).image;
-						return [parseInt(raw.slice(2).replace(/_/g, ''), 8), raw];
-					},
-				},
-				{
-					ALT: () => {
-						const raw = $.CONSUME(hexadecimalNumber).image;
-						return [parseInt(raw.slice(2).replace(/_/g, ''), 16), raw];
-					},
-				},
-				{
-					ALT: () => {
-						const raw = $.CONSUME(float).image;
-						return [parseFloat(raw.replace(/_/g, '')), raw];
-					},
-				},
-				{
-					ALT: () => {
-						const raw = $.CONSUME(integer).image;
-						return [parseInt(raw.replace(/_/g, ''), 10), raw];
-					},
-				},
-			]);
-
-			return /** @type {const} */ ([
-				(s === '-' ? -1 : 1) * number[0],
-				s + number[1],
-				start,
-			]);
-		});
-
-		const rString = $.RULE('string', () => {
+		const rLineSpace = $.RULE("lineSpace", () => {
 			/** @type {string[]} */
-			const string = [];
-			const start = $.CONSUME(openQuote);
-			const raw = [start.image];
+			const result = [];
 
-			$.MANY(() => {
-				/** @type {[string, string]} */
-				const tmp = $.OR([
+			$.MANY(() =>
+				$.OR([
 					{
-						ALT: /** @return {[string, string]} */ () => {
-							const raw = this.CONSUME(escape).image;
-
-							return [/** @type {string} */ (escapedValues.get(raw)), raw];
-						},
+						ALT: () => result.push($.SUBRULE1(rPlainLineSpace)),
 					},
 					{
 						ALT: () => {
-							const raw = this.CONSUME(unicodeEscape).image;
+							result.push($.CONSUME(slashDash).image);
 
-							return [String.fromCharCode(parseInt(raw.slice(3, -1), 16)), raw];
+							$.MANY1(() => result.push($.SUBRULE(rPlainNodeSpace)));
+
+							const node = $.SUBRULE(rNode);
+
+							$.ACTION(() => result.push(format(node)));
 						},
 					},
-					{
-						ALT: () => {
-							const raw = $.CONSUME(unicode).image;
-
-							return [raw, raw];
-						},
-					},
-				]);
-
-				string.push(tmp[0]);
-				raw.push(tmp[1]);
-			});
-
-			raw.push($.CONSUME(closeQuote).image);
-
-			return /** @type {const} */ ([string.join(''), raw.join(''), start]);
-		});
-
-		const rRawString = $.RULE('rawString', () => {
-			const raw = $.CONSUME(rawString).image;
-			const quoteIndex = raw.indexOf('"');
-
-			return /** @type {const} */ ([
-				raw.slice(quoteIndex + 1, -quoteIndex),
-				raw,
-			]);
-		});
-
-		const rSinglelineComment = $.RULE('singlelineComment', () => {
-			return (
-				$.CONSUME(singleLineComment).image +
-				$.OR([
-					{ALT: () => $.CONSUME(newLine).image},
-					{ALT: () => $.CONSUME(EOF).image},
-				])
-			);
-		});
-
-		const rMultilineComment = $.RULE('multilineComment', () => {
-			const parts = [$.CONSUME(openMultiLineComment).image];
-
-			$.MANY(() => {
-				parts.push(
-					$.OR([
-						{ALT: () => $.CONSUME(multiLineCommentContent).image},
-						{ALT: () => $.SUBRULE(rMultilineComment)},
-					]),
-				);
-			});
-
-			parts.push($.CONSUME(closeMultiLineComment).image);
-
-			return parts.join('');
-		});
-
-		const rWhitespace = $.RULE('whitespace', () =>
-			$.OR([
-				{ALT: () => $.CONSUME(inlineWhitespace).image},
-				{ALT: () => $.SUBRULE(rMultilineComment)},
-			]),
-		);
-
-		const rLinespace = $.RULE('linespace', () =>
-			$.OR([
-				{ALT: () => $.SUBRULE(rWhitespace)},
-				{ALT: () => $.CONSUME(newLine).image},
-				{ALT: () => $.SUBRULE(rSinglelineComment)},
-			]),
-		);
-
-		const rEscLine = $.RULE('escline', () => {
-			const parts = [$.CONSUME(escLine).image];
-
-			$.MANY(() => parts.push($.SUBRULE(rWhitespace)));
-
-			parts.push(
-				$.OR([
-					{ALT: () => $.SUBRULE(rSinglelineComment)},
-					{ALT: () => $.CONSUME(newLine).image},
 				]),
 			);
 
-			return parts.join('');
+			return result.join("");
 		});
+		const rNodeSpaceSlashDash = $.RULE("nodeSpaceSlashDash", () => {
+			const result = [$.CONSUME(slashDash).image];
 
-		const rTag = $.RULE('tag', () => {
-			$.CONSUME(openParenthesis);
-			const identifier = $.SUBRULE(rIdentifier);
-			$.CONSUME(closeParenthesis);
+			$.MANY1(() => result.push($.SUBRULE(rPlainNodeSpace)));
 
-			return identifier;
-		});
-
-		/**
-		 * @type {import('chevrotain').ParserMethod<[], Value>}
-		 */
-		this.value;
-		const rValue = $.RULE('value', () => {
-			const value =
-				/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
-					$.OR([
-						{ALT: () => $.SUBRULE(rBoolean)},
-						{ALT: () => $.SUBRULE(rNull)},
-						{ALT: () => $.SUBRULE(rNumber)},
-						{ALT: () => $.SUBRULE(rString)},
-						{ALT: () => $.SUBRULE(rRawString)},
-					])
-				);
-
-			const result = new Value(value[0]);
-			result.representation = value[1];
-			this.#storeLocation(result, value[2]);
-			return result;
-		});
-
-		const rPlainIdentifier = $.RULE('plainIdentifier', () => {
-			const name = $.CONSUME(plainIdentifier).image;
-			const result = new Identifier(name);
-			result.representation = name;
-			this.#storeLocation(result);
-			return result;
-		});
-
-		const rStringIdentifier = $.RULE('stringIdentifier', () => {
-			const name =
-				/** @type {[string, string, import('chevrotain').IToken?]} */ (
-					$.OR1([
-						{ALT: () => $.SUBRULE(rString)},
-						{ALT: () => $.SUBRULE(rRawString)},
-					])
-				);
-
-			const result = new Identifier(name[0]);
-			result.representation = name[1];
-			this.#storeLocation(result, name[2]);
-			return result;
-		});
-
-		/**
-		 * @type {import('chevrotain').ParserMethod<[], Identifier>}
-		 */
-		this.identifier;
-		const rIdentifier = $.RULE('identifier', () =>
 			$.OR([
-				{ALT: () => $.SUBRULE(rPlainIdentifier)},
-				{ALT: () => $.SUBRULE(rStringIdentifier)},
-			]),
-		);
+				{
+					ALT: () => {
+						const entry = $.SUBRULE(rNodePropOrArg);
 
-		const rEntry = $.RULE('entry', () => {
+						$.ACTION(() => {
+							result.push(format(entry).slice(1));
+						});
+					},
+				},
+				{
+					ALT: () => {
+						const document = $.SUBRULE(rNodeChildren);
+
+						$.ACTION(() => {
+							result.push(`{${format(document)}}`);
+						});
+					},
+				},
+			]);
+
+			return result.join("");
+		});
+		// const rRequiredNodeSpace = not defined,
+		// use optionalNodeSpace and check whether it ends with inline whitespace or newline instead
+		const rOptionalNodeSpace = $.RULE("optionalNodeSpace", () => {
+			/** @type {string[]} */
+			const result = [];
+			let endsWithPlainSpace = false;
+
+			$.MANY({
+				DEF: () => {
+					endsWithPlainSpace = true;
+					result.push($.SUBRULE(rPlainNodeSpace));
+					$.MANY1(() => result.push($.SUBRULE1(rPlainNodeSpace)));
+
+					$.OPTION({
+						DEF: () => {
+							result.push($.SUBRULE(rNodeSpaceSlashDash));
+							endsWithPlainSpace = false;
+						},
+					});
+				},
+			});
+
+			return /** @type {[String, boolean]} */ ([
+				result.join(""),
+				endsWithPlainSpace,
+			]);
+		});
+
+		const rBaseNode = $.RULE("baseNode", () => {
+			const startOfNode = $.LA(1);
+
+			const tag = $.OPTION(() => $.SUBRULE(rTag));
+			const betweenTagAndName = $.SUBRULE(rOptionalNodeSpace)[0];
+
+			const name = $.SUBRULE(rIdentifier);
+
+			/** @type {Entry[]} */
+			let entries = [];
+
+			let space = $.SUBRULE1(rOptionalNodeSpace);
+
+			$.OPTION1({
+				GATE: () => space[1],
+				DEF: () => {
+					const tmp = $.SUBRULE(rNodePropsAndArgs);
+
+					$.ACTION(() => {
+						if (tmp[0].length === 0) {
+							return;
+						}
+
+						entries = tmp[0];
+						entries[0].leading = space[0] + (entries[0].leading ?? "");
+
+						space = tmp[1];
+					});
+				},
+			});
+
+			const possibleChildren = $.OPTION2({
+				GATE: () => space[1],
+				DEF: () => $.SUBRULE(rNodeChildren),
+			});
+
+			return $.ACTION(() => {
+				const node = new Node(name, entries, possibleChildren);
+				node.tag = tag ?? null;
+				node.betweenTagAndName = betweenTagAndName;
+				if (node.children) {
+					node.beforeChildren = space[0];
+				} else {
+					node.trailing = space[0];
+				}
+
+				this.#storeLocation(node, startOfNode);
+
+				return node;
+			});
+		});
+		const rNode = $.RULE("node", () => {
+			const baseNode = $.SUBRULE(rBaseNode);
+			const trailing = $.SUBRULE(rOptionalNodeSpace)[0];
+			const terminator = $.SUBRULE(rNodeTerminator);
+
+			return $.ACTION(() => {
+				baseNode.trailing = (baseNode.trailing ?? "") + trailing + terminator;
+				return baseNode;
+			});
+		});
+		this.nodeWithSpace = $.RULE("nodeWithSpace", () => {
+			const leading = $.SUBRULE(rLineSpace);
+			const node = $.SUBRULE(rBaseNode);
+			const trailing =
+				$.SUBRULE(rOptionalNodeSpace)[0] +
+				($.OPTION(() => $.SUBRULE(rNodeTerminator) + +$.SUBRULE1(rLineSpace)) ??
+					"");
+
+			return $.ACTION(() => {
+				node.leading = leading;
+				node.trailing = trailing;
+
+				return node;
+			});
+		});
+		// Instead of having a rule per entry, find all entries at the same time
+		// This is the only way to prevent from having to backtrack because the number
+		// of tokens between the name of a property and the equals token is unlimited.
+		const rNodePropsAndArgs = $.RULE("nodePropsAndArgs", () => {
+			let start = $.LA(1);
+			/** @type {Entry[]} */
+			const entries = [];
+
+			/** @type {[string, import("chevrotain").IToken, string, string, import("chevrotain").IToken]=} */
+			let entryName;
+
+			const mkPreviousEntry = () =>
+				$.ACTION(() => {
+					if (entryName == null) {
+						return;
+					}
+
+					const previousValue = new Value(entryName[2]);
+					previousValue.representation = entryName[3];
+					$.#storeLocation(previousValue, entryName[4]);
+
+					const previousEntry = new Entry(previousValue, null);
+					previousEntry.leading = entryName[0];
+					$.#storeLocation(previousEntry, entryName[1]);
+
+					entries.push(previousEntry);
+
+					entryName = undefined;
+				});
+
+			let space = /** @type {readonly [string, boolean]} */ (["", true]);
+
+			$.MANY({
+				DEF: () => {
+					$.OR([
+						// start with tag -> must be a value
+						{
+							GATE: () => space[1],
+							ALT: () => {
+								const tag = $.SUBRULE(rTag);
+								const betweenTagAndValue = $.SUBRULE(rOptionalNodeSpace)[0];
+								const value = $.SUBRULE(rValue);
+
+								mkPreviousEntry();
+
+								const entry = new Entry(value, null);
+								entry.leading = space[0];
+								entry.tag = tag;
+								entry.betweenTagAndValue = betweenTagAndValue;
+
+								this.#storeLocation(entry, start);
+								entries.push(entry);
+							},
+						},
+						// non-string -> must be a value
+						{
+							GATE: () => space[1],
+							ALT: () => {
+								const rawValue =
+									/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
+										$.OR1([
+											{ALT: () => $.SUBRULE(rKeyword)},
+											{ALT: () => $.SUBRULE(rNumber)},
+										])
+									);
+
+								mkPreviousEntry();
+
+								const value = new Value(rawValue[0]);
+								value.representation = rawValue[1];
+								this.#storeLocation(value, rawValue[2]);
+
+								const entry = new Entry(value, null);
+								entry.leading = space[0];
+
+								this.#storeLocation(entry, start);
+								entries.push(entry);
+							},
+						},
+
+						// equals -> must be a value, but can only happen if we already have a property name
+						{
+							GATE: () => entryName != null,
+							ALT: () => {
+								const equalsString =
+									space[0] +
+									$.CONSUME(equals).image +
+									$.SUBRULE1(rOptionalNodeSpace)[0];
+
+								const tagAndSpace = $.OPTION2(
+									() =>
+										/** @type {const} */ ([
+											$.SUBRULE1(rTag),
+											$.SUBRULE2(rOptionalNodeSpace)[0],
+										]),
+								);
+
+								const value = $.SUBRULE1(rValue);
+
+								$.ACTION(() => {
+									const [
+										leading,
+										startOfEntry,
+										nameString,
+										nameRepresentation,
+										startOfName,
+									] = /** @type {NonNullable<typeof entryName>} */ (entryName);
+									entryName = undefined;
+
+									const name = new Identifier(nameString);
+									name.representation = nameRepresentation;
+									this.#storeLocation(name, startOfName);
+
+									const entry = new Entry(value, name);
+									entry.leading = leading;
+									entry.equals = equalsString;
+
+									if (tagAndSpace) {
+										entry.tag = tagAndSpace[0];
+										entry.betweenTagAndValue = tagAndSpace[1];
+									}
+
+									this.#storeLocation(entry, startOfEntry);
+									entries.push(entry);
+								});
+							},
+						},
+
+						// string -> could be argument or property, we don't know yet
+						{
+							GATE: () => space[1],
+							ALT: () => {
+								const nameOrValue = $.SUBRULE(rString);
+
+								mkPreviousEntry();
+
+								$.ACTION(() => {
+									entryName = [space[0], start, ...nameOrValue];
+								});
+							},
+						},
+					]);
+
+					space = $.SUBRULE3(rOptionalNodeSpace);
+				},
+			});
+
+			mkPreviousEntry();
+
+			return /** @type {[Entry[], [string, boolean]]} */ ([entries, space]);
+		});
+		const rNodePropOrArg = $.RULE("nodePropOrArg", () => {
 			const start = $.LA(1);
 
 			const entry = $.OR({
-				MAX_LOOKAHEAD: 1,
 				DEF: [
 					// start with tag -> must be argument
 					{
 						ALT: () => {
 							const tag = $.SUBRULE(rTag);
+							const betweenTagAndValue = $.SUBRULE(rOptionalNodeSpace)[0];
 							const value = $.SUBRULE(rValue);
 
 							const entry = new Entry(value, null);
 							entry.tag = tag;
+							entry.betweenTagAndValue = betweenTagAndValue;
+
 							return entry;
 						},
 					},
@@ -485,8 +621,7 @@ export class KdlParser extends EmbeddedActionsParser {
 							const rawValue =
 								/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
 									$.OR1([
-										{ALT: () => $.SUBRULE(rBoolean)},
-										{ALT: () => $.SUBRULE(rNull)},
+										{ALT: () => $.SUBRULE(rKeyword)},
 										{ALT: () => $.SUBRULE(rNumber)},
 									])
 								);
@@ -495,61 +630,61 @@ export class KdlParser extends EmbeddedActionsParser {
 							value.representation = rawValue[1];
 							this.#storeLocation(value, rawValue[2]);
 
-							const entry = new Entry(value, null);
-							return entry;
-						},
-					},
-					// plain identifier -> must be a property
-					{
-						ALT: () => {
-							const name = $.SUBRULE(rPlainIdentifier);
-
-							$.CONSUME(equals);
-
-							const tag = $.OPTION(() => $.SUBRULE1(rTag));
-							const value = $.SUBRULE1(rValue);
-
-							const entry = new Entry(value, name);
-							entry.tag = tag ?? null;
-							return entry;
+							return new Entry(value, null);
 						},
 					},
 					// string -> could be argument or property
 					{
 						ALT: () => {
-							const nameOrValue = $.SUBRULE(rStringIdentifier);
+							const nameOrValue = $.SUBRULE(rString);
 
-							const property = $.OPTION2({
-								MAX_LOOKAHEAD: 1,
+							/** @type {Entry=} */
+							let entry;
+
+							$.OPTION({
+								GATE: $.BACKTRACK(() => {
+									$.SUBRULE9(rOptionalNodeSpace)[0];
+									$.CONSUME9(equals);
+								}),
 								DEF: () => {
-									$.CONSUME1(equals);
+									const equalsString =
+										$.SUBRULE1(rOptionalNodeSpace)[0] +
+										$.CONSUME(equals).image +
+										$.SUBRULE2(rOptionalNodeSpace)[0];
 
-									const tag = $.OPTION1(() => $.SUBRULE2(rTag));
-									const value = $.SUBRULE2(rValue);
+									const tagAndSpace = $.OPTION2(
+										() =>
+											/** @type {const} */ ([
+												$.SUBRULE1(rTag),
+												$.SUBRULE3(rOptionalNodeSpace)[0],
+											]),
+									);
 
-									const entry = new Entry(value, nameOrValue);
-									entry.tag = tag ?? null;
-									return entry;
+									const value = $.SUBRULE1(rValue);
+
+									const name = new Identifier(nameOrValue[0]);
+									name.representation = nameOrValue[1];
+									this.#storeLocation(name, nameOrValue[2]);
+
+									entry = new Entry(value, name);
+									entry.equals = equalsString;
+
+									if (tagAndSpace) {
+										entry.tag = tagAndSpace[0];
+										entry.betweenTagAndValue = tagAndSpace[1];
+									}
 								},
 							});
 
-							if (property) {
-								return property;
+							if (!entry) {
+								const value = new Value(nameOrValue[0]);
+								value.representation = nameOrValue[1];
+								this.#storeLocation(value, nameOrValue[2]);
+
+								entry = new Entry(value, null);
 							}
 
-							const value = new Value(nameOrValue.name);
-							value.representation = nameOrValue.representation;
-
-							if (this.storeLocationInfo) {
-								storeLocation(
-									value,
-									/** @type {import('./locations.js').Location} */ (
-										getLocation(nameOrValue)
-									),
-								);
-							}
-
-							return new Entry(value, null);
+							return entry;
 						},
 					},
 				],
@@ -558,329 +693,302 @@ export class KdlParser extends EmbeddedActionsParser {
 			this.#storeLocation(entry, start);
 			return entry;
 		});
-
-		this.entryWithSpace = $.RULE('entryWithOptionalLeadingTrailing', () => {
-			/** @type {string[]} */
-			const leading = [];
-			/** @type {string[]} */
-			const trailing = [];
-			const start = $.LA(1);
-
-			$.MANY(() => {
-				$.OPTION(() => {
-					leading.push($.SUBRULE(rSlashDash));
-					const commentedEntry = $.SUBRULE(rEntry);
-					leading.push($.ACTION(() => format(commentedEntry).slice(1)));
-				});
-
-				leading.push($.SUBRULE(rNodeSpace));
-			});
-
-			const entry = $.SUBRULE1(rEntry);
-
-			$.MANY1(() => trailing.push($.SUBRULE1(rNodeSpace)));
-
-			this.#storeLocation(entry, start);
+		this.nodePropOrArgWithSpace = $.RULE("nodePropOrArgWithSpace", () => {
+			const leading =
+				($.OPTION(() => $.SUBRULE(rNodeSpaceSlashDash)) ?? "") +
+				$.SUBRULE(rOptionalNodeSpace)[0];
+			const entry = $.SUBRULE(rNodePropOrArg);
+			const trailing = $.SUBRULE1(rOptionalNodeSpace)[0];
 
 			return $.ACTION(() => {
-				entry.leading = leading.join('');
-				entry.trailing = trailing.join('');
+				entry.leading = leading;
+				entry.trailing = trailing;
+
 				return entry;
 			});
 		});
+		const rNodeChildren = $.RULE("nodeChildren", () => {
+			$.CONSUME(openBrace);
 
-		const rNodeSpace = $.RULE('nodeSpace', () =>
-			$.OR([
-				{ALT: () => $.SUBRULE(rWhitespace)},
-				{ALT: () => $.SUBRULE(rEscLine)},
-			]),
+			const document = $.SUBRULE(rDocument);
+
+			$.CONSUME(closeBrace);
+
+			return document;
+		});
+		const rNodeTerminator = $.RULE("nodeTerminator", () =>
+			$.OR({
+				DEF: [
+					{
+						ALT: () => $.SUBRULE(rSingleLineComment),
+					},
+					{
+						ALT: () => $.CONSUME(newLine).image,
+					},
+					{
+						ALT: () => $.CONSUME(semicolon).image,
+					},
+					{
+						ALT: () => $.CONSUME(EOF).image,
+					},
+				],
+			}),
 		);
 
-		const rSlashDash = $.RULE('slashDash', () => {
-			const parts = [$.CONSUME(slashDash).image];
+		const rTag = $.RULE("tag", () => {
+			const start = $.CONSUME(openParenthesis);
+			const leading = $.SUBRULE(rOptionalNodeSpace)[0];
+			const name = $.SUBRULE(rString);
+			const trailing = $.SUBRULE2(rOptionalNodeSpace)[0];
+			$.CONSUME(closeParenthesis);
 
-			$.MANY(() => parts.push($.SUBRULE(rNodeSpace)));
+			const result = new Tag(name[0]);
+			result.representation = name[1];
 
-			return parts.join('');
+			result.leading = leading;
+			result.trailing = trailing;
+
+			this.#storeLocation(result, start);
+			return result;
 		});
 
-		const rNode = $.RULE('node', () => {
-			const start = $.LA(1);
+		const rEscLine = $.RULE("escline", () => {
+			const parts = [$.CONSUME(escLine).image];
 
-			const tag = $.OPTION(() => $.SUBRULE(rTag));
-			const name = $.SUBRULE(rIdentifier);
-
-			/** @type {Entry[]} */
-			const entries = [];
-
-			let startOfTrailing = $.LA(1);
-			/** @type {string[]} */
-			let trailing = [];
-
-			let hasTrailing = false;
-			let slashDash = false;
-
-			$.MANY(() => {
-				trailing.push($.SUBRULE(rNodeSpace));
-				hasTrailing = true;
-			});
-			$.OPTION1(() => {
-				trailing.push($.SUBRULE(rSlashDash));
-				slashDash = true;
+			$.MANY({
+				DEF: () =>
+					parts.push(
+						$.OR([
+							{ALT: () => $.CONSUME(inlineWhitespace).image},
+							{ALT: () => $.SUBRULE(rMultilineComment)},
+						]),
+					),
 			});
 
-			$.MANY1({
-				GATE: () => hasTrailing,
-				DEF: () => {
-					const entry = $.SUBRULE(rEntry);
-
-					$.ACTION(() => {
-						if (slashDash) {
-							trailing.push(format(entry).slice(1));
-							slashDash = false;
-							return;
-						}
-
-						entry.leading = trailing.join('');
-						trailing = [];
-
-						this.#storeLocation(entry, startOfTrailing);
-						entries.push(entry);
-					});
-
-					startOfTrailing = $.LA(1);
-
-					hasTrailing = false;
-					$.MANY2(() => {
-						trailing.push($.SUBRULE1(rNodeSpace));
-						hasTrailing = true;
-					});
-					$.OPTION2(() => {
-						trailing.push($.SUBRULE1(rSlashDash));
-						slashDash = true;
-					});
-				},
-			});
-
-			const children = $.OPTION3(() => {
-				$.CONSUME(openBrace);
-				const children = $.SUBRULE(rDocument);
-				$.CONSUME(closeBrace);
-
-				/** @type {string[]} */
-				const afterChildren = [];
-				$.MANY3(() => afterChildren.push($.SUBRULE2(rNodeSpace)));
-
-				return $.ACTION(() => {
-					if (slashDash) {
-						trailing.push(`{${format(children)}}`, afterChildren.join(''));
-
-						return undefined;
-					} else {
-						this.#storeLocation(children, startOfTrailing);
-
-						const beforeChildren = trailing.join('');
-						trailing = afterChildren;
-
-						return /** @type {const} */ ([beforeChildren, children]);
-					}
-				});
-			});
-
-			trailing.push(
-				$.OR({
-					ERR_MSG: 'no node terminator',
+			parts.push(
+				$.OR1({
 					DEF: [
-						{
-							ALT: () => $.CONSUME(semicolon).image,
-						},
+						{ALT: () => $.SUBRULE(rSingleLineComment)},
 						{ALT: () => $.CONSUME(newLine).image},
-						{ALT: () => $.SUBRULE(rSinglelineComment)},
-						{ALT: () => $.CONSUME1(EOF).image},
 					],
 				}),
 			);
 
-			const node = new Node(name, entries);
-			node.trailing = trailing.join('');
-			node.tag = tag ?? null;
-			this.#storeLocation(node, start);
-
-			return $.ACTION(() => {
-				if (children) {
-					[node.beforeChildren, node.children] = children;
-				}
-
-				return node;
-			});
+			return parts.join("");
 		});
 
-		/**
-		 * @type {import('chevrotain').ParserMethod<[], Node>}
-		 */
-		this.nodeWithSpace = $.RULE('nodeWithSpace', () => {
-			/** @type {string[]} */
-			const leading = [];
-			$.MANY(() => leading.push($.SUBRULE(rLinespace)));
+		// ws is inlined for a 12-13% speedup
 
-			const node = $.SUBRULE(rNode);
+		const rMultilineComment = $.RULE("multilineComment", () => {
+			const parts = [$.CONSUME(openMultiLineComment).image];
 
-			/** @type {string[]} */
-			const trailing = [];
-			$.MANY1(() => trailing.push($.SUBRULE1(rLinespace)));
-
-			return $.ACTION(() => {
-				node.leading = `${leading.join('')}${node.leading ?? ''}`;
-				node.trailing = `${node.trailing ?? ''}${trailing.join('')}`;
-				return node;
-			});
-		});
-
-		/**
-		 * @type {import('chevrotain').ParserMethod<[], Document>}
-		 */
-		this.document;
-		const rDocument = $.RULE('document', () => {
-			const start = $.LA(1);
-			/** @type {string[]} */
-			let space = [];
-
-			$.MANY(() => space.push($.SUBRULE(rLinespace)));
-
-			/** @type {Node[]} */
-			const nodes = [];
-
-			$.MANY1(() => {
-				const slashDash = $.OPTION(() => $.SUBRULE(rSlashDash));
-
-				const node = $.SUBRULE(rNode);
-
-				$.ACTION(() => {
-					if (slashDash) {
-						space.push(slashDash, format(node));
-					} else {
-						node.leading = space.join('');
-						space = [];
-						nodes.push(node);
-					}
-				});
-
-				$.MANY2(() => space.push($.SUBRULE1(rLinespace)));
-			});
-
-			return $.ACTION(() => {
-				const document = new Document(nodes);
-				document.trailing = space.join('');
-
-				this.#storeLocation(document, start);
-
-				return document;
-			});
-		});
-
-		this.whiteSpacePartsInDocument = $.RULE('whiteSpacePartsInDocument', () => {
-			/** @type {(Comment | Whitespace)[]} */
-			const parts = [];
-
-			$.MANY(() =>
+			$.MANY(() => {
 				parts.push(
-					$.OR([
-						{
-							ALT: () =>
-								new Whitespace('space', $.CONSUME(inlineWhitespace).image),
-						},
-						{
-							ALT: () =>
-								new Whitespace('line-escape', $.CONSUME(escLine).image),
-						},
-						{ALT: () => new Whitespace('newline', $.CONSUME(newLine).image)},
-						{ALT: () => new Comment($.SUBRULE(rMultilineComment))},
-						{ALT: () => new Comment($.SUBRULE(rSinglelineComment))},
-						{
-							ALT: () => {
-								const content = [$.CONSUME(slashDash).image];
+					$.OR({
+						DEF: [
+							{ALT: () => $.CONSUME(multiLineCommentContent).image},
+							{ALT: () => $.SUBRULE(rMultilineComment)},
+						],
+					}),
+				);
+			});
 
-								$.MANY1(() => content.push($.SUBRULE(rWhitespace)));
-								const value = $.SUBRULE(rNode);
+			parts.push($.CONSUME(closeMultiLineComment).image);
 
-								return $.ACTION(
-									() => new Comment(content.join('') + format(value)),
-								);
-							},
-						},
-					]),
-				),
+			return parts.join("");
+		});
+
+		const rSingleLineComment = $.RULE("singleLineComment", () => {
+			return (
+				$.CONSUME(singleLineComment).image +
+				$.OR([
+					{ALT: () => $.CONSUME(newLine).image},
+					{ALT: () => $.CONSUME(EOF).image},
+				])
 			);
-
-			return parts;
 		});
 
-		this.whiteSpacePartsInNode = $.RULE('whiteSpacePartsInNode', () => {
-			/** @type {(Comment | Whitespace)[]} */
-			const parts = [];
-
-			$.MANY(() =>
-				parts.push(
+		/**
+		 * @type {import('chevrotain').ParserMethod<[], Value>}
+		 */
+		this.value;
+		const rValue = $.RULE("value", () => {
+			const value =
+				/** @type {[Value['value'], string, import('chevrotain').IToken?]} */ (
 					$.OR([
-						{
-							ALT: () =>
-								new Whitespace('space', $.CONSUME(inlineWhitespace).image),
-						},
-						{
-							ALT: () => {
-								const content = [$.CONSUME(escLine).image];
+						{ALT: () => $.SUBRULE(rKeyword)},
+						{ALT: () => $.SUBRULE(rNumber)},
+						{ALT: () => $.SUBRULE(rString)},
+					])
+				);
 
-								$.OPTION(() => {
-									$.OPTION1(() =>
-										content.push($.CONSUME1(inlineWhitespace).image),
-									);
+			const result = new Value(value[0]);
+			result.representation = value[1];
+			this.#storeLocation(result, value[2]);
+			return result;
+		});
 
-									content.push($.CONSUME(newLine).image);
+		/**
+		 * @type {import('chevrotain').ParserMethod<[], Identifier>}
+		 */
+		this.identifier;
+		const rIdentifier = $.RULE("identifier", () => {
+			const name = $.SUBRULE(rString);
+
+			const result = new Identifier(name[0]);
+			result.representation = name[1];
+			this.#storeLocation(result, name[2]);
+			return result;
+		});
+
+		const rKeyword = $.RULE("keyword", () =>
+			$.OR([
+				{
+					ALT: () => {
+						const token = $.CONSUME(invalidKeyword);
+
+						return $.ACTION(() => {
+							throw new InvalidKdlError(
+								`Keywords must start with '#', if you want to use keyword ${
+									token.image
+								}, write #${token.image} instead at ${stringifyTokenOffset(
+									token,
+								)}`,
+							);
+						});
+					},
+				},
+				{
+					ALT: () => {
+						const token = $.CONSUME(keyword);
+
+						let value;
+						switch (token.image) {
+							case "#null":
+								value = null;
+								break;
+							case "#true":
+								value = true;
+								break;
+							case "#false":
+								value = false;
+								break;
+							case "#inf":
+								value = Infinity;
+								break;
+							case "#-inf":
+								value = -Infinity;
+								break;
+							case "#nan":
+								value = NaN;
+								break;
+							default:
+								return $.ACTION(() => {
+									throw new Error("impossible");
 								});
+						}
 
-								return new Whitespace('line-escape', content.join(''));
-							},
-						},
-						{ALT: () => new Comment($.SUBRULE(rMultilineComment))},
-						{ALT: () => new Comment($.SUBRULE(rSinglelineComment))},
-						{
-							ALT: () => {
-								const content = [$.CONSUME(slashDash).image];
+						return /** @type {const} */ ([value, token.image, token]);
+					},
+				},
+			]),
+		);
 
-								$.MANY1(() => content.push($.SUBRULE(rWhitespace)));
+		const rNumber = $.RULE("number", () => {
+			const start = $.OPTION(() => $.CONSUME(sign));
+			const s = start?.image ?? "";
 
-								return new Comment(
-									content.join('') +
-										$.OR1([
-											{
-												ALT: () => {
-													const entry = $.SUBRULE(rEntry);
-													// slice(1) to cut off the leading space added by format
-													return $.ACTION(() => format(entry).slice(1));
-												},
-											},
-											{
-												ALT: () => {
-													$.CONSUME(openBrace);
-													const children = $.SUBRULE(rDocument);
-													$.CONSUME(closeBrace);
+			/** @type {[number, string]} */
+			const number = $.OR([
+				{
+					ALT: () => {
+						const raw = $.CONSUME(binaryNumber).image;
+						return [parseInt(raw.slice(2).replace(/_/g, ""), 2), raw];
+					},
+				},
+				{
+					ALT: () => {
+						const raw = $.CONSUME(octalNumber).image;
+						return [parseInt(raw.slice(2).replace(/_/g, ""), 8), raw];
+					},
+				},
+				{
+					ALT: () => {
+						const raw = $.CONSUME(hexadecimalNumber).image;
+						return [parseInt(raw.slice(2).replace(/_/g, ""), 16), raw];
+					},
+				},
+				{
+					ALT: () => {
+						const raw = $.CONSUME(float).image;
+						return [parseFloat(raw.replace(/_/g, "")), raw];
+					},
+				},
+				{
+					ALT: () => {
+						const raw = $.CONSUME(integer).image;
+						return [parseInt(raw.replace(/_/g, ""), 10), raw];
+					},
+				},
+			]);
 
-													// slice(1) to cut off the leading space added by format
-													return $.ACTION(
-														() => `{${format(children).slice(1)}}`,
-													);
-												},
-											},
-										]),
-								);
-							},
-						},
-					]),
-				),
-			);
-
-			return parts;
+			return /** @type {const} */ ([
+				(s === "-" ? -1 : 1) * number[0],
+				s + number[1],
+				start,
+			]);
 		});
+
+		const rString = $.RULE("string", () =>
+			$.OR([
+				{
+					ALT: () => {
+						const token = $.CONSUME(plainIdentifier);
+
+						return /** @type {const} */ ([token.image, token.image, token]);
+					},
+				},
+				{
+					ALT: () => {
+						const token = $.CONSUME(rawString);
+						const raw = token.image;
+						const quoteIndex = raw.indexOf('"');
+
+						return $.ACTION(
+							() =>
+								/** @type {const} */ ([
+									removeLeadingWhitespace(
+										raw.slice(quoteIndex + 1, -(quoteIndex + 1)),
+										token,
+									),
+									raw,
+									token,
+								]),
+						);
+					},
+				},
+				{
+					ALT: () => {
+						const token = $.CONSUME(quotedString);
+						const raw = token.image;
+
+						return $.ACTION(
+							() =>
+								/** @type {const} */ ([
+									replaceEscapes(
+										removeLeadingWhitespace(
+											removeEscapedWhitespace(raw.slice(1, -1)),
+											token,
+										),
+									),
+									raw,
+									token,
+								]),
+						);
+					},
+				},
+			]),
+		);
 
 		this.performSelfAnalysis();
 	}

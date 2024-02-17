@@ -15,11 +15,11 @@ yarn add @bgotink/kdl
 ## Usage
 
 ```js
-import {parse, format} from '@bgotink/kdl';
+import {parse, format} from "@bgotink/kdl";
 
 const doc = parse(String.raw`
-	node "value" r#"other value"# 2.0 4 false \
-			null -0 {
+	node "value" #"other value"# 2.0 4 #false \
+			#null -0 {
 		child; "child too"
 	}
 `);
@@ -27,16 +27,16 @@ const doc = parse(String.raw`
 doc.nodes[0].children.nodes[0].entries.push(
 	parse(
 		String.raw`/-lorem="ipsum" \
-			dolor=true`,
-		{as: 'entry'},
+			dolor=#true`,
+		{as: "entry"},
 	),
 );
 
 expect(format(doc)).toBe(String.raw`
-	node "value" r#"other value"# 2.0 4 false \
-			null -0 {
+	node "value" #"other value"# 2.0 4 #false \
+			#null -0 {
 		child /-lorem="ipsum" \
-			dolor=true; "child too"
+			dolor=#true; "child too"
 	}
 `);
 ```
@@ -46,7 +46,7 @@ expect(format(doc)).toBe(String.raw`
 This package exports function from `@bgotink/kdl/json` to parse and stringify KDL documents as JSON-in-KDL (JiK) 3.0.1. For information on the format, see [the JiK 3.0.1 specification][jik-spec].
 
 ```js
-import {parse} from '@bgotink/kdl/json';
+import {parse} from "@bgotink/kdl/json";
 
 expect(
 	parse(
@@ -86,8 +86,6 @@ JavaScript stores all numbers as 64-bit [IEEE 754](https://en.wikipedia.org/wiki
 
 The original representation of parsed numbers is retained, unless `clearFormat` is called on the value or any entry/node/document containing the value.
 
-Numbers that evaluate to `Infinity`, `-Infinity`, or `NaN` will be represented as such in the value. While formatting the document will print the original representation, clearing the format of these values will result in an invalid KDL document.
-
 ## License & Notice
 
 This package is licensed under the MIT license, which can be found in `LICENSE.md`.
@@ -105,7 +103,6 @@ This package bundles it dependencies when published to npm:
   Copyright (c) 2021 the original author or authors from the Chevrotain project  
   Copyright (c) 2015-2020 SAP SE or an SAP affiliate company.
 - [lodash](https://lodash.com/), available under the MIT license
-- [`regexp-to-ast`](https://npm.im/regexp-to-ast), available under the MIT license
 
 [kdl-site]: https://kdl.dev/
 [kdl-spec-repo]: https://github.com/kdl-org/kdl

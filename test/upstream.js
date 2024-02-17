@@ -1,25 +1,25 @@
-import assert from 'node:assert/strict';
-import {readFileSync, readdirSync, existsSync} from 'node:fs';
-import {suite} from 'uvu';
+import assert from "node:assert/strict";
+import {readFileSync, readdirSync, existsSync} from "node:fs";
+import {suite} from "uvu";
 
-import {clearFormat, format, parse} from '../src/index.js';
+import {clearFormat, format, parse} from "../src/index.js";
 
-const test = suite('upstream test suite');
+const test = suite("upstream test suite");
 
-const testCasesFolder = new URL('upstream/tests/test_cases/', import.meta.url);
+const testCasesFolder = new URL("upstream/tests/test_cases/", import.meta.url);
 
 const knownBrokenTests = new Set([
 	// All JavaScript numbers are floats, meaning the largest
 	// integer number we can represent is lower than what
 	// the KDL tests expect
-	'hex.kdl',
-	'hex_int.kdl',
+	"hex.kdl",
+	"hex_int.kdl",
 
 	// These tests use numbers that require a bigdecimal
 	// implementation to represent the value, which our
 	// javascript engine doesn't provide (yet?)
-	'sci_notation_large.kdl',
-	'sci_notation_small.kdl',
+	"sci_notation_large.kdl",
+	"sci_notation_small.kdl",
 ]);
 
 /**
@@ -34,7 +34,7 @@ function roundTrip(text) {
 /**
  * Format the given KDL text in the format the upstream test suite expects.
  *
- * @param {string} text
+ * @param {Parameters<parse>[0]} text
  */
 function parseAndFormat(text) {
 	const document = parse(text);
@@ -44,23 +44,23 @@ function parseAndFormat(text) {
 	// for numbers that javascript itself still prints regularly
 	document.nodes.forEach(function reformatNumbers(node) {
 		for (const {value} of node.entries) {
-			if (typeof value.value !== 'number') {
+			if (typeof value.value !== "number") {
 				continue;
 			}
 
 			let formatted = format(value);
-			if (formatted.length > 8 && formatted.endsWith('0000')) {
+			if (formatted.length > 8 && formatted.endsWith("0000")) {
 				formatted = value.value.toExponential();
-			} else if (formatted.length > 8 && formatted.startsWith('0.0000')) {
+			} else if (formatted.length > 8 && formatted.startsWith("0.0000")) {
 				formatted = value.value.toExponential();
 			}
 
 			// The tests use uppercase E for exponential notation,
 			// but javascript uses lowercase e.
-			if (formatted.includes('e')) {
+			if (formatted.includes("e")) {
 				value.representation = formatted.replace(
 					/e([+-])?/,
-					(_, sign) => `E${sign ?? '+'}`,
+					(_, sign) => `E${sign ?? "+"}`,
 				);
 			}
 		}
@@ -71,10 +71,10 @@ function parseAndFormat(text) {
 	let formatted = format(document);
 
 	// Replace tabs with four spaces, as used in the expected output
-	formatted = formatted.replace(/\t/g, '    ');
+	formatted = formatted.replace(/\t/g, "    ");
 
 	// Turn empty output into a newline, as expected in the test
-	formatted = formatted || '\n';
+	formatted = formatted || "\n";
 
 	return formatted;
 }
@@ -91,22 +91,20 @@ function normalizeExpectedOutput(text) {
 	// This regex is a hack, but the proper solution would be to parse the KDL
 	// and we don't want to use our parser because that would muddle the test
 	// results.
-	return text.replace(/(?<=[0-9])\.0+(?= |\n|[eE][+-]?[0-9]|$)/g, '');
+	return text.replace(/(?<=[0-9])\.0+(?= |\n|[eE][+-]?[0-9]|$)/g, "");
 }
 
-for (const testCase of readdirSync(new URL('input', testCasesFolder))) {
+for (const testCase of readdirSync(new URL("input", testCasesFolder))) {
 	test(testCase, () => {
-		const input = readFileSync(
-			new URL(`input/${testCase}`, testCasesFolder),
-			'utf8',
-		);
-
 		const expectedOutputFile = new URL(
 			`expected_kdl/${testCase}`,
 			testCasesFolder,
 		);
 
 		if (!existsSync(expectedOutputFile)) {
+			// read as buffer here, because the test might use invalid UTF-8
+			const input = readFileSync(new URL(`input/${testCase}`, testCasesFolder));
+
 			if (knownBrokenTests.has(testCase)) {
 				assert.doesNotThrow(() => parse(input));
 			} else {
@@ -116,8 +114,12 @@ for (const testCase of readdirSync(new URL('input', testCasesFolder))) {
 			return;
 		}
 
+		const input = readFileSync(
+			new URL(`input/${testCase}`, testCasesFolder),
+			"utf8",
+		);
 		const expectedOutput = normalizeExpectedOutput(
-			readFileSync(expectedOutputFile, 'utf8'),
+			readFileSync(expectedOutputFile, "utf8"),
 		);
 
 		if (knownBrokenTests.has(testCase)) {

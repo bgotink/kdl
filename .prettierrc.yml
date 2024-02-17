@@ -1,12 +1,6 @@
-singleQuote: true
-trailingComma: all
 bracketSpacing: false
-arrowParens: avoid
-useTabs: true
 
 overrides:
   - files: test/jik/json/*.json
     options:
       parser: json-stringify
-      useTabs: false
-      tabWidth: 2

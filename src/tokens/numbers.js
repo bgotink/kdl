@@ -1,31 +1,31 @@
-import {createToken} from 'chevrotain';
+import {createToken} from "chevrotain";
 
 export const sign = createToken({
-	name: 'Sign',
+	name: "Sign",
 	pattern: /[+-](?=[0-9])/,
 });
 
 export const binaryNumber = createToken({
-	name: 'BinaryNumber',
+	name: "BinaryNumber",
 	pattern: /0[bB][01][01_]*/,
 });
 
 export const octalNumber = createToken({
-	name: 'OctalNumber',
+	name: "OctalNumber",
 	pattern: /0[oO][0-7][0-7_]*/,
 });
 
 export const hexadecimalNumber = createToken({
-	name: 'HexadecimalNumber',
+	name: "HexadecimalNumber",
 	pattern: /0[xX][0-9A-Fa-f][0-9A-Fa-f_]*/,
 });
 
 export const integer = createToken({
-	name: 'Integer',
+	name: "Integer",
 	pattern: /[0-9][0-9_]*/,
 });
 
 export const float = createToken({
-	name: 'Float',
+	name: "Float",
 	pattern: /[0-9][0-9_]*(?:\.[0-9][0-9_]*)?(?:[eE][+-]?[0-9][0-9_]*)?/,
 });

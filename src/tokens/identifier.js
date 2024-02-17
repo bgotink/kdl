@@ -1,9 +1,9 @@
-import {createToken} from 'chevrotain';
+import {createToken} from "chevrotain";
 
-export const plainIdentifierRe =
-	/(?![+-][0-9])[\x21\x23-\x27\x2A\x2B\x2D\x2E\x3A\x3F-\x5A\x5E-\x7A\x7C\x7E-\uFFFF][\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x3A\x3F-\x5A\x5E-\x7A\x7C\x7E-\uFFFF]*/;
+export const rePlainIdentifier =
+	/(?![+-]?[0-9])(?:(?!﹦|＝|🟰)[^(){}\[\]/\\"#;=\x09-\x0D\x20\x85\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000])+/;
 
 export const plainIdentifier = createToken({
-	name: 'PlainIdentifier',
-	pattern: plainIdentifierRe,
+	name: "PlainIdentifier",
+	pattern: rePlainIdentifier,
 });

@@ -19,31 +19,32 @@
 	"type": "module",
 	"private": true,
 	"sideEffects": false,
-	"packageManager": "yarn@3.4.1",
+	"packageManager": "yarn@4.0.2",
 	"exports": {
 		".": "./src/index.js",
 		"./json": "./src/json.js",
 		"./package.json": "./package.json"
 	},
 	"scripts": {
-		"postinstall": "is-ci || husky install",
+		"postinstall": "is-ci || husky",
 		"build": "node scripts/build.js",
 		"test": "uvu test",
 		"bench": "node scripts/bench.js"
 	},
 	"dependencies": {
-		"chevrotain": "^10.4.2"
+		"chevrotain": "^11.0.3"
 	},
 	"devDependencies": {
-		"@types/benchmark": "^2.1.2",
+		"@types/benchmark": "^2.1.5",
+		"@types/node": "^20.11.17",
 		"benchmark": "^2.1.4",
-		"esbuild": "^0.17.0",
-		"express-check-in": "^0.1.1",
-		"husky": "^8.0.3",
+		"esbuild": "^0.20.0",
+		"express-check-in": "^0.1.3",
+		"husky": "^9.0.11",
 		"is-ci": "^3.0.1",
-		"kdljs": "^0.1.5",
-		"prettier": "^2.8.3",
-		"typescript": "^4.9.4",
+		"kdljs": "^0.2.0",
+		"prettier": "^3.2.5",
+		"typescript": "^5.3.3",
 		"uvu": "^0.5.6"
 	}
 }

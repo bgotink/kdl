@@ -1,4 +1,4 @@
-import {Document, Entry, Node} from './model.js';
+import {Document, Entry, Node} from "./model.js";
 
 export class InvalidJsonInKdlError extends Error {
 	constructor(message: string);
@@ -77,7 +77,7 @@ interface ToJsonReviver<T> {
  */
 export function toJson(
 	node: Node,
-	options: ToJsonOptions & ToJsonType<'object'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
 ): JsonObject;
 /**
  * Extract the JSON value encoded into the given JiK document.
@@ -90,7 +90,7 @@ export function toJson(
  */
 export function toJson(
 	document: Document,
-	options: ToJsonOptions & ToJsonType<'object'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
 ): JsonObject;
 /**
  * Extract the JSON value encoded into the given JiK node or document.
@@ -103,7 +103,7 @@ export function toJson(
  */
 export function toJson(
 	nodeOrDocument: Node | Document,
-	options: ToJsonOptions & ToJsonType<'object'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
 ): JsonObject;
 /**
  * Extract the JSON value encoded into the given JiK node.
@@ -114,7 +114,7 @@ export function toJson(
  */
 export function toJson(
 	node: Node,
-	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK document.
@@ -127,7 +127,7 @@ export function toJson(
  */
 export function toJson(
 	document: Document,
-	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK node or document.
@@ -140,7 +140,7 @@ export function toJson(
  */
 export function toJson(
 	nodeOrDocument: Node | Document,
-	options: ToJsonOptions & ToJsonType<'array'> & {reviver?: undefined},
+	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
 ): JsonValue[];
 /**
  * Extract the JSON value encoded into the given JiK node.
@@ -288,9 +288,11 @@ interface FromJsonOptions extends StringifyOptions {
 export function fromJson(value: JsonValue, options?: FromJsonOptions): Node;
 
 interface JiKReviver<T> {
-	(value: JsonValue, key: string | number, data: {location: Node | Entry}):
-		| T
-		| undefined;
+	(
+		value: JsonValue,
+		key: string | number,
+		data: {location: Node | Entry},
+	): T | undefined;
 }
 
 /**
@@ -362,6 +364,6 @@ interface StringifyOptions {
 export function stringify(value: unknown, replacer?: StringifyOptions): string;
 export function stringify(
 	value: unknown,
-	replacer?: StringifyOptions['replaceJsonValue'],
+	replacer?: StringifyOptions["replaceJsonValue"],
 	indentation?: string | number,
 ): string;

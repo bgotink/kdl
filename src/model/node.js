@@ -1,8 +1,9 @@
-import {Document} from './document.js';
-import {Entry} from './entry.js';
-import {Identifier} from './identifier.js';
-import {reverseIterate} from './utils.js';
-import {Value} from './value.js';
+import {Document} from "./document.js";
+import {Entry} from "./entry.js";
+import {Identifier} from "./identifier.js";
+import {Tag} from "./tag.js";
+import {reverseIterate} from "./utils.js";
+import {Value} from "./value.js";
 
 /**
  * @param {Node} node
@@ -25,12 +26,12 @@ export class Node {
 	/**
 	 * @readonly
 	 */
-	type = 'node';
+	type = "node";
 
 	/**
 	 * @readonly
 	 */
-	static type = 'node';
+	static type = "node";
 
 	/**
 	 * The name (also known as "tag name") of this node
@@ -42,7 +43,7 @@ export class Node {
 	/**
 	 * Tag attached to this value, if any
 	 *
-	 * @type {Identifier | null}
+	 * @type {Tag | null}
 	 */
 	tag = null;
 
@@ -85,6 +86,13 @@ export class Node {
 	beforeChildren;
 
 	/**
+	 * Whitespace between the tag and the node name
+	 *
+	 * @type {string=}
+	 */
+	betweenTagAndName;
+
+	/**
 	 * @param {Identifier} name
 	 * @param {Entry[]} [entries]
 	 * @param {Document | null} [children]
@@ -103,12 +111,13 @@ export class Node {
 	clone() {
 		const clone = new Node(
 			this.name.clone(),
-			this.entries.map(entry => entry.clone()),
+			this.entries.map((entry) => entry.clone()),
 			this.children?.clone(),
 		);
 		clone.tag = this.tag?.clone() ?? null;
 
 		clone.leading = this.leading;
+		clone.betweenTagAndName = this.betweenTagAndName;
 		clone.beforeChildren = this.beforeChildren;
 		clone.trailing = this.trailing;
 
@@ -130,7 +139,7 @@ export class Node {
 	 * @param {string | null | undefined} tag
 	 */
 	setTag(tag) {
-		this.tag = tag != null ? new Identifier(tag) : null;
+		this.tag = tag != null ? new Tag(tag) : null;
 	}
 
 	/**
@@ -157,7 +166,7 @@ export class Node {
 	 * @returns {boolean}
 	 */
 	hasArguments() {
-		return this.entries.some(entry => entry.isArgument());
+		return this.entries.some((entry) => entry.isArgument());
 	}
 
 	/**
@@ -169,7 +178,7 @@ export class Node {
 	 * @returns {Value['value'][]}
 	 */
 	getArguments() {
-		return this.getArgumentEntries().map(entry => entry.getValue());
+		return this.getArgumentEntries().map((entry) => entry.getValue());
 	}
 
 	/**
@@ -181,7 +190,7 @@ export class Node {
 	 * @returns {Entry[]}
 	 */
 	getArgumentEntries() {
-		return this.entries.filter(entry => entry.isArgument());
+		return this.entries.filter((entry) => entry.isArgument());
 	}
 
 	/**
@@ -317,7 +326,7 @@ export class Node {
 	 * @returns {boolean}
 	 */
 	hasProperties() {
-		return this.entries.some(entry => entry.isProperty());
+		return this.entries.some((entry) => entry.isProperty());
 	}
 
 	/**
@@ -330,7 +339,7 @@ export class Node {
 	 */
 	getProperties() {
 		return new Map(
-			this.getPropertyEntries().map(entry => [
+			this.getPropertyEntries().map((entry) => [
 				/** @type {string} */ (entry.getName()),
 				entry.getValue(),
 			]),
@@ -346,7 +355,7 @@ export class Node {
 	 * @returns {Entry[]}
 	 */
 	getPropertyEntries() {
-		return this.entries.filter(entry => entry.isProperty());
+		return this.entries.filter((entry) => entry.isProperty());
 	}
 
 	/**
@@ -417,7 +426,7 @@ export class Node {
 	 * @param {string} name
 	 */
 	deleteProperty(name) {
-		this.entries = this.entries.filter(entry => entry.getName() !== name);
+		this.entries = this.entries.filter((entry) => entry.getName() !== name);
 	}
 
 	/**
@@ -468,7 +477,7 @@ export class Node {
 	 */
 	removeNode(node) {
 		if (this.children == null) {
-			throw new Error('Node to remove is not in document');
+			throw new Error("Node to remove is not in document");
 		}
 
 		this.children.removeNode(node);
@@ -483,7 +492,7 @@ export class Node {
 	 */
 	replaceNode(oldNode, newNode) {
 		if (this.children == null) {
-			throw new Error('Node to remove is not in document');
+			throw new Error("Node to remove is not in document");
 		}
 
 		this.children.replaceNode(oldNode, newNode);

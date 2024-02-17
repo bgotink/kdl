@@ -1,77 +1,64 @@
-import {EOF} from 'chevrotain';
-import {KdlLexer, KdlParser} from './parser.js';
+import {KdlLexer, KdlParser} from "./parser.js";
+import {
+	InvalidKdlError,
+	stringifyOffset,
+	stringifyTokenOffset,
+} from "./error.js";
 
 const lexer = new KdlLexer();
 const parser = new KdlParser();
-
-export class InvalidKdlError extends Error {
-	/** @param {string} message */
-	constructor(message) {
-		super(message);
-
-		this.name = 'InvalidKdlError';
-	}
-}
-
-/**
- * @param {object} offset
- * @param {number} [offset.line]
- * @param {number} [offset.column]
- * @param {number} offset.offset
- */
-function stringifyOffset(offset) {
-	if (offset.line != null && offset.column != null) {
-		return `${offset.line}:${offset.column}`;
-	} else if (offset.line != null) {
-		return `${offset.line}`;
-	}
-
-	return `${offset.offset}`;
-}
-
-/**
- * @param {import('chevrotain').IToken} token
- */
-function stringifyTokenOffset(token) {
-	if (token.tokenType === EOF) {
-		return `end of input`;
-	}
-
-	if (token.startLine != null && token.startColumn != null) {
-		return `${token.startLine}:${token.startColumn}`;
-	} else if (token.startLine != null) {
-		return `${token.startLine}`;
-	}
-
-	return `${token.startOffset}`;
-}
 
 const methods = /** @type {const} */ ({
 	value: parser.value,
 	identifier: parser.identifier,
 	node: parser.nodeWithSpace,
-	entry: parser.entryWithSpace,
+	entry: parser.nodePropOrArgWithSpace,
 	document: parser.document,
-	['whitespace in node']: parser.whiteSpacePartsInNode,
-	['whitespace in document']: parser.whiteSpacePartsInDocument,
 });
 
+const illegalUnicodeCharacters =
+	/[\x00-\x08\x0E-\x19\x7F\u2066-\u2069\u202A-\u202E\u200E\u200F]/;
+const BOM = "\uFEFF";
+
 /**
- * @param {string} text
- * @param {object} options
+ * @param {string | ArrayBuffer | Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | DataView} text
+ * @param {object} [options]
  * @param {keyof typeof methods} [options.as]
  * @param {boolean} [options.storeLocations]
  */
-export function parse(text, {as = 'document', storeLocations = false} = {}) {
+export function parse(text, {as = "document", storeLocations = false} = {}) {
 	/**
-	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document | (import('./model.js').Comment | import('./model.js').Whitespace)[]>}
+	 * @type {import('chevrotain').ParserMethod<[], import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document>}
 	 */
 	const parserMethod = methods[as];
 	if (parserMethod == null) {
 		throw new TypeError(`Invalid "as" target passed: ${JSON.stringify(as)}`);
 	}
 
+	if (typeof text !== "string") {
+		if (typeof "TextDecoder" !== "function") {
+			throw new TypeError(
+				"Uint8Array input is only supported on platforms that include TextDecoder",
+			);
+		}
+
+		const decoder = new TextDecoder("utf-8", {fatal: true});
+
+		text = decoder.decode(text);
+	}
+
+	if (text.lastIndexOf(BOM) > (as === "document" ? 0 : -1)) {
+		throw new InvalidKdlError(
+			"BOM can only appear at the start of a KDL document",
+		);
+	}
+
+	if (illegalUnicodeCharacters.test(text)) {
+		throw new InvalidKdlError("Found UTF-8 characters not allowed in KDL");
+	}
+
 	const {tokens, errors} = lexer.tokenize(text);
+	// console.log(tokens.map(token => [token.image, token.tokenType.name]));
 
 	if (errors.length === 1) {
 		const [error] = errors;
@@ -83,15 +70,26 @@ export function parse(text, {as = 'document', storeLocations = false} = {}) {
 	} else if (errors.length > 0) {
 		throw new InvalidKdlError(
 			`Failed to parse KDL ${as} due to multiple errors:\n${errors
-				.map(error => `- ${error.message} at ${stringifyOffset(error)}`)
-				.join('\n')}`,
+				.map((error) => `- ${error.message} at ${stringifyOffset(error)}`)
+				.join("\n")}`,
 		);
 	}
 
 	// console.log(tokens.map(t => ({name: t.tokenType.name, content: t.image})));
 	parser.input = tokens;
 	parser.storeLocationInfo = storeLocations;
-	const document = parserMethod.call(parser);
+
+	let value;
+	try {
+		value = parserMethod.call(parser);
+	} catch (e) {
+		if (e && e instanceof InvalidKdlError) {
+			// rethrow to clean up the stacktrace
+			throw new InvalidKdlError(e.message);
+		} else {
+			throw e;
+		}
+	}
 
 	if (parser.errors.length === 1) {
 		const [error] = parser.errors;
@@ -105,11 +103,12 @@ export function parse(text, {as = 'document', storeLocations = false} = {}) {
 		throw new InvalidKdlError(
 			`Failed to parse KDL ${as} due to multiple errors:\n${parser.errors
 				.map(
-					error => `- ${error.message} at ${stringifyTokenOffset(error.token)}`,
+					(error) =>
+						`- ${error.message} at ${stringifyTokenOffset(error.token)}`,
 				)
-				.join('\n')}`,
+				.join("\n")}`,
 		);
 	}
 
-	return document;
+	return value;
 }

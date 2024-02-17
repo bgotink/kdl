@@ -1,13 +1,13 @@
-export class Identifier {
+export class Tag {
 	/**
 	 * @readonly
 	 */
-	type = "identifier";
+	type = "tag";
 
 	/**
 	 * @readonly
 	 */
-	static type = "identifier";
+	static type = "tag";
 
 	/**
 	 * @type {string=}
@@ -15,11 +15,25 @@ export class Identifier {
 	representation;
 
 	/**
+	 * Leading whitespace
+	 *
+	 * @type {string=}
+	 */
+	leading;
+
+	/**
+	 * Trailing whitespace
+	 *
+	 * @type {string=}
+	 */
+	trailing;
+
+	/**
 	 * @param {string} name
 	 */
 	constructor(name) {
 		/**
-		 * The identifier itself
+		 * The tag itself
 		 *
 		 * @type {string}
 		 * @readonly
@@ -35,13 +49,17 @@ export class Identifier {
 	}
 
 	/**
-	 * Create an identical copy of this identifier
+	 * Create an identical copy of this tag
 	 *
-	 * @returns {Identifier}
+	 * @returns {Tag}
 	 */
 	clone() {
-		const clone = new Identifier(this.name);
+		const clone = new Tag(this.name);
 		clone.representation = this.representation;
+
+		clone.leading = this.leading;
+		clone.trailing = this.trailing;
+
 		return clone;
 	}
 }

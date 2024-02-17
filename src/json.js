@@ -4,16 +4,16 @@ import {
 	Node,
 	parse as parseKdl,
 	format as formatKdl,
-} from '@bgotink/kdl';
+} from "@bgotink/kdl";
 
-const arrayItemKey = '-';
+const arrayItemKey = "-";
 
 export class InvalidJsonInKdlError extends Error {
 	/** @param {string} message */
 	constructor(message) {
 		super(message);
 
-		this.name = 'InvalidJsonInKdlError';
+		this.name = "InvalidJsonInKdlError";
 	}
 }
 
@@ -36,17 +36,17 @@ function nodeToJsonValue(
 	const props = new Map(
 		node
 			.getPropertyEntries()
-			.map(node => [/** @type {string} */ (node.getName()), node]),
+			.map((node) => [/** @type {string} */ (node.getName()), node]),
 	);
 
 	if (
-		type === 'object' ||
-		(type !== 'array' &&
+		type === "object" ||
+		(type !== "array" &&
 			(props.size > 0 ||
-				node.children?.nodes.some(child => child.getName() !== arrayItemKey)))
+				node.children?.nodes.some((child) => child.getName() !== arrayItemKey)))
 	) {
 		if (args.length > 0) {
-			throw new InvalidJsonInKdlError('A JSON object cannot have arguments');
+			throw new InvalidJsonInKdlError("A JSON object cannot have arguments");
 		}
 
 		/** @type {Map<string, unknown>} */
@@ -87,13 +87,13 @@ function nodeToJsonValue(
 		return Object.fromEntries(properties);
 	}
 
-	if (type === 'array' || args.length > 1 || node.hasChildren()) {
+	if (type === "array" || args.length > 1 || node.hasChildren()) {
 		if (
 			props.size > 0 ||
-			node.children?.nodes.some(child => child.getName() !== arrayItemKey)
+			node.children?.nodes.some((child) => child.getName() !== arrayItemKey)
 		) {
 			throw new InvalidJsonInKdlError(
-				'A JSON array cannot have properties or named children',
+				"A JSON array cannot have properties or named children",
 			);
 		}
 
@@ -147,12 +147,12 @@ function nodeToJsonValue(
  */
 export function toJson(nodeOrDocument, options) {
 	let node;
-	if (nodeOrDocument.type === 'node') {
+	if (nodeOrDocument.type === "node") {
 		node = nodeOrDocument;
 	} else {
 		if (nodeOrDocument.nodes.length !== 1) {
 			throw new InvalidJsonInKdlError(
-				'JSON-in-KDL requires a single node in the document',
+				"JSON-in-KDL requires a single node in the document",
 			);
 		}
 
@@ -161,7 +161,7 @@ export function toJson(nodeOrDocument, options) {
 
 	const value = nodeToJsonValue(node, options);
 	if (options?.reviver != null) {
-		return options.reviver(value, '', {location: node});
+		return options.reviver(value, "", {location: node});
 	}
 	return value;
 }
@@ -191,18 +191,18 @@ export function fromJson(
 		replaceKdlValue,
 	} = {},
 ) {
-	if (typeof indentationStep === 'string') {
+	if (typeof indentationStep === "string") {
 		indentationStep = indentationStep;
-	} else if (typeof indentationStep === 'number' && indentationStep > 0) {
-		indentationStep = ' '.repeat(indentationStep);
+	} else if (typeof indentationStep === "number" && indentationStep > 0) {
+		indentationStep = " ".repeat(indentationStep);
 	} else {
-		indentationStep = '';
+		indentationStep = "";
 	}
 
 	const result = /** @type {Node} */ (
 		fromJsonValue(
 			value,
-			'',
+			"",
 			true,
 			{
 				nodeName,
@@ -227,11 +227,11 @@ export function fromJson(
  */
 function isLiteral(value) {
 	switch (typeof value) {
-		case 'boolean':
-		case 'number':
-		case 'string':
+		case "boolean":
+		case "number":
+		case "string":
 			return true;
-		case 'object':
+		case "object":
 			return value == null;
 		default:
 			return false;
@@ -269,8 +269,8 @@ function fromJsonValue(
 	const originalValue = value;
 	if (
 		value != null &&
-		typeof value === 'object' &&
-		typeof (/** @type {{toJSON: Function}} */ (value).toJSON) === 'function'
+		typeof value === "object" &&
+		typeof (/** @type {{toJSON: Function}} */ (value).toJSON) === "function"
 	) {
 		value = /** @type {{toJSON: Function}} */ (value).toJSON();
 	}
@@ -280,15 +280,15 @@ function fromJsonValue(
 
 	if (
 		value === undefined ||
-		typeof value === 'function' ||
-		typeof value === 'symbol'
+		typeof value === "function" ||
+		typeof value === "symbol"
 	) {
 		return undefined;
 	}
 
 	if (!alwaysReturnNode && isLiteral(value)) {
 		const entry =
-			typeof name === 'number'
+			typeof name === "number"
 				? Entry.createArgument(value)
 				: Entry.createProperty(nodeName, value);
 
@@ -336,7 +336,7 @@ function fromJsonValue(
 					continue;
 				}
 
-				if (toAppend.type === 'node') {
+				if (toAppend.type === "node") {
 					useChild = true;
 				}
 
@@ -344,7 +344,7 @@ function fromJsonValue(
 			}
 
 			if (!node.hasChildren() && node.entries.length < 2) {
-				node.setTag('array');
+				node.setTag("array");
 			}
 		} else {
 			const useChild = !(allowEntriesInCurrent ?? allowEntriesInObjects);
@@ -374,7 +374,7 @@ function fromJsonValue(
 					continue;
 				}
 
-				if (toAppend.type === 'node') {
+				if (toAppend.type === "node") {
 					appendedChildren.add(name);
 				}
 
@@ -386,7 +386,7 @@ function fromJsonValue(
 				(appendedChildren.size === 0 ||
 					(appendedChildren.size === 1 && appendedChildren.has(arrayItemKey)))
 			) {
-				node.setTag('object');
+				node.setTag("object");
 			}
 		}
 	} finally {
@@ -406,7 +406,7 @@ function fromJsonValue(
 			return;
 		}
 
-		if (value.type === 'entry') {
+		if (value.type === "entry") {
 			if (
 				allowEntriesInCurrent !== false &&
 				(value.name != null || !node.hasChildren())
@@ -434,11 +434,11 @@ function fromJsonValue(
  * @param {string} indentationStep
  */
 function applyIndentation(root, indentationStep) {
-	root.leading = '';
-	root.trailing = '';
+	root.leading = "";
+	root.trailing = "";
 
-	let indentation = '';
-	const trailing = indentationStep ? '\n' : ';';
+	let indentation = "";
+	const trailing = indentationStep ? "\n" : ";";
 	let documents = root.children ? [root.children] : [];
 
 	while (documents.length > 0) {
@@ -494,9 +494,9 @@ export function parse(string, reviver) {
 export function stringify(value, replacer = {}, indentation) {
 	let replaceJsonValue, replaceKdlValue;
 
-	if (typeof replacer === 'function') {
+	if (typeof replacer === "function") {
 		replaceJsonValue = replacer;
-	} else if (typeof replacer === 'object' && replacer != null) {
+	} else if (typeof replacer === "object" && replacer != null) {
 		({replaceJsonValue, replaceKdlValue, indentation} = replacer);
 	}
 

@@ -15,8 +15,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 20.x
+          registry-url: "https://registry.npmjs.org"
 
       # Prepare for release
       - name: Install dependencies
@@ -39,8 +39,8 @@ jobs:
       - name: Setup Node for GitHub Packages
         uses: actions/setup-node@v3
         with:
-          node-version: '16.x'
-          registry-url: 'https://npm.pkg.github.com'
+          node-version: 20.x
+          registry-url: "https://npm.pkg.github.com"
       - name: Publish package on GitHub Packages
         run: cd out && npm publish --access public
         env:

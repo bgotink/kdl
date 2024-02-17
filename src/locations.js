@@ -11,12 +11,12 @@
  */
 
 /**
- * @type {WeakMap<import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document, Location>}
+ * @type {WeakMap<import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document, Location>}
  */
 const locations = new WeakMap();
 
 /**
- * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
+ * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
  * @returns {Location=}
  */
 export function getLocation(element) {
@@ -24,7 +24,7 @@ export function getLocation(element) {
 }
 
 /**
- * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
+ * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
  * @param {Location} location
  */
 export function storeLocation(element, location) {

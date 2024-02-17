@@ -3,15 +3,13 @@ root = true
 [*]
 end_of_line = lf
 insert_final_newline = true
-
-[*.{md,js,json}]
 charset = utf-8
 indent_style = tab
 
-[*.{yml}]
-charset = utf-8
+[*.{yml,yaml}]
 indent_style = space
 indent_size = 2
 
+# Trailing whitespace is significant in markdown
 [*.md]
 trim_trailing_whitespace = false

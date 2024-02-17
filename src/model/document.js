@@ -1,6 +1,6 @@
-import {Node} from './node.js';
-import {reverseIterate} from './utils.js';
-import {Value} from './value.js';
+import {Node} from "./node.js";
+import {reverseIterate} from "./utils.js";
+import {Value} from "./value.js";
 
 /**
  * @param {Node | Document} node
@@ -17,12 +17,12 @@ export class Document {
 	/**
 	 * @readonly
 	 */
-	type = 'document';
+	type = "document";
 
 	/**
 	 * @readonly
 	 */
-	static type = 'document';
+	static type = "document";
 
 	/**
 	 * @type {Node[]}
@@ -49,7 +49,7 @@ export class Document {
 	 * @returns {Document}
 	 */
 	clone() {
-		const clone = new Document(this.nodes.map(node => node.clone()));
+		const clone = new Document(this.nodes.map((node) => node.clone()));
 
 		clone.trailing = this.trailing;
 
@@ -80,7 +80,7 @@ export class Document {
 
 		const index = this.nodes.indexOf(referenceNode);
 		if (index === -1) {
-			throw new Error('Reference node is not in document');
+			throw new Error("Reference node is not in document");
 		}
 
 		this.nodes.splice(index, 0, ...getNodes(newNode));
@@ -101,7 +101,7 @@ export class Document {
 
 		const index = this.nodes.indexOf(referenceNode);
 		if (index === -1) {
-			throw new Error('Reference node is not in document');
+			throw new Error("Reference node is not in document");
 		}
 
 		this.nodes.splice(index + 1, 0, ...getNodes(newNode));
@@ -116,7 +116,7 @@ export class Document {
 	removeNode(node) {
 		const index = this.nodes.indexOf(node);
 		if (index === -1) {
-			throw new Error('Node to remove is not in document');
+			throw new Error("Node to remove is not in document");
 		}
 
 		this.nodes.splice(index, 1);
@@ -132,7 +132,7 @@ export class Document {
 	replaceNode(oldNode, newNode) {
 		const index = this.nodes.indexOf(oldNode);
 		if (index === -1) {
-			throw new Error('Node to replace is not in document');
+			throw new Error("Node to replace is not in document");
 		}
 
 		this.nodes.splice(index, 1, ...getNodes(newNode));
@@ -148,7 +148,7 @@ export class Document {
 	 * @returns {Node[]}
 	 */
 	findNodesByName(name) {
-		return this.nodes.filter(node => node.name.name === name);
+		return this.nodes.filter((node) => node.name.name === name);
 	}
 
 	/**
@@ -209,7 +209,7 @@ export class Document {
 	 * @returns {void}
 	 */
 	removeNodesByName(name) {
-		this.nodes = this.nodes.filter(node => node.name.name !== name);
+		this.nodes = this.nodes.filter((node) => node.name.name !== name);
 	}
 
 	/**

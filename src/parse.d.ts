@@ -1,12 +1,4 @@
-import type {
-	Comment,
-	Document,
-	Entry,
-	Identifier,
-	Node,
-	Value,
-	Whitespace,
-} from './model.js';
+import type {Document, Entry, Identifier, Node, Value} from "./model.js";
 
 export class InvalidKdlError extends Error {}
 
@@ -16,8 +8,6 @@ interface ParserResult {
 	entry: Entry;
 	node: Node;
 	document: Document;
-	['whitespace in node']: (Comment | Whitespace)[];
-	['whitespace in document']: (Comment | Whitespace)[];
 }
 
 type ParserTarget = keyof ParserResult;
@@ -29,8 +19,17 @@ type ParserTarget = keyof ParserResult;
  * or trailing whitespace, no comments, no tags.
  */
 export function parse(
-	text: string,
-	options: {as: 'value'; storeLocations?: boolean},
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {as: "value"; storeLocations?: boolean},
 ): Value;
 /**
  * Parse the given text as a identifier.
@@ -39,8 +38,17 @@ export function parse(
  * or trailing whitespace, no comments, no tags.
  */
 export function parse(
-	text: string,
-	options: {as: 'identifier'; storeLocations?: boolean},
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {as: "identifier"; storeLocations?: boolean},
 ): Identifier;
 /**
  * Parse the given text as an entry.
@@ -49,8 +57,17 @@ export function parse(
  * comments of entire nodes)
  */
 export function parse(
-	text: string,
-	options: {as: 'entry'; storeLocations?: boolean},
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {as: "entry"; storeLocations?: boolean},
 ): Entry;
 /**
  * Parse the given text as a node.
@@ -58,8 +75,17 @@ export function parse(
  * The text can contain extra whitespace, tags, and comments.
  */
 export function parse(
-	text: string,
-	options: {as: 'node'; storeLocations?: boolean},
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {as: "node"; storeLocations?: boolean},
 ): Node;
 /**
  * Parse the given text as a document.
@@ -67,40 +93,28 @@ export function parse(
  * The text can contain extra whitespace, tags, and comments.
  */
 export function parse(
-	text: string,
-	options?: {as?: 'document'; storeLocations?: boolean},
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options?: {as?: "document"; storeLocations?: boolean},
 ): Document;
-/**
- * Split the given whitespace within a node (e.g. between the node name and its first value) text into parts
- *
- * This function splits the whitespace into its constituent parts:
- * - inline space
- * - a newline
- * - an escaped newline (backslash)
- * - a multiline comment (starts with `/*`)
- * - a single line comment (starts with `//`, includes the trailing newline)
- * - a slashdash comment (starts with `/-`, ends at the end of the commented value or property)
- */
-export function parse(
-	text: string,
-	options?: {as: 'whitespace in node'},
-): (Comment | Whitespace)[];
-/**
- * Split the given whitespace text outside of a node (e.g. between two nodes) into parts
- *
- * This function splits the whitespace into its constituent parts:
- * - inline space
- * - a newline
- * - an escaped newline (backslash)
- * - a multiline comment (starts with `/*`)
- * - a single line comment (starts with `//`, includes the trailing newline)
- * - a slashdash comment (starts with `/-`, ends at the end of the commented node, which is a newline, semicolon or the end of the string)
- */
-export function parse(
-	text: string,
-	options?: {as: 'whitespace in document'},
-): (Comment | Whitespace)[];
 export function parse<T extends ParserTarget>(
-	text: string,
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
 	options: {as: T; storeLocations?: boolean},
 ): ParserResult[T];

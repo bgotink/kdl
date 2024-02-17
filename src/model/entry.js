@@ -1,5 +1,6 @@
-import {Identifier} from './identifier.js';
-import {Value} from './value.js';
+import {Identifier} from "./identifier.js";
+import {Tag} from "./tag.js";
+import {Value} from "./value.js";
 
 export class Entry {
 	/**
@@ -26,12 +27,12 @@ export class Entry {
 	/**
 	 * @readonly
 	 */
-	type = 'entry';
+	type = "entry";
 
 	/**
 	 * @readonly
 	 */
-	static type = 'entry';
+	static type = "entry";
 
 	/**
 	 * The name of this entry if it's a property, or null if it's an argument
@@ -50,7 +51,7 @@ export class Entry {
 	/**
 	 * Tag attached to this value, if any
 	 *
-	 * @type {Identifier | null}
+	 * @type {Tag | null}
 	 */
 	tag = null;
 
@@ -67,6 +68,20 @@ export class Entry {
 	 * @type {string=}
 	 */
 	trailing;
+
+	/**
+	 * Equals sign
+	 *
+	 * @type {string=}
+	 */
+	equals;
+
+	/**
+	 * Whitespace between the tag and the value
+	 *
+	 * @type {string=}
+	 */
+	betweenTagAndValue;
 
 	/**
 	 * @param {Value} value
@@ -88,6 +103,8 @@ export class Entry {
 
 		clone.leading = this.leading;
 		clone.trailing = this.trailing;
+		clone.equals = this.equals;
+		clone.betweenTagAndValue = this.betweenTagAndValue;
 
 		return clone;
 	}
@@ -107,7 +124,7 @@ export class Entry {
 	 * @param {string | null | undefined} tag
 	 */
 	setTag(tag) {
-		this.tag = tag != null ? new Identifier(tag) : null;
+		this.tag = tag != null ? new Tag(tag) : null;
 	}
 
 	/**
