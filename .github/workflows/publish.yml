@@ -6,6 +6,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
     steps:
       # Set up
       - name: Checkout
@@ -29,9 +33,20 @@ jobs:
         run: |
           yarn test
 
+      - id: dist-tag
+        name: Define dist tag
+        run: |
+          if ${{ github.event.release.prerelease }}; then
+            DIST_TAG=next
+          else
+            DIST_TAG=latest
+          fi
+
+          echo "dist-tag=$DIST_TAG" >> $GITHUB_OUTPUT
+
       # Release to NPM
       - name: Publish package on NPM
-        run: cd out && npm publish --access public
+        run: cd out && npm publish --provenance --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -42,6 +57,6 @@ jobs:
           node-version: 20.x
           registry-url: "https://npm.pkg.github.com"
       - name: Publish package on GitHub Packages
-        run: cd out && npm publish --access public
+        run: cd out && npm publish --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
