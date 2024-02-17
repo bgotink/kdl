@@ -6,6 +6,12 @@ The parser in this package focuses on parsing documents in a way that allows for
 
 If you don't care about formatting or programmatic manipulation, you might want to check out the official parser [`kdljs`][kdljs] instead.
 
+> [!CAUTION]
+> This package handles KDL 2.0.0-draft.4, a draft of the KDL v2 spec.
+> There might still be breaking changes to that specification before it is finalized.
+>
+> Use version 0.1.6 of this package if you want a stable version that supports KDL v1.
+
 ## Install
 
 ```sh
@@ -43,7 +49,7 @@ expect(format(doc)).toBe(String.raw`
 
 ## JSON-in-KDL (JiK)
 
-This package exports function from `@bgotink/kdl/json` to parse and stringify KDL documents as JSON-in-KDL (JiK) 3.0.1. For information on the format, see [the JiK 3.0.1 specification][jik-spec].
+This package exports function from `@bgotink/kdl/json` to parse and stringify KDL documents as JSON-in-KDL (JiK) 4.0.0. For information on the format, see [the JiK 4.0.0 specification][jik-spec].
 
 ```js
 import {parse} from "@bgotink/kdl/json";
@@ -94,13 +100,13 @@ The test suite at `test/upstream` is part of the [KDL specification][kdl-spec-re
 
 This package wouldn't be possible without software that other people graciously made open source:
 
-The code in this package is heavily influenced by the [`kdl` crate][kdl-rs], available under the Apache 2.0 license.  
+The code in this package is heavily influenced by the [`kdl` crate][kdl-rs], available under the Apache 2.0 license.
 Some token expressions have been copied out of the official [`kdljs`][kdljs] parser, available under the MIT license.
 
 This package bundles it dependencies when published to npm:
 
-- [Chevrotain](https://chevrotain.io/), available under the Apache 2.0 license  
-  Copyright (c) 2021 the original author or authors from the Chevrotain project  
+- [Chevrotain](https://chevrotain.io/), available under the Apache 2.0 license
+  Copyright (c) 2021 the original author or authors from the Chevrotain project
   Copyright (c) 2015-2020 SAP SE or an SAP affiliate company.
 - [lodash](https://lodash.com/), available under the MIT license
 
