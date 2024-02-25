@@ -1,15 +1,22 @@
+/**
+ * An
+ */
 export class Identifier {
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "identifier";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "identifier";
 
 	/**
+	 * String representation of the identifier
+	 *
 	 * @type {string=}
 	 */
 	representation;

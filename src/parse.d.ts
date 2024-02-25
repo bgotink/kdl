@@ -105,6 +105,11 @@ export function parse(
 		| DataView,
 	options?: {as?: "document"; storeLocations?: boolean},
 ): Document;
+/**
+ * Parse the given text as document, node, entry, identifier, or value
+ *
+ * @hidden
+ */
 export function parse<T extends ParserTarget>(
 	text:
 		| string

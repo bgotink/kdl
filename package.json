@@ -29,7 +29,8 @@
 		"postinstall": "is-ci || husky",
 		"build": "node scripts/build.js",
 		"test": "uvu test",
-		"bench": "node scripts/bench.js"
+		"bench": "node scripts/bench.js",
+		"book": "scripts/book.sh"
 	},
 	"dependencies": {
 		"chevrotain": "^11.0.3"
@@ -44,6 +45,8 @@
 		"is-ci": "^3.0.1",
 		"kdljs": "^0.2.0",
 		"prettier": "^3.2.5",
+		"typedoc": "^0.25.8",
+		"typedoc-plugin-markdown": "^3.17.1",
 		"typescript": "^5.3.3",
 		"uvu": "^0.5.6"
 	}

@@ -1,6 +1,12 @@
 import {EOF} from "chevrotain";
 
+/**
+ * Error thrown when invalid KDL is encountered
+ */
 export class InvalidKdlError extends Error {
+	/**
+	 * @hidden
+	 */
 	name = "InvalidKdlError";
 }
 

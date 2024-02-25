@@ -1,7 +1,7 @@
 /**
+ * @typedef {object} Location
  * Location inside source text
  *
- * @typedef {object} Location
  * @property {number} startOffset Offset of the first character. 0-indexed.
  * @property {number=} startLine Line of the first character. 1-indexed.
  * @property {number=} startColumn Column of the first character of the Token. 1-indexed.
@@ -16,6 +16,11 @@
 const locations = new WeakMap();
 
 /**
+ * Get location information of the given parsed element
+ *
+ * If the element was not created by the parser, or if the parser option `storeLocations`
+ * was not set to `true`, the result will be undefined.
+ *
  * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
  * @returns {Location=}
  */

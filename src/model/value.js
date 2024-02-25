@@ -1,11 +1,18 @@
+/**
+ * A value represents a primitive in KDL, i.e. a string, boolean, number, or null
+ *
+ * Values are always tied to an entry.
+ */
 export class Value {
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "value";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "value";
 

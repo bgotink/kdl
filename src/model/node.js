@@ -12,6 +12,9 @@ function getOrCreateDocument(node) {
 	return node.children ?? (node.children = new Document());
 }
 
+/**
+ * A node is a node name, followed by zero or more arguments and/or properties, and children
+ */
 export class Node {
 	/**
 	 * Create a new node with the given name
@@ -25,11 +28,13 @@ export class Node {
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "node";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "node";
 
@@ -205,19 +210,7 @@ export class Node {
 	 * @returns {boolean}
 	 */
 	hasArgument(index) {
-		for (const entry of this.entries) {
-			if (!entry.isArgument()) {
-				continue;
-			}
-
-			if (index === 0) {
-				return true;
-			}
-
-			index--;
-		}
-
-		return false;
+		return this.getArgumentEntry(index) != null;
 	}
 
 	/**

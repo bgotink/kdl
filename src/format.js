@@ -130,6 +130,7 @@ const formatters = new Map(
 	/** @type {[string, (value: any, indentation: number) => string][]} */ ([
 		[Value.type, formatValue],
 		[Identifier.type, formatIdentifier],
+		[Tag.type, formatTag],
 		[Entry.type, formatEntry],
 		[Node.type, formatNode],
 		[Document.type, formatDocument],
@@ -137,7 +138,7 @@ const formatters = new Map(
 );
 
 /**
- * @param {Value | Identifier | Entry | Node | Document} v
+ * @param {Value | Identifier | Tag | Entry | Node | Document} v
  * @returns {string}
  */
 export function format(v) {

@@ -13,18 +13,25 @@ function* getNodes(node) {
 	}
 }
 
+/**
+ * A document is a collection of zero or mode {@link Node}s
+ */
 export class Document {
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "document";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "document";
 
 	/**
+	 * The nodes in this document
+	 *
 	 * @type {Node[]}
 	 */
 	nodes;

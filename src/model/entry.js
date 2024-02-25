@@ -2,6 +2,9 @@ import {Identifier} from "./identifier.js";
 import {Tag} from "./tag.js";
 import {Value} from "./value.js";
 
+/**
+ * An entry represents either an argument or a property to a node
+ */
 export class Entry {
 	/**
 	 * Create a new argument entry with the given value
@@ -26,11 +29,13 @@ export class Entry {
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "entry";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "entry";
 

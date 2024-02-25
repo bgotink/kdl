@@ -1,15 +1,22 @@
+/**
+ * A tag is tied to anode or entry
+ */
 export class Tag {
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	type = "tag";
 
 	/**
 	 * @readonly
+	 * @hidden
 	 */
 	static type = "tag";
 
 	/**
+	 * String representation of the tag
+	 *
 	 * @type {string=}
 	 */
 	representation;

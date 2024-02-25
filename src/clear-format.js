@@ -107,6 +107,7 @@ const clearFormatters = new Map(
 	/** @type {[string, (value: any) => void][]} */ ([
 		[Value.type, clearFormatValue],
 		[Identifier.type, clearFormatIdentifier],
+		[Tag.type, clearFormatTag],
 		[Entry.type, clearFormatEntry],
 		[Node.type, clearFormatNode],
 		[Document.type, clearFormatDocument],
@@ -114,7 +115,7 @@ const clearFormatters = new Map(
 );
 
 /**
- * @template {Value | Identifier | Entry | Node | Document} T
+ * @template {Value | Identifier | Tag | Entry | Node | Document} T
  * @param {T} v
  * @returns {T}
  */
