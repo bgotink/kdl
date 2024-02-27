@@ -27,7 +27,7 @@ assert(
 
 ## Locations
 
-Setting the `storeLocations` option to `true` makes location information available in the [`getLocation`](./reference/index.md#getlocation) function.
+Setting the `storeLocations` option to `true` makes location information available in the [`getLocation`](./reference/modules/index.md#getlocation) function.
 
 ## Quirks
 

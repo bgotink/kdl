@@ -1,6 +1,6 @@
 # Formatting KDL
 
-The [`format(value)`](./reference/index.md#format) function turns a document, node, entry, identifier, value, or tag into a KDL string representing that value.
+The [`format(value)`](./reference/modules/index.md#format) function turns a document, node, entry, identifier, value, or tag into a KDL string representing that value.
 
 The KDL DOM classes contain not just their values, but also any information on whitespace and comments required to format the element.
 This makes this package good at manipulating KDL files maintained by humans, as it supports making modifications with as few changes to the file as possible.
@@ -60,4 +60,4 @@ Just like the `representation`, these fields are not validated when formatting t
 
 ## Reset
 
-The [`clearFormat(value)`](./reference/index.md#clearformat) function removes any and all formatting from a document, node, entry, value, identifier, or tag.
+The [`clearFormat(value)`](./reference/modules/index.md#clearformat) function removes any and all formatting from a document, node, entry, value, identifier, or tag.

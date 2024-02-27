@@ -18,7 +18,8 @@ yarn typedoc \
 	--githubPages false \
 	--validation \
 	--entryDocument index.md \
-	src/index.js
+	--hideBreadcrumbs \
+	src/index.js src/json.d.ts
 
 cd documentation
 mdbook "${1:-build}"

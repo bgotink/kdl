@@ -1,0 +1,59 @@
+svg.railroad-diagram {
+	width: 100%;
+
+	:is(path) {
+		stroke-width: 3;
+		stroke: var(--fg);
+		fill: transparent;
+	}
+
+	:is(text) {
+		font: 14px monospace;
+		text-anchor: middle;
+		white-space: pre;
+		fill: currentColor;
+	}
+
+	:is(text).diagram-text {
+		font-size: 12px;
+	}
+
+	:is(text).diagram-arrow {
+		font-size: 16px;
+	}
+
+	:is(text).label {
+		text-anchor: start;
+	}
+
+	:is(text).comment {
+		font: italic 12px monospace;
+	}
+
+	:is(g).non-terminal text {
+		/*font-style: italic;*/
+	}
+
+	:is(rect) {
+		stroke-width: 3;
+		stroke: var(--fg);
+		fill: var(--bg);
+	}
+
+	:is(rect).group-box {
+		stroke: var(--quote-border);
+		stroke-dasharray: 10 5;
+		fill: none;
+	}
+
+	:is(path).diagram-text {
+		stroke-width: 3;
+		stroke: var(--fg);
+		fill: var(--bg);
+		cursor: help;
+	}
+
+	:is(g).diagram-text:hover path.diagram-text {
+		fill: var(--fg);
+	}
+}

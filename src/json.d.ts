@@ -1,13 +1,22 @@
-import {Document, Entry, Node} from "./model.js";
+import {Document, Entry, Node} from "@bgotink/kdl";
 
+/**
+ * Error thrown when encountering invalid JSON-in-KDL
+ */
 export class InvalidJsonInKdlError extends Error {
 	constructor(message: string);
 }
 
+/**
+ * A JSON object
+ */
 export interface JsonObject {
 	[property: string]: JsonValue;
 }
 
+/**
+ * A JSON value
+ */
 export type JsonValue =
 	| null
 	| number
@@ -16,6 +25,9 @@ export type JsonValue =
 	| JsonObject
 	| JsonValue[];
 
+/**
+ * Options for the {@link toJson} function
+ */
 interface ToJsonOptions {
 	/**
 	 * Whether to ignore values on the root node
@@ -50,6 +62,9 @@ interface ToJsonOptions {
 	ignoreValues?: boolean;
 }
 
+/**
+ * Extra option for providing a type hint to the {@link toJson} function
+ */
 interface ToJsonType<T> {
 	/**
 	 * Type to use for the node
@@ -64,35 +79,17 @@ interface ToJsonType<T> {
 	type: T;
 }
 
+/**
+ * Extra option to modify the return value of the {@link toJson} function
+ */
 interface ToJsonReviver<T> {
+	/**
+	 * Reviver to use
+	 */
 	reviver: JiKReviver<T>;
 }
 
 /**
- * Extract the JSON value encoded into the given JiK node.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param node A valid JiK node
- * @throws If the given node is not a valid JiK node
- */
-export function toJson(
-	node: Node,
-	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
-): JsonObject;
-/**
- * Extract the JSON value encoded into the given JiK document.
- *
- * The document must contain a single node, which acts as the root of the JiK value.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param document A document containing a single valid JiK node
- * @throws If the given node is not a valid JiK node or if the given document doesn't contain exactly one node
- */
-export function toJson(
-	document: Document,
-	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
-): JsonObject;
-/**
  * Extract the JSON value encoded into the given JiK node or document.
  *
  * If passed a document, the document must contain a single node, which acts as the root of the JiK value.
@@ -106,30 +103,6 @@ export function toJson(
 	options: ToJsonOptions & ToJsonType<"object"> & {reviver?: undefined},
 ): JsonObject;
 /**
- * Extract the JSON value encoded into the given JiK node.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param node A valid JiK node
- * @throws If the given node is not a valid JiK node
- */
-export function toJson(
-	node: Node,
-	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
-): JsonValue[];
-/**
- * Extract the JSON value encoded into the given JiK document.
- *
- * The document must contain a single node, which acts as the root of the JiK value.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param document A document containing a single valid JiK node
- * @throws If the given node is not a valid JiK node or if the given document doesn't contain exactly one node
- */
-export function toJson(
-	document: Document,
-	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
-): JsonValue[];
-/**
  * Extract the JSON value encoded into the given JiK node or document.
  *
  * If passed a document, the document must contain a single node, which acts as the root of the JiK value.
@@ -142,34 +115,6 @@ export function toJson(
 	nodeOrDocument: Node | Document,
 	options: ToJsonOptions & ToJsonType<"array"> & {reviver?: undefined},
 ): JsonValue[];
-/**
- * Extract the JSON value encoded into the given JiK node.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param node A valid JiK node
- * @throws If the given node is not a valid JiK node
- */
-export function toJson(
-	node: Node,
-	options?: ToJsonOptions &
-		Partial<ToJsonType<string>> &
-		Partial<ToJsonReviver<JsonValue>>,
-): JsonValue;
-/**
- * Extract the JSON value encoded into the given JiK document.
- *
- * The document must contain a single node, which acts as the root of the JiK value.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param document A document containing a single valid JiK node
- * @throws If the given node is not a valid JiK node or if the given document doesn't contain exactly one node
- */
-export function toJson(
-	document: Document,
-	options?: ToJsonOptions &
-		Partial<ToJsonType<string>> &
-		Partial<ToJsonReviver<JsonValue>>,
-): JsonValue;
 /**
  * Extract the JSON value encoded into the given JiK node or document.
  *
@@ -185,34 +130,6 @@ export function toJson(
 		Partial<ToJsonType<string>> &
 		Partial<ToJsonReviver<JsonValue>>,
 ): JsonValue;
-/**
- * Extract the JSON value encoded into the given JiK node.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param node A valid JiK node
- * @throws If the given node is not a valid JiK node
- */
-export function toJson(
-	node: Node,
-	options?: ToJsonOptions &
-		Partial<ToJsonType<string>> &
-		Partial<ToJsonReviver<unknown>>,
-): unknown;
-/**
- * Extract the JSON value encoded into the given JiK document.
- *
- * The document must contain a single node, which acts as the root of the JiK value.
- *
- * @see https://github.com/kdl-org/kdl/blob/76d5dd542a9043257bc65476c0a70b94667052a7/JSON-IN-KDL.md
- * @param document A document containing a single valid JiK node
- * @throws If the given node is not a valid JiK node or if the given document doesn't contain exactly one node
- */
-export function toJson(
-	document: Document,
-	options?: ToJsonOptions &
-		Partial<ToJsonType<string>> &
-		Partial<ToJsonReviver<unknown>>,
-): unknown;
 /**
  * Extract the JSON value encoded into the given JiK node or document.
  *
@@ -229,6 +146,9 @@ export function toJson(
 		Partial<ToJsonReviver<unknown>>,
 ): unknown;
 
+/**
+ * Options for the {@link fromJson} function
+ */
 interface FromJsonOptions extends StringifyOptions {
 	/**
 	 * Name of the root node to create
@@ -287,7 +207,19 @@ interface FromJsonOptions extends StringifyOptions {
  */
 export function fromJson(value: JsonValue, options?: FromJsonOptions): Node;
 
+/**
+ * Reviver function that can be passed into {@link parse} or {@link toJson}
+ *
+ * The function is called for every JSON value while it's being serialized.
+ * These values are replaced by the return value of this function.
+ */
 interface JiKReviver<T> {
+	/**
+	 * @param value The JSON value
+	 * @param key The key of the value, empty string for the root value
+	 * @param data The node or entry where the value was defined
+	 * @returns The value to use, if the value is `undefined` then the property is removed from the result
+	 */
 	(
 		value: JsonValue,
 		key: string | number,
@@ -302,8 +234,17 @@ interface JiKReviver<T> {
  * @throws If the given text is not a valid JiK document
  */
 export function parse(text: string, reviver?: JiKReviver<JsonValue>): JsonValue;
+/**
+ * Parse the given JiK text to its encoded JSON value
+ *
+ * @param text The JiK text to parse
+ * @throws If the given text is not a valid JiK document
+ */
 export function parse(text: string, reviver: JiKReviver<unknown>): unknown;
 
+/**
+ * Options for the {@link stringify} function
+ */
 interface StringifyOptions {
 	/**
 	 * The indentation to give each nested level of node
@@ -358,10 +299,19 @@ interface StringifyOptions {
  * Stringify the given JSON value into JiK text
  *
  * @param value The JSON value to encode
+ * @param options Optional options
+ * @throws If the given JSON value contains cycles.
+ */
+export function stringify(value: unknown, options?: StringifyOptions): string;
+/**
+ * Stringify the given JSON value into JiK text
+ *
+ * This function's signrature is explicitly kept similar to `JSON.stringify`.
+ *
+ * @param value The JSON value to encode
  * @param indentation The indentation to give each nested level of node, either the actual indentation string or the number of spaces
  * @throws If the given JSON value contains cycles.
  */
-export function stringify(value: unknown, replacer?: StringifyOptions): string;
 export function stringify(
 	value: unknown,
 	replacer?: StringifyOptions["replaceJsonValue"],
