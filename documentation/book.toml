@@ -6,6 +6,7 @@ src = "src"
 title = "KDL"
 
 [output.html]
+preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/bgotink/kdl"
 git-repository-icon = "fa-github"
 edit-url-template = "https://github.com/bgotink/kdl/edit/main/documentation/{path}"
