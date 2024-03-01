@@ -1,0 +1,38 @@
+name: Publish website
+on: workflow_dispatch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+    steps:
+      # Set up
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+
+      # Publish website
+
+      - name: Prepare to build website
+        run: |
+          rustup set profile minimal
+          rustup component remove --toolchain=stable rust-docs || echo "already removed"
+          rustup update --no-self-update stable
+
+          cargo install mdbook
+      - name: Build website
+        env:
+          MDBOOK_OUTPUT__HTML__SITE_URL: /kdl/
+        run: cd documentation && mdbook build
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: documentation/book
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
