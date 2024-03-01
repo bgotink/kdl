@@ -10,6 +10,7 @@ jobs:
       pages: write
     steps:
       # Set up
+
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup Node
@@ -17,19 +18,20 @@ jobs:
         with:
           node-version: 20.x
 
+      - name: Install npm dependencies
+        run: |
+          yarn install --immutable
+      - name: Install mdbook
+        run: |
+          curl -fSsL https://github.com/rust-lang/mdBook/releases/download/v0.4.37/mdbook-v0.4.37-x86_64-unknown-linux-gnu.tar.gz | tar -xvz -C ~/.cargo/bin
+
       # Publish website
 
-      - name: Prepare to build website
-        run: |
-          rustup set profile minimal
-          rustup component remove --toolchain=stable rust-docs || echo "already removed"
-          rustup update --no-self-update stable
-
-          cargo install mdbook
       - name: Build website
         env:
           MDBOOK_OUTPUT__HTML__SITE_URL: /kdl/
-        run: cd documentation && mdbook build
+        run: |
+          yarn book
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
