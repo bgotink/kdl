@@ -133,14 +133,14 @@ for (const testCase of readdirSync(new URL("input", testCasesFolder))) {
 	});
 }
 
-const exampleFolder = new URL('upstream/examples/', import.meta.url);
+const exampleFolder = new URL("upstream/examples/", import.meta.url);
 
 for (const file of readdirSync(exampleFolder)) {
-  test(`Example ${file}`, () => {
-    const raw = readFileSync(new URL(file, exampleFolder), 'utf8');
+	test(`Example ${file}`, () => {
+		const raw = readFileSync(new URL(file, exampleFolder), "utf8");
 
-    assert.equal(roundTrip(raw), raw);
-  });
+		assert.equal(roundTrip(raw), raw);
+	});
 }
 
 test.run();

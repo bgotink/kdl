@@ -4,3 +4,8 @@ language = "en"
 multilingual = false
 src = "src"
 title = "KDL"
+
+[output.html]
+git-repository-url = "https://github.com/bgotink/kdl"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/bgotink/kdl/edit/main/documentation/{path}"

@@ -1,3 +1,5 @@
 .yarn
 test/upstream
 /out
+
+/documentation/book

@@ -10,6 +10,7 @@ jobs:
       contents: read
       id-token: write
       packages: write
+      pages: write
     steps:
       # Set up
       - name: Checkout
@@ -60,3 +61,23 @@ jobs:
         run: cd out && npm publish --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Publish website
+
+      - name: Prepare to build website
+        run: |
+          rustup set profile minimal
+          rustup component remove --toolchain=x86_64-unknown-linux-gnu rust-docs || echo "already removed"
+          rustup update --no-self-update x86_64-unknown-linux-gnu
+
+          cargo install mdbook
+      - name: Build website
+        env:
+          MDBOOK_OUTPUT__HTML__SITE_URL: /kdl/
+        run: cd documentation && mdbook build
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: documentation/book
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
