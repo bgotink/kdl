@@ -73,9 +73,6 @@ The `document` non-terminal supports ending on a node without `node-terminator`,
 
 ## keyword
 
-The `keyword` non-terminal "allows" invalid keywords, in order to throw an error when such a token is encountered.
-This gives us the opportunity to throw a useful error along the lines of "Did you forget to mark a keyword with #?" rather than "Unexpected token InvalidKeyword, expected one of &lt;list of 20 allowed tokens&gt;"
-
 ## number
 
 ## string

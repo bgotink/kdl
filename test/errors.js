@@ -14,4 +14,10 @@ test("invalid identifiers", () => {
 	);
 });
 
+test("invalid keywords", () => {
+	assert.throws(() => parse("test true"), /Keywords must start with '#'/);
+	assert.throws(() => parse("test false"), /Keywords must start with '#'/);
+	assert.throws(() => parse("test null"), /Keywords must start with '#'/);
+});
+
 test.run();

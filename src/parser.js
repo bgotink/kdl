@@ -6,7 +6,6 @@ import {
 	Lexer,
 } from "chevrotain";
 
-import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
 import {format} from "./format.js";
 import {storeLocation} from "./locations.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
@@ -19,9 +18,8 @@ import {
 import {plainIdentifier} from "./tokens/identifier.js";
 import {
 	binaryNumber,
-	float,
+	decimalNumber,
 	hexadecimalNumber,
-	integer,
 	octalNumber,
 	sign,
 } from "./tokens/numbers.js";
@@ -71,8 +69,7 @@ const tokens = {
 			binaryNumber,
 			hexadecimalNumber,
 			octalNumber,
-			float,
-			integer,
+			decimalNumber,
 
 			semicolon,
 			equals,
@@ -152,6 +149,10 @@ const errorMessageProvider = {
 	},
 
 	buildNotAllInputParsedMessage(options) {
+		if (options.firstRedundant.tokenType === invalidKeyword) {
+			return `Keywords must start with '#', if you want to use keyword ${options.firstRedundant.image}, write #${options.firstRedundant.image} instead`;
+		}
+
 		if (options.firstRedundant.tokenType === equals) {
 			return 'encountered unexpected "=", did you forget to quote a property name that isn\'t a valid identifier?';
 		}
@@ -841,58 +842,37 @@ export class KdlParser extends EmbeddedActionsParser {
 			return result;
 		});
 
-		const rKeyword = $.RULE("keyword", () =>
-			$.OR([
-				{
-					ALT: () => {
-						const token = $.CONSUME(invalidKeyword);
+		const rKeyword = $.RULE("keyword", () => {
+			const token = $.CONSUME(keyword);
 
-						return $.ACTION(() => {
-							throw new InvalidKdlError(
-								`Keywords must start with '#', if you want to use keyword ${
-									token.image
-								}, write #${token.image} instead at ${stringifyTokenOffset(
-									token,
-								)}`,
-							);
-						});
-					},
-				},
-				{
-					ALT: () => {
-						const token = $.CONSUME(keyword);
+			let value;
+			switch (token.image) {
+				case "#null":
+					value = null;
+					break;
+				case "#true":
+					value = true;
+					break;
+				case "#false":
+					value = false;
+					break;
+				case "#inf":
+					value = Infinity;
+					break;
+				case "#-inf":
+					value = -Infinity;
+					break;
+				case "#nan":
+					value = NaN;
+					break;
+				default:
+					return $.ACTION(() => {
+						throw new Error("impossible");
+					});
+			}
 
-						let value;
-						switch (token.image) {
-							case "#null":
-								value = null;
-								break;
-							case "#true":
-								value = true;
-								break;
-							case "#false":
-								value = false;
-								break;
-							case "#inf":
-								value = Infinity;
-								break;
-							case "#-inf":
-								value = -Infinity;
-								break;
-							case "#nan":
-								value = NaN;
-								break;
-							default:
-								return $.ACTION(() => {
-									throw new Error("impossible");
-								});
-						}
-
-						return /** @type {const} */ ([value, token.image, token]);
-					},
-				},
-			]),
-		);
+			return /** @type {const} */ ([value, token.image, token]);
+		});
 
 		const rNumber = $.RULE("number", () => {
 			const start = $.OPTION(() => $.CONSUME(sign));
@@ -920,14 +900,8 @@ export class KdlParser extends EmbeddedActionsParser {
 				},
 				{
 					ALT: () => {
-						const raw = $.CONSUME(float).image;
+						const raw = $.CONSUME(decimalNumber).image;
 						return [parseFloat(raw.replace(/_/g, "")), raw];
-					},
-				},
-				{
-					ALT: () => {
-						const raw = $.CONSUME(integer).image;
-						return [parseInt(raw.replace(/_/g, ""), 10), raw];
 					},
 				},
 			]);

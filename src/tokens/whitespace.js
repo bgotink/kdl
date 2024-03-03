@@ -41,7 +41,6 @@ export const slashDash = createToken({
 export const singleLineComment = createToken({
 	name: "SingleLineComment",
 	pattern: /\/\/[^\x0A\x0C\x0D\x85\u2028\u2029]*/,
-	line_breaks: true,
 });
 
 export const multiLineCommentMode = "multilineComment";

@@ -20,12 +20,7 @@ export const hexadecimalNumber = createToken({
 	pattern: /0[xX][0-9A-Fa-f][0-9A-Fa-f_]*/,
 });
 
-export const integer = createToken({
-	name: "Integer",
-	pattern: /[0-9][0-9_]*/,
-});
-
-export const float = createToken({
-	name: "Float",
+export const decimalNumber = createToken({
+	name: "DecimalNumber",
 	pattern: /[0-9][0-9_]*(?:\.[0-9][0-9_]*)?(?:[eE][+-]?[0-9][0-9_]*)?/,
 });

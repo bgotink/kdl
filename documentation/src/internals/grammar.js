@@ -321,17 +321,23 @@ addDiagram(
 
 addDiagram(
 	"keyword",
-	new Choice(0, terminal("Keyword"), terminal("InvalidKeyword")),
+	new Choice(
+		0,
+		terminal("#true"),
+		terminal("#false"),
+		terminal("#null"),
+		terminal("#-?inf"),
+		terminal("#nan"),
+	),
 );
 
 addDiagram(
 	"number",
-	new Optional(terminal("Sign"), "skip"),
+	new Optional(terminal("[+-]"), "skip"),
 	new Choice(
 		1,
-		terminal("Float"),
-		terminal("Integer"),
 		terminal("BinaryNumber"),
+		terminal("DecimalNumber"),
 		terminal("OctalNumber"),
 		terminal("HexadecimalNumber"),
 	),
