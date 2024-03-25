@@ -1,4 +1,4 @@
-import {EOF} from "chevrotain";
+import {T_EOF} from "./parser/tokenize.js";
 
 /**
  * Error thrown when invalid KDL is encountered
@@ -11,33 +11,12 @@ export class InvalidKdlError extends Error {
 }
 
 /**
- * @param {object} offset
- * @param {number} [offset.line]
- * @param {number} [offset.column]
- * @param {number} offset.offset
- */
-export function stringifyOffset(offset) {
-	if (offset.line != null && offset.column != null) {
-		return `${offset.line}:${offset.column}`;
-	} else if (offset.line != null) {
-		return `${offset.line}`;
-	}
-
-	return `${offset.offset}`;
-}
-/**
- * @param {import('chevrotain').IToken} token
+ * @param {import("./parser/tokenize.js").Token} token
  */
 export function stringifyTokenOffset(token) {
-	if (token.tokenType === EOF) {
+	if (token.type === T_EOF) {
 		return `end of input`;
 	}
 
-	if (token.startLine != null && token.startColumn != null) {
-		return `${token.startLine}:${token.startColumn}`;
-	} else if (token.startLine != null) {
-		return `${token.startLine}`;
-	}
-
-	return `${token.startOffset}`;
+	return `${token.start.line}:${token.start.column}`;
 }

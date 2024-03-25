@@ -92,23 +92,11 @@ JavaScript stores all numbers as 64-bit [IEEE 754](https://en.wikipedia.org/wiki
 
 The original representation of parsed numbers is retained, unless `clearFormat` is called on the value or any entry/node/document containing the value.
 
-## License & Notice
+## License
 
 This package is licensed under the MIT license, which can be found in `LICENSE.md`.
 
 The test suite at `test/upstream` is part of the [KDL specification][kdl-spec-repo] and is available under the Creative Commons Attribution-ShareAlike 4.0 International License.
-
-This package wouldn't be possible without software that other people graciously made open source:
-
-The code in this package is heavily influenced by the [`kdl` crate][kdl-rs], available under the Apache 2.0 license.
-Some token expressions have been copied out of the official [`kdljs`][kdljs] parser, available under the MIT license.
-
-This package bundles it dependencies when published to npm:
-
-- [Chevrotain](https://chevrotain.io/), available under the Apache 2.0 license
-  Copyright (c) 2021 the original author or authors from the Chevrotain project
-  Copyright (c) 2015-2020 SAP SE or an SAP affiliate company.
-- [lodash](https://lodash.com/), available under the MIT license
 
 [kdl-site]: https://kdl.dev/
 [kdl-spec-repo]: https://github.com/kdl-org/kdl

@@ -1,13 +1,28 @@
 import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
-import {escape, escapedValues, escapedWhitespace} from "./tokens/strings.js";
-import {
-	reAllNewlines,
-	reEntirelyInlineWhitespace,
-} from "./tokens/whitespace.js";
+
+const escapedWhitespace =
+	/(?<=(?:^|[^\\])(?:\\\\)*)\\[\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g;
+const escape = /\\(?:[^u]|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\})/g;
+
+const escapedValues = new Map([
+	["\\n", "\n"],
+	["\\r", "\r"],
+	["\\t", "\t"],
+	["\\\\", "\\"],
+	['\\"', '"'],
+	["\\b", "\b"],
+	["\\f", "\f"],
+	["\\s", " "],
+]);
+
+const reAllNewlines = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/g;
+
+export const reEntirelyInlineWhitespace =
+	/^[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
 
 /**
  * @param {string} value
- * @param {import("chevrotain").IToken} token
+ * @param {import("./parser/tokenize.js").Token} token
  */
 export function removeLeadingWhitespace(value, token) {
 	const lines = value.split(reAllNewlines);

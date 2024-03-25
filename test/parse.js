@@ -81,7 +81,7 @@ test("parse with locations", () => {
 
 		endOffset: 19,
 		endLine: 1,
-		endColumn: 19,
+		endColumn: 20,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0]), {
@@ -91,7 +91,7 @@ test("parse with locations", () => {
 
 		endOffset: 19,
 		endLine: 1,
-		endColumn: 19,
+		endColumn: 20,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].name), {
@@ -101,7 +101,7 @@ test("parse with locations", () => {
 
 		endOffset: 4,
 		endLine: 1,
-		endColumn: 4,
+		endColumn: 5,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
@@ -111,7 +111,7 @@ test("parse with locations", () => {
 
 		endOffset: 19,
 		endLine: 1,
-		endColumn: 19,
+		endColumn: 20,
 	});
 });
 

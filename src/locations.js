@@ -3,11 +3,11 @@
  * Location inside source text
  *
  * @property {number} startOffset Offset of the first character. 0-indexed.
- * @property {number=} startLine Line of the first character. 1-indexed.
- * @property {number=} startColumn Column of the first character of the Token. 1-indexed.
+ * @property {number} startLine Line of the first character. 1-indexed.
+ * @property {number} startColumn Column of the first character of the Token. 1-indexed.
  * @property {number} endOffset Offset behind the last character. 0-indexed.
- * @property {number=} endLine Line of the last character. 1-indexed.
- * @property {number=} endColumn Column of the last character of the Token. 1-indexed.
+ * @property {number} endLine Line of the last character. 1-indexed.
+ * @property {number} endColumn Column of the last character of the Token. 1-indexed.
  */
 
 /**
@@ -30,8 +30,16 @@ export function getLocation(element) {
 
 /**
  * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
- * @param {Location} location
+ * @param {import('./parser/tokenize.js').Token} start
+ * @param {import('./parser/tokenize.js').Token} end
  */
-export function storeLocation(element, location) {
-	locations.set(element, location);
+export function storeLocation(element, {start}, {end}) {
+	locations.set(element, {
+		startOffset: start.offset,
+		startLine: start.line,
+		startColumn: start.column,
+		endOffset: end.offset,
+		endLine: end.line,
+		endColumn: end.column,
+	});
 }
