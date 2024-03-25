@@ -6,7 +6,7 @@ import * as dev from "../src/index.js";
 
 let built;
 try {
-	built = await import("../out/index.cjs");
+	built = await import("../out/index.js");
 } catch {
 	stderr.write(
 		"No out folder found, run `yarn build` to include the built version of @bgotink/kdl\n",

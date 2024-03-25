@@ -27,10 +27,8 @@ copyFileSync("src/json.d.ts", "out/json.d.ts");
 
 // JavaScript
 
-// Build code for `require()`, move to ESM only once prettier supports ESM plugins...
-// Bundle dependencies, because chevrotain is huge and we only use (small) parts
 execSync(
-	"esbuild --bundle --external:@bgotink/kdl --platform=neutral src/index.js src/json.js --outdir=out --out-extension:.js=.cjs --target=node14.8 --format=cjs",
+	"esbuild --bundle --external:@bgotink/kdl --platform=neutral src/index.js src/json.js --outdir=out --target=node18 --format=esm",
 );
 
 // Write metadata
@@ -38,9 +36,6 @@ execSync(
 const packageJson = JSON.parse(readFileSync("package.json", "utf-8"));
 // Allow the package to be published
 delete packageJson.private;
-// Unset the `"type": "module"` because it makes typescript think that .d.ts
-// files are import-only. We name all files .mjs and .cjs explicitly anyway.
-delete packageJson.type;
 // Remove all dependencies, those are bundled into the package
 delete packageJson.dependencies;
 delete packageJson.devDependencies;
@@ -49,16 +44,16 @@ delete packageJson.resolutions;
 delete packageJson.scripts;
 delete packageJson.packageManager;
 // Set exports
-packageJson.main = "./index.cjs";
+packageJson.main = "./index.js";
 packageJson.types = "./index.d.ts";
 packageJson.exports = {
 	".": {
 		types: "./index.d.ts",
-		default: "./index.cjs",
+		default: "./index.js",
 	},
 	"./json": {
 		types: "./json.d.ts",
-		default: "./json.cjs",
+		default: "./json.js",
 	},
 	"./package.json": "./package.json",
 };
