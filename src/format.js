@@ -103,12 +103,12 @@ function formatNode(node, indentation) {
 	}${formatIdentifier(node.name)}${node.entries
 		.map((entry) => formatEntry(entry))
 		.join("")}${
-		node.children
-			? `${ensureStartsWithWhitespace(node.beforeChildren)}{${formatDocument(
-					node.children,
-					indentation + 1,
-				)}}`
-			: ""
+		node.children ?
+			`${ensureStartsWithWhitespace(node.beforeChildren)}{${formatDocument(
+				node.children,
+				indentation + 1,
+			)}}`
+		:	""
 	}${node.trailing ?? "\n"}`;
 }
 
@@ -119,11 +119,13 @@ function formatNode(node, indentation) {
  */
 function formatDocument(document, indentation) {
 	return `${
-		document.nodes[0] != null &&
-		document.nodes[0].leading == null &&
-		indentation
-			? "\n"
-			: ""
+		(
+			document.nodes[0] != null &&
+			document.nodes[0].leading == null &&
+			indentation
+		) ?
+			"\n"
+		:	""
 	}${document.nodes.map((node) => formatNode(node, indentation)).join("")}${
 		document.trailing ?? "\t".repeat((indentation || 1) - 1)
 	}`;

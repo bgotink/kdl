@@ -1,4 +1,5 @@
 bracketSpacing: false
+experimentalTernaries: true
 
 overrides:
   - files: test/jik/json/*.json

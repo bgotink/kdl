@@ -211,39 +211,23 @@ export class Path extends FakeSVG {
 			"a " + arc + " " + arc + " 0 0 " + (dir == "cw" ? "1" : "0") + " ";
 		const sd = start + dir;
 		const offset =
-			sd == "ncw"
-				? [s2, s2inv]
-				: sd == "necw"
-					? [s2inv, s2]
-					: sd == "ecw"
-						? [-s2inv, s2]
-						: sd == "secw"
-							? [-s2, s2inv]
-							: sd == "scw"
-								? [-s2, -s2inv]
-								: sd == "swcw"
-									? [-s2inv, -s2]
-									: sd == "wcw"
-										? [s2inv, -s2]
-										: sd == "nwcw"
-											? [s2, -s2inv]
-											: sd == "nccw"
-												? [-s2, s2inv]
-												: sd == "nwccw"
-													? [-s2inv, s2]
-													: sd == "wccw"
-														? [s2inv, s2]
-														: sd == "swccw"
-															? [s2, s2inv]
-															: sd == "sccw"
-																? [s2, -s2inv]
-																: sd == "seccw"
-																	? [s2inv, -s2]
-																	: sd == "eccw"
-																		? [-s2inv, -s2]
-																		: sd == "neccw"
-																			? [-s2, -s2inv]
-																			: null;
+			sd == "ncw" ? [s2, s2inv]
+			: sd == "necw" ? [s2inv, s2]
+			: sd == "ecw" ? [-s2inv, s2]
+			: sd == "secw" ? [-s2, s2inv]
+			: sd == "scw" ? [-s2, -s2inv]
+			: sd == "swcw" ? [-s2inv, -s2]
+			: sd == "wcw" ? [s2inv, -s2]
+			: sd == "nwcw" ? [s2, -s2inv]
+			: sd == "nccw" ? [-s2, s2inv]
+			: sd == "nwccw" ? [-s2inv, s2]
+			: sd == "wccw" ? [s2inv, s2]
+			: sd == "swccw" ? [s2, s2inv]
+			: sd == "sccw" ? [s2, -s2inv]
+			: sd == "seccw" ? [s2inv, -s2]
+			: sd == "eccw" ? [-s2inv, -s2]
+			: sd == "neccw" ? [-s2, -s2inv]
+			: null;
 		path += offset.join(" ");
 		this.attrs.d += path;
 		return this;
@@ -1352,13 +1336,14 @@ export class Choice extends DiagramMultiContainer {
 			itemTD = leftJointTD
 				.appendRight(itemTD, "")
 				.appendRight(rightJointTD, "");
-			var separator = hasSeparator
-				? [
+			var separator =
+				hasSeparator ?
+					[
 						line_vertical +
 							" ".repeat(TextDiagram._maxWidth(diagramTD, itemTD) - 2) +
 							line_vertical,
 					]
-				: [];
+				:	[];
 			diagramTD = diagramTD.appendBelow(itemTD, separator, moveEntry, moveExit);
 		}
 		return diagramTD;
@@ -1814,9 +1799,9 @@ export class MultipleChoice extends DiagramMultiContainer {
 		new FakeSVG(
 			"title",
 			{},
-			this.type == "any"
-				? "take one or more branches, once each, in any order"
-				: "take all branches, once each, in any order",
+			this.type == "any" ?
+				"take one or more branches, once each, in any order"
+			:	"take all branches, once each, in any order",
 		).addTo(text);
 		new FakeSVG("path", {
 			d:
@@ -2010,7 +1995,9 @@ export class Group extends FakeSVG {
 		super("g");
 		this.item = wrapString(item);
 		this.label =
-			label instanceof FakeSVG ? label : label ? new Comment(label) : undefined;
+			label instanceof FakeSVG ? label
+			: label ? new Comment(label)
+			: undefined;
 
 		this.width = Math.max(
 			this.item.width + (this.item.needsSpace ? 20 : 0),
@@ -2440,12 +2427,10 @@ export class TextDiagram {
 		for (const line of centeredLines) {
 			newLines.push(line);
 		}
-		var newEntry = moveEntry
-			? this.height + linesBetween.length + item.entry
-			: this.entry;
-		var newExit = moveExit
-			? this.height + linesBetween.length + item.exit
-			: this.exit;
+		var newEntry =
+			moveEntry ? this.height + linesBetween.length + item.entry : this.entry;
+		var newExit =
+			moveExit ? this.height + linesBetween.length + item.exit : this.exit;
 		return new TextDiagram(newEntry, newExit, newLines);
 	}
 	appendRight(item, charsBetween) {

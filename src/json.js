@@ -288,22 +288,22 @@ function fromJsonValue(
 
 	if (!alwaysReturnNode && isLiteral(value)) {
 		const entry =
-			typeof name === "number"
-				? Entry.createArgument(value)
-				: Entry.createProperty(nodeName, value);
+			typeof name === "number" ?
+				Entry.createArgument(value)
+			:	Entry.createProperty(nodeName, value);
 
-		return replaceKdlValue != null
-			? replaceKdlValue(name, entry, value, originalValue)
-			: entry;
+		return replaceKdlValue != null ?
+				replaceKdlValue(name, entry, value, originalValue)
+			:	entry;
 	}
 
 	const node = Node.create(nodeName);
 
 	if (isLiteral(value)) {
 		node.addArgument(value);
-		return replaceKdlValue != null
-			? replaceKdlValue(name, node, value, originalValue)
-			: node;
+		return replaceKdlValue != null ?
+				replaceKdlValue(name, node, value, originalValue)
+			:	node;
 	}
 
 	if (parents.has(value)) {
@@ -393,9 +393,9 @@ function fromJsonValue(
 		parents.delete(value);
 	}
 
-	return replaceKdlValue != null
-		? replaceKdlValue(name, node, value, originalValue)
-		: node;
+	return replaceKdlValue != null ?
+			replaceKdlValue(name, node, value, originalValue)
+		:	node;
 
 	/**
 	 * @param {Node} node
@@ -415,9 +415,8 @@ function fromJsonValue(
 				return;
 			}
 
-			const newNode = value.name
-				? new Node(value.name)
-				: Node.create(arrayItemKey);
+			const newNode =
+				value.name ? new Node(value.name) : Node.create(arrayItemKey);
 
 			newNode.tag = value.tag;
 			newNode.entries = [new Entry(value.value, null)];
