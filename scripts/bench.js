@@ -57,6 +57,14 @@ suite.add("development #parse", () => {
 	dev.parse(document);
 });
 
+suite.add("development #parse {graphemeLocations: true}", () => {
+	dev.parse(document, {graphemeLocations: true});
+});
+
+suite.add("development #parse {storeLocations: true}", () => {
+	dev.parse(document, {storeLocations: true});
+});
+
 if (built) {
 	const _built = built;
 	suite.add("built #parse", () => {

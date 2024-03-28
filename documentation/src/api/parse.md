@@ -27,7 +27,20 @@ assert(
 
 ## Locations
 
-Setting the `storeLocations` option to `true` makes location information available in the [`getLocation`](./reference/modules/index.md#getlocation) function.
+Setting the `storeLocations` option to `true` makes location information available in the [`getLocation`][getLocation] function.
+
+## Two ways of tracking columns
+
+By default the columns in error messages and in [`getLocation`][getLocation] results are tracked by code point.
+This means that characters that span multiple code points will move the column forward quite a bit.
+For example: `😅` is a single code point but `🏳️‍🌈` consists of four code points.
+
+Setting the `graphemeLocations` option to `true` instead track columns by grapheme.
+A grapheme is what we humans perceive as a single character.
+The pride flag that consists of four code points is a single grapheme.
+
+Tracking by code points is the default for the simple reason that it seems to match how columns are tracked in editors like VS Code or Zed.
+There's also a 6.5x speed difference between the two methods, but even with `graphemeLocations` enabled the parser succeeds in parsing thousands of documents per second.
 
 ## Quirks
 
@@ -42,3 +55,5 @@ Multiple properties with the same name are allowed. All duplicated will be prese
 JavaScript stores all numbers as 64-bit [IEEE 754](https://en.wikipedia.org/wiki/IEEE_754) floating point numbers. This limits what integer values can be used safely. These limits are lower than you might expect if you're used to working in environments that have a separate 64-bit integer data type.
 
 The original representation of parsed numbers is retained, unless `clearFormat` is called on the value or any entry/node/document containing the value.
+
+[getLocation]: ./reference/modules/index.md#getlocation

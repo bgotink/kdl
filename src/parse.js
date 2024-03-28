@@ -27,6 +27,7 @@ const BOM = "\uFEFF";
  * @param {object} [options]
  * @param {keyof typeof methods} [options.as]
  * @param {boolean} [options.storeLocations]
+ * @param {boolean} [options.graphemeLocations]
  */
 export function parse(text, {as = "document", ...parserOptions} = {}) {
 	const parserMethod = methods[as];
@@ -56,7 +57,7 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 		throw new InvalidKdlError("Found UTF-8 characters not allowed in KDL");
 	}
 
-	const tokens = tokenize(text);
+	const tokens = tokenize(text, parserOptions);
 	// console.log(Array.from(tokens));
 
 	const ctx = createParserCtx(tokens, parserOptions);

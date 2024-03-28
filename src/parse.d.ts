@@ -27,7 +27,11 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: "value"; storeLocations?: boolean},
+	options: {
+		as: "value";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
 ): Value;
 /**
  * Parse the given text as a identifier.
@@ -46,7 +50,11 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: "identifier"; storeLocations?: boolean},
+	options: {
+		as: "identifier";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
 ): Identifier;
 /**
  * Parse the given text as an entry.
@@ -65,7 +73,11 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: "entry"; storeLocations?: boolean},
+	options: {
+		as: "entry";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
 ): Entry;
 /**
  * Parse the given text as a node.
@@ -83,7 +95,7 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: "node"; storeLocations?: boolean},
+	options: {as: "node"; storeLocations?: boolean; graphemeLocations?: boolean},
 ): Node;
 /**
  * Parse the given text as a document.
@@ -101,7 +113,11 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options?: {as?: "document"; storeLocations?: boolean},
+	options?: {
+		as?: "document";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
 ): Document;
 /**
  * Parse the given text as document, node, entry, identifier, or value
@@ -119,5 +135,5 @@ export function parse<T extends keyof ParserResult>(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: T; storeLocations?: boolean},
+	options: {as: T; storeLocations?: boolean; graphemeLocations?: boolean},
 ): ParserResult[T];

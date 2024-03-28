@@ -192,22 +192,60 @@ function isNumberSign(codePoint) {
 	return codePoint === 0x2d || codePoint === 0x2b;
 }
 
+/** @type {Intl.Segmenter=} */
+let segmenter;
+
+/** @param {string} text */
+function* iterateGraphemes(text) {
+	// We don't have to pass in any locale(s), but then the segmenter would
+	// default to the configured locale(s) in node or the OS, and do we want to
+	// yield different behaviour based on Node / OS settings? Let's go with no
+	for (const segment of (segmenter ??= new Intl.Segmenter("en")).segment(
+		text,
+	)) {
+		yield segment.segment;
+	}
+}
+
+/**
+ * @param {string} text
+ * @returns {Iterator<string, void>}
+ */
+function iterateCodePoints(text) {
+	return text[Symbol.iterator]();
+}
+
 /**
  * @param {string} text
  * @returns {Generator<Token, void>}
  */
-export function* tokenize(text) {
+export function* tokenize(text, {graphemeLocations = false} = {}) {
 	let line = 1;
 	let column = 1;
 	let offset = 0;
 
 	const {length} = text;
 
-	/** @type {Iterator<string, void>} */
-	const iterator = text[Symbol.iterator]();
+	const iterator =
+		graphemeLocations ? iterateGraphemes(text) : iterateCodePoints(text);
 
 	let currentIter = iterator.next();
-	let current = currentIter.value?.codePointAt(0) ?? NaN;
+
+	/**
+	 * The first code point of the iterator's last result, or NaN if the iterator has ended
+	 *
+	 * While the last result can consist of multiple code points, we can limit
+	 * ourselves to only looking at the first code point:
+	 *
+	 * - We don't have special handling for any grapheme that contains multiple
+	 *   code points, those are all either string content or part of an identifier
+	 * - "\r\n" is the only exception, which we want to count as a single newline,
+	 *   and by looking at the first code point we can easily handle that.
+	 */
+	let current =
+		currentIter.done ? NaN : (
+			/** @type {number} */ (currentIter.value.codePointAt(0))
+		);
 
 	let start = {line, column, offset};
 
@@ -543,7 +581,10 @@ export function* tokenize(text) {
 		column++;
 
 		currentIter = iterator.next();
-		current = currentIter.value?.codePointAt(0) ?? NaN;
+		current =
+			currentIter.done ? NaN : (
+				/** @type {number} */ (currentIter.value.codePointAt(0))
+			);
 
 		if (isInvalidCharacter(current)) {
 			throw mkError(`Invalid character \\u${current.toString(16)}`);
@@ -561,7 +602,11 @@ export function* tokenize(text) {
 		}
 	}
 
-	/** @param {number} codePoint */
+	/**
+	 * Consume the current code point if it matches the given code point
+	 *
+	 * @param {number} codePoint
+	 */
 	function consumeCodePoint(codePoint) {
 		if (current === codePoint) {
 			pop();
@@ -575,7 +620,11 @@ export function* tokenize(text) {
 		}
 
 		// consume \r\n as a single newline
-		if (current === 0x0d && text.codePointAt(offset + 1) === 0x0a) {
+		if (
+			!graphemeLocations &&
+			current === 0x0d &&
+			text.codePointAt(offset + 1) === 0x0a
+		) {
 			iterator.next();
 			offset++;
 		}

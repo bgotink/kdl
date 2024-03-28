@@ -71,17 +71,20 @@ test("parse parts", () => {
 	);
 });
 
-test("parse with locations", () => {
-	const document = parse('node (string)"test"', {storeLocations: true});
+test("parse with precise locations", () => {
+	const document = parse('🏳️‍🌈😅 (string)"test"', {
+		storeLocations: true,
+		graphemeLocations: true,
+	});
 
 	assert.deepEqual(getLocation(document), {
 		startOffset: 0,
 		startLine: 1,
 		startColumn: 1,
 
-		endOffset: 19,
+		endOffset: 23,
 		endLine: 1,
-		endColumn: 20,
+		endColumn: 18,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0]), {
@@ -89,9 +92,9 @@ test("parse with locations", () => {
 		startLine: 1,
 		startColumn: 1,
 
-		endOffset: 19,
+		endOffset: 23,
 		endLine: 1,
-		endColumn: 20,
+		endColumn: 18,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].name), {
@@ -99,19 +102,65 @@ test("parse with locations", () => {
 		startLine: 1,
 		startColumn: 1,
 
-		endOffset: 4,
+		endOffset: 8,
 		endLine: 1,
-		endColumn: 5,
+		endColumn: 3,
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
-		startOffset: 5,
+		startOffset: 9,
 		startLine: 1,
-		startColumn: 6,
+		startColumn: 4,
 
-		endOffset: 19,
+		endOffset: 23,
 		endLine: 1,
-		endColumn: 20,
+		endColumn: 18,
+	});
+});
+
+test("parse with locations", () => {
+	const document = parse('🏳️‍🌈😅 (string)"test"', {
+		storeLocations: true,
+	});
+
+	assert.deepEqual(getLocation(document), {
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 23,
+		endLine: 1,
+		endColumn: 21,
+	});
+
+	assert.deepEqual(getLocation(document.nodes[0]), {
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 23,
+		endLine: 1,
+		endColumn: 21,
+	});
+
+	assert.deepEqual(getLocation(document.nodes[0].name), {
+		startOffset: 0,
+		startLine: 1,
+		startColumn: 1,
+
+		endOffset: 8,
+		endLine: 1,
+		endColumn: 6,
+	});
+
+	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
+		startOffset: 9,
+		startLine: 1,
+		startColumn: 7,
+
+		endOffset: 23,
+		endLine: 1,
+		endColumn: 21,
 	});
 });
 
