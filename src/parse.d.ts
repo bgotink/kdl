@@ -10,8 +10,6 @@ interface ParserResult {
 	document: Document;
 }
 
-type ParserTarget = keyof ParserResult;
-
 /**
  * Parse the given text as a value.
  *
@@ -110,7 +108,7 @@ export function parse(
  *
  * @hidden
  */
-export function parse<T extends ParserTarget>(
+export function parse<T extends keyof ParserResult>(
 	text:
 		| string
 		| ArrayBuffer
