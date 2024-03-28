@@ -4,7 +4,8 @@ import {suite} from "uvu";
 
 import {clearFormat, format, parse} from "../src/index.js";
 
-const test = suite("upstream test suite");
+const testValid = suite("valid documents");
+const testInvalid = suite("invalid documents");
 
 const testCasesFolder = new URL("upstream/tests/test_cases/", import.meta.url);
 
@@ -95,52 +96,55 @@ function normalizeExpectedOutput(text) {
 }
 
 for (const testCase of readdirSync(new URL("input", testCasesFolder))) {
-	test(testCase, () => {
-		const expectedOutputFile = new URL(
-			`expected_kdl/${testCase}`,
-			testCasesFolder,
-		);
+	const inputFile = new URL(`input/${testCase}`, testCasesFolder);
+	const expectedOutputFile = new URL(
+		`expected_kdl/${testCase}`,
+		testCasesFolder,
+	);
 
-		if (!existsSync(expectedOutputFile)) {
-			// read as buffer here, because the test might use invalid UTF-8
-			const input = readFileSync(new URL(`input/${testCase}`, testCasesFolder));
+	if (!existsSync(expectedOutputFile)) {
+		// read as buffer because the file might contain invalid UTF8 and we don't
+		// want node to replace those with a filler codepoint.
+		const input = readFileSync(inputFile);
 
+		testInvalid(testCase, () => {
 			if (knownBrokenTests.has(testCase)) {
 				assert.doesNotThrow(() => parse(input));
 			} else {
 				assert.throws(() => parse(input));
 			}
-
-			return;
-		}
-
-		const input = readFileSync(
-			new URL(`input/${testCase}`, testCasesFolder),
-			"utf8",
-		);
+		});
+	} else {
+		const input = readFileSync(inputFile, "utf8");
 		const expectedOutput = normalizeExpectedOutput(
 			readFileSync(expectedOutputFile, "utf8"),
 		);
 
-		if (knownBrokenTests.has(testCase)) {
-			assert.throws(() => {
+		testValid(testCase, () => {
+			if (knownBrokenTests.has(testCase)) {
+				assert.throws(() => {
+					assert.equal(parseAndFormat(input), expectedOutput);
+				});
+			} else {
+				assert.equal(roundTrip(input), input);
 				assert.equal(parseAndFormat(input), expectedOutput);
-			});
-		} else {
-			assert.equal(roundTrip(input), input);
-			assert.equal(parseAndFormat(input), expectedOutput);
-		}
-	});
+			}
+		});
+	}
 }
 
+testValid.run();
+testInvalid.run();
+
+const testExample = suite("examples");
 const exampleFolder = new URL("upstream/examples/", import.meta.url);
 
 for (const file of readdirSync(exampleFolder)) {
-	test(`Example ${file}`, () => {
+	testExample(`Example ${file}`, () => {
 		const raw = readFileSync(new URL(file, exampleFolder), "utf8");
 
 		assert.equal(roundTrip(raw), raw);
 	});
 }
 
-test.run();
+testExample.run();
