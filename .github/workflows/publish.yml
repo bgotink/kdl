@@ -3,22 +3,21 @@ on:
   release:
     types: [created]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-      packages: write
-      pages: write
     steps:
       # Set up
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20.x
           registry-url: "https://registry.npmjs.org"
@@ -53,7 +52,7 @@ jobs:
 
       # Release to GitHub Packages
       - name: Setup Node for GitHub Packages
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20.x
           registry-url: "https://npm.pkg.github.com"
