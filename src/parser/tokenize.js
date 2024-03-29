@@ -9,40 +9,40 @@ import {InvalidKdlError} from "../error.js";
 
 /**
  * @typedef {object} Token
- * @prop {string} type
+ * @prop {number} type
  * @prop {string} text
  * @prop {Location} start
  * @prop {Location} end
  */
 
-export const T_EOF = "EOF";
+export const T_EOF = 1;
 
-export const T_BOM = "BOM";
-export const T_SLASHDASH = "/-";
-export const T_OPEN_PAREN = "(";
-export const T_OPEN_BRACE = "{";
-export const T_CLOSE_PAREN = ")";
-export const T_CLOSE_BRACE = "}";
-export const T_SEMICOLON = ";";
+export const T_BOM = 2;
+export const T_SLASHDASH = 3;
+export const T_OPEN_PAREN = 4;
+export const T_OPEN_BRACE = 5;
+export const T_CLOSE_PAREN = 6;
+export const T_CLOSE_BRACE = 7;
+export const T_SEMICOLON = 8;
 
-export const T_QUOTED_STRING = "QUOTED_STRING";
-export const T_RAW_STRING = "RAW_STRING";
-export const T_IDENTIFIER_STRING = "IDENTIFIER_STRING";
+export const T_QUOTED_STRING = 9;
+export const T_RAW_STRING = 10;
+export const T_IDENTIFIER_STRING = 11;
 
-export const T_EQUALS = "EQUALS";
-export const T_KEYWORD = "KEYWORD";
+export const T_EQUALS = 12;
+export const T_KEYWORD = 13;
 
-export const T_NUMBER_HEXADECIMAL = "HEXADECIMAL_NUMBER";
-export const T_NUMBER_DECIMAL = "DECIMAL_NUMBER";
-export const T_NUMBER_OCTAL = "OCTAL_NUMBER";
-export const T_NUMBER_BINARY = "BINARY_NUMBER";
+export const T_NUMBER_HEXADECIMAL = 14;
+export const T_NUMBER_DECIMAL = 15;
+export const T_NUMBER_OCTAL = 16;
+export const T_NUMBER_BINARY = 17;
 
-export const T_INLINE_WHITESPACE = "WHITESPACE";
-export const T_NEWLINE = "NEWLINE";
-export const T_ESCLINE = "ESCLINE";
+export const T_INLINE_WHITESPACE = 18;
+export const T_NEWLINE = 19;
+export const T_ESCLINE = 20;
 
-export const T_COMMENT_SINGLE = "SINGLE_LINE_COMMENT";
-export const T_COMMENT_MULTI = "MULTILINE_COMMENT";
+export const T_COMMENT_SINGLE = 21;
+export const T_COMMENT_MULTI = 22;
 
 /** @param {number} codePoint  */
 function isBOM(codePoint) {
@@ -659,7 +659,7 @@ export function* tokenize(text, {graphemeLocations = false} = {}) {
 	}
 
 	/**
-	 * @param {string} type
+	 * @param {number} type
 	 * @returns {Token}
 	 */
 	function mkToken(type) {

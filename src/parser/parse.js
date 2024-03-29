@@ -52,7 +52,7 @@ function pop(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @param {string} tokenType
+ * @param {import("./tokenize.js").Token['type']} tokenType
  */
 export function consume(ctx, tokenType) {
 	if (!ctx.current.done && ctx.current.value.type === tokenType) {
@@ -100,7 +100,7 @@ export function createParserCtx(tokens, {storeLocations = false} = {}) {
 		current: iterator.next(),
 		storeLocations,
 		lastToken: {
-			type: "SOF",
+			type: -1,
 			text: "",
 			start: {
 				offset: 0,
