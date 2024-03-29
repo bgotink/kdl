@@ -1,4 +1,5 @@
 import type {Document, Entry, Identifier, Node, Value} from "./model.js";
+import type {LineSpace, NodeSpace} from "./model/whitespace.js";
 
 export class InvalidKdlError extends Error {}
 
@@ -8,6 +9,9 @@ interface ParserResult {
 	entry: Entry;
 	node: Node;
 	document: Document;
+
+	"whitespace in document": LineSpace;
+	"whitespace in node": NodeSpace;
 }
 
 /**
@@ -97,6 +101,46 @@ export function parse(
 		| DataView,
 	options: {as: "node"; storeLocations?: boolean; graphemeLocations?: boolean},
 ): Node;
+/**
+ * Parse the given text as a whitespace in a document.
+ */
+export function parse(
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {
+		as: "whitespace in document";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
+): LineSpace;
+/**
+ * Parse the given text as a whitespace in a node.
+ */
+export function parse(
+	text:
+		| string
+		| ArrayBuffer
+		| Uint8Array
+		| Int8Array
+		| Uint16Array
+		| Int16Array
+		| Uint32Array
+		| Int32Array
+		| DataView,
+	options: {
+		as: "whitespace in node";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
+): NodeSpace;
 /**
  * Parse the given text as a document.
  *

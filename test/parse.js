@@ -204,4 +204,104 @@ test("escaped whitespace", () => {
 	);
 });
 
+test("parse whitespace", () => {
+	assert.deepEqual(
+		parse(`\uFEFF  // test\n  /* test /* test */*/ /- some node\n`, {
+			as: "whitespace in document",
+		}),
+		[
+			{
+				type: "bom",
+				text: "\uFEFF",
+			},
+			{
+				type: "space",
+				text: "  ",
+			},
+			{
+				type: "singleline",
+				text: "// test\n",
+			},
+			{
+				type: "space",
+				text: "  ",
+			},
+			{
+				type: "multiline",
+				text: "/* test /* test */*/",
+			},
+			{
+				type: "space",
+				text: " ",
+			},
+			{
+				type: "slashdash",
+				preface: [
+					{
+						type: "space",
+						text: " ",
+					},
+				],
+				value: (() => {
+					const node = new Node(new Identifier("some"), [
+						Entry.createArgument("node"),
+					]);
+
+					node.name.representation = "some";
+					node.entries[0].leading = " ";
+					node.entries[0].value.representation = "node";
+					node.trailing = "\n";
+
+					return node;
+				})(),
+			},
+		],
+	);
+
+	assert.deepEqual(
+		parse(`  \\// test\n  /* test /* test */*/ /- some=prop`, {
+			as: "whitespace in node",
+		}),
+		[
+			{
+				type: "space",
+				text: "  ",
+			},
+			{
+				type: "line-escape",
+				text: "\\// test\n",
+			},
+			{
+				type: "space",
+				text: "  ",
+			},
+			{
+				type: "multiline",
+				text: "/* test /* test */*/",
+			},
+			{
+				type: "space",
+				text: " ",
+			},
+			{
+				type: "slashdash",
+				preface: [
+					{
+						type: "space",
+						text: " ",
+					},
+				],
+				value: (() => {
+					const entry = Entry.createProperty("some", "prop");
+					entry.equals = "=";
+					/** @type {Identifier} */ (entry.name).representation = "some";
+					entry.value.representation = "prop";
+
+					return entry;
+				})(),
+			},
+		],
+	);
+});
+
 test.run();

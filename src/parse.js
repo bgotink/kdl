@@ -8,6 +8,7 @@ import {
 	parseNodeWithSpace,
 	parseValue,
 } from "./parser/parse.js";
+import {parseLineSpace, parseNodeSpace} from "./parser/parse-whitespace.js";
 import {InvalidKdlError} from "./error.js";
 
 const methods = /** @type {const} */ ({
@@ -16,6 +17,9 @@ const methods = /** @type {const} */ ({
 	node: parseNodeWithSpace,
 	entry: parseNodePropOrArgWithSpace,
 	document: parseDocument,
+
+	"whitespace in document": parseLineSpace,
+	"whitespace in node": parseNodeSpace,
 });
 
 const illegalUnicodeCharacters =
@@ -47,7 +51,10 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 		text = decoder.decode(text);
 	}
 
-	if (text.lastIndexOf(BOM) > (as === "document" ? 0 : -1)) {
+	if (
+		text.lastIndexOf(BOM) >
+		(as === "document" || as === "whitespace in document" ? 0 : -1)
+	) {
 		throw new InvalidKdlError(
 			"BOM can only appear at the start of a KDL document",
 		);

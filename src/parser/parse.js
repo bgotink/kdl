@@ -54,7 +54,7 @@ function pop(ctx) {
  * @param {ParserCtx} ctx
  * @param {string} tokenType
  */
-function consume(ctx, tokenType) {
+export function consume(ctx, tokenType) {
 	if (!ctx.current.done && ctx.current.value.type === tokenType) {
 		const token = ctx.current.value;
 		pop(ctx);
@@ -67,7 +67,7 @@ function consume(ctx, tokenType) {
  * @param {ParserCtx | import("./tokenize.js").Token} ctx
  * @param {string} message
  */
-function mkError(ctx, message) {
+export function mkError(ctx, message) {
 	const token = "current" in ctx ? ctx.current.value : ctx;
 	return new InvalidKdlError(
 		`${message} at ${token ? stringifyTokenOffset(token) : "end of input"}`,
@@ -122,7 +122,10 @@ export function assertAtEOF(ctx) {
 		return;
 	}
 
-	throw mkError(ctx, `Expected EOF but found extra content`);
+	throw mkError(
+		ctx,
+		`Expected EOF but found extra content ${JSON.stringify(ctx.current.value.text)}`,
+	);
 }
 
 /**
@@ -276,29 +279,27 @@ export function parseValue(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseSingleLineComment(ctx) {
-	if (ctx.current.value?.type !== T_COMMENT_SINGLE) {
+export function parseSingleLineComment(ctx) {
+	const comment = consume(ctx, T_COMMENT_SINGLE);
+	if (!comment) {
 		return;
 	}
-
-	const {value: token} = ctx.current;
-	pop(ctx);
 
 	// due to tokenizer we know the next token MUST be a newline or we've reached
 	// the end, there's no need to check this
 	const {value: newlineToken} = ctx.current;
 	pop(ctx);
 
-	return token.text + (newlineToken?.text ?? "");
+	return comment.text + (newlineToken?.text ?? "");
 }
 
 /** @param {ParserCtx} ctx */
-function parseMultilineComment(ctx) {
+export function parseMultilineComment(ctx) {
 	return consume(ctx, T_COMMENT_MULTI)?.text;
 }
 
 /** @param {ParserCtx} ctx */
-function parseEscline(ctx) {
+export function parseEscline(ctx) {
 	const start = consume(ctx, T_ESCLINE);
 	if (!start) {
 		return;
@@ -342,14 +343,11 @@ function parsePlainLineSpace(ctx) {
 
 /** @param {ParserCtx} ctx */
 function parsePlainNodeSpace(ctx) {
-	try {
-		return (
-			parseEscline(ctx) ??
-			consume(ctx, T_INLINE_WHITESPACE)?.text ??
-			parseMultilineComment(ctx)
-		);
-	} finally {
-	}
+	return (
+		parseEscline(ctx) ??
+		consume(ctx, T_INLINE_WHITESPACE)?.text ??
+		parseMultilineComment(ctx)
+	);
 }
 
 /** @param {ParserCtx} ctx */
@@ -395,13 +393,14 @@ function parseLineSpace(ctx) {
  * @returns {[string, boolean]=}
  */
 function parseNodeSpaceSlashDash(ctx) {
-	let part = consume(ctx, T_SLASHDASH)?.text;
-	if (part == null) {
+	const slashdash = consume(ctx, T_SLASHDASH);
+	if (slashdash == null) {
 		return;
 	}
 
-	const result = [part];
+	const result = [slashdash.text];
 
+	let part;
 	while ((part = parsePlainNodeSpace(ctx))) {
 		result.push(part);
 	}
@@ -413,6 +412,11 @@ function parseNodeSpaceSlashDash(ctx) {
 		endsWithNodeSpace = tmp[1]?.[1] ?? false;
 	} else if ((tmp = parseNodeChildren(ctx))) {
 		result.push(`{${format(tmp)}}`);
+	} else {
+		throw mkError(
+			slashdash,
+			`Couldn't find argument, property, or children that were commented by slashdash`,
+		);
 	}
 
 	return [result.join(""), endsWithNodeSpace];
@@ -492,7 +496,7 @@ function parseNodeTerminator(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseNodeChildren(ctx) {
+export function parseNodeChildren(ctx) {
 	if (!consume(ctx, T_OPEN_BRACE)) {
 		return;
 	}
@@ -510,7 +514,7 @@ function parseNodeChildren(ctx) {
  * @param {ParserCtx} ctx
  * @returns {[Entry, [string, boolean] | undefined]=}
  */
-function parseNodePropOrArg(ctx) {
+export function parseNodePropOrArg(ctx) {
 	const start = /** @type {import("./tokenize.js").Token} */ (
 		ctx.current.value
 	);
@@ -805,7 +809,7 @@ function parseBaseNode(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseNode(ctx) {
+export function parseNode(ctx) {
 	const baseNode = parseBaseNode(ctx);
 	if (!baseNode) {
 		return;
