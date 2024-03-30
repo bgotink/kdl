@@ -22,10 +22,6 @@ const methods = /** @type {const} */ ({
 	"whitespace in node": parseNodeSpace,
 });
 
-const illegalUnicodeCharacters =
-	/[\x00-\x08\x0E-\x19\x7F\u2066-\u2069\u202A-\u202E\u200E\u200F]/;
-const BOM = "\uFEFF";
-
 /**
  * @param {string | ArrayBuffer | Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | DataView} text
  * @param {object} [options]
@@ -52,16 +48,13 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 	}
 
 	if (
-		text.lastIndexOf(BOM) >
-		(as === "document" || as === "whitespace in document" ? 0 : -1)
+		as !== "document" &&
+		as !== "whitespace in document" &&
+		text.charCodeAt(0) === 0xfeff
 	) {
 		throw new InvalidKdlError(
 			"BOM can only appear at the start of a KDL document",
 		);
-	}
-
-	if (illegalUnicodeCharacters.test(text)) {
-		throw new InvalidKdlError("Found UTF-8 characters not allowed in KDL");
 	}
 
 	const tokens = tokenize(text, parserOptions);

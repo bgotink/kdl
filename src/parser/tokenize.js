@@ -121,12 +121,16 @@ function isEqualsSign(codePoint) {
 
 /** @param {number} codePoint */
 function isIdentifierChar(codePoint) {
+	// All other functions check whether the code point is one of a set of values,
+	// this check does the opposite, it checks that the code point doesn't have
+	// certain values.
+	// That means this check has to explicitly check for EOF, which we represent
+	// using NaN.
 	return (
 		!isNaN(codePoint) &&
 		!isUnicodeSpace(codePoint) &&
 		!isNewLine(codePoint) &&
 		!isEqualsSign(codePoint) &&
-		!isInvalidCharacter(codePoint) &&
 		codePoint !== 0x5c && // \
 		codePoint !== 0x2f && // /
 		codePoint !== 0x28 && // (
