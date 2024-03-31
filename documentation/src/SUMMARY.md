@@ -29,4 +29,4 @@
 
 # Internals
 
-- [LL(1) Grammar](./internals/grammar.md)
+- [LL(1) Parser](./internals/parser.md)
