@@ -80,7 +80,7 @@ export function removeEscapedWhitespace(value) {
 export function replaceEscapes(value) {
 	return value.replaceAll(escape, (escape, unicode) => {
 		if (unicode) {
-			return String.fromCharCode(parseInt(unicode, 16));
+			return String.fromCodePoint(parseInt(unicode, 16));
 		} else {
 			const replacement = escapedValues.get(escape);
 
