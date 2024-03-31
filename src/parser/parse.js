@@ -124,7 +124,7 @@ export function assertAtEOF(ctx) {
 
 	throw mkError(
 		ctx,
-		`Expected EOF but found extra content ${JSON.stringify(ctx.current.value.text)}`,
+		`Unexpected token ${JSON.stringify(ctx.current.value.text)}, did you forget to quote an identifier?`,
 	);
 }
 
