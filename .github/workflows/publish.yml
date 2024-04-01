@@ -4,8 +4,12 @@ on:
     types: [created]
 
 permissions:
+  # to clone the repo
   contents: read
+  # to publish to GitHub package registry
   packages: write
+  # for NPM provenance
+  id-token: write
 
 jobs:
   deploy:
