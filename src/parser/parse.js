@@ -3,9 +3,8 @@ import {format} from "../format.js";
 import {storeLocation as _storeLocation} from "../locations.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "../model.js";
 import {
-	removeEscapedWhitespace,
-	removeLeadingWhitespace,
-	replaceEscapes,
+	postProcessRawStringValue,
+	postProcessStringValue,
 } from "../string-utils.js";
 
 import {
@@ -186,12 +185,7 @@ function _parseString(ctx) {
 		case T_QUOTED_STRING:
 			pop(ctx);
 			return [
-				replaceEscapes(
-					removeLeadingWhitespace(
-						removeEscapedWhitespace(token.text.slice(1, -1)),
-						token,
-					),
-				),
+				postProcessStringValue(token.text.slice(1, -1), token),
 				token.text,
 				token,
 			];
@@ -202,7 +196,7 @@ function _parseString(ctx) {
 			const quoteIndex = raw.indexOf('"');
 
 			return [
-				removeLeadingWhitespace(
+				postProcessRawStringValue(
 					raw.slice(quoteIndex + 1, -(quoteIndex + 1)),
 					token,
 				),

@@ -10,4 +10,25 @@ test("\\u escapes", () => {
 	);
 });
 
+test("invalid multiline escaped whitespace", () => {
+	assert.throws(() => {
+		parse(String.raw`
+			node   "
+				foo \
+			bar
+				baz
+				"
+		`);
+	});
+
+	assert.throws(() => {
+		parse(String.raw`
+			node   "
+				foo
+				bar\
+				"
+		`);
+	});
+});
+
 test.run();
