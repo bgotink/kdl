@@ -17,9 +17,32 @@ function parseAndClearFormat(text) {
 
 test("\\u escapes", () => {
 	assert.equal(
+		parse(String.raw`"\u{FEFF}"`, {as: "value"}).value,
+		String.fromCodePoint(0xfeff),
+	);
+
+	assert.equal(
 		parse(String.raw`"\u{10abcd}"`, {as: "value"}).value,
 		String.fromCodePoint(0x10abcd),
 	);
+
+	assert.throws(
+		() => parse(String.raw`"\u{xoxo}"`, {as: "value"}),
+		/Invalid unicode escape "\\u\{xoxo\}"/,
+	);
+	assert.throws(
+		() => parse(String.raw`"\uFEFF"`, {as: "value"}),
+		/Invalid unicode escape "\\uFEFF"/,
+	);
+	assert.throws(
+		() => parse(String.raw`"\u{FEFFEF}"`, {as: "value"}),
+		/Invalid unicode escape "\\u{FEFFEF}"/,
+	);
+});
+
+test("invalid \\escapes", () => {
+	assert.throws(() => parse(String.raw`"\u"`), /Invalid escape "\\u"/);
+	assert.throws(() => parse(String.raw`"\x"`), /Invalid escape "\\x"/);
 });
 
 test("invalid multiline escaped whitespace", () => {
@@ -44,7 +67,7 @@ test("invalid multiline escaped whitespace", () => {
 				baz
 				"
 		`);
-	});
+	}, /doesn't start with the offset defined by the last line of the string/);
 
 	assert.deepEqual(
 		parseAndClearFormat(String.raw`
@@ -65,7 +88,7 @@ test("invalid multiline escaped whitespace", () => {
 				bar\
 				"
 		`);
-	});
+	}, /Invalid whitespace escape at the end of a string/);
 });
 
 test.run();

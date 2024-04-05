@@ -1,7 +1,7 @@
 import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
 
 const escape =
-	/(?<=(?:^|[^\\])(?:\\\\)*)\\(?:$|([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|[^u]|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\})/g;
+	/(?<=(?:^|[^\\])(?:\\\\)*)\\(?:$|([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
 
 const escapedValues = new Map([
 	["\\n", "\n"],
@@ -133,23 +133,39 @@ export function postProcessStringValue(value, token) {
  * @param {string} value
  */
 function replaceEscapes(value) {
-	return value.replaceAll(escape, (escape, escapedWhitespace, unicode) => {
-		if (escapedWhitespace) {
-			return "";
-		} else if (unicode) {
-			return String.fromCodePoint(parseInt(unicode, 16));
-		} else {
-			const replacement = escapedValues.get(escape);
-
-			if (replacement == null) {
-				throw new InvalidKdlError(
-					escape ?
-						`Invalid escape "\\${escape}"`
-					:	"Invalid whitespace escape at the end of a string",
-				);
+	return value.replaceAll(
+		escape,
+		(escape, escapedWhitespace, unicode, invalidUnicode) => {
+			if (invalidUnicode) {
+				if (!invalidUnicode.startsWith("{")) {
+					throw new InvalidKdlError(
+						String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
+					);
+				} else {
+					throw new InvalidKdlError(
+						String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
+					);
+				}
 			}
+			if (escapedWhitespace) {
+				return "";
+			} else if (unicode) {
+				return String.fromCodePoint(parseInt(unicode, 16));
+			} else {
+				const replacement = escapedValues.get(escape);
 
-			return replacement;
-		}
-	});
+				if (replacement == null) {
+					if (escape.length < 2) {
+						throw new InvalidKdlError(
+							"Invalid whitespace escape at the end of a string",
+						);
+					}
+
+					throw new InvalidKdlError(`Invalid escape "${escape}"`);
+				}
+
+				return replacement;
+			}
+		},
+	);
 }
