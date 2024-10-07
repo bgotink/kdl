@@ -38,13 +38,16 @@ doc.nodes[0].children.nodes[0].entries.push(
 	),
 );
 
-expect(format(doc)).toBe(String.raw`
+assert.equal(
+	format(doc),
+	String.raw`
 	node "value" #"other value"# 2.0 4 #false \
 			#null -0 {
 		child /-lorem="ipsum" \
 			dolor=#true; "child too"
 	}
-`);
+`,
+);
 ```
 
 ## JSON-in-KDL (JiK)
@@ -54,11 +57,11 @@ This package exports function from `@bgotink/kdl/json` to parse and stringify KD
 ```js
 import {parse} from "@bgotink/kdl/json";
 
-expect(
+assert.deepEqual(
 	parse(
 		String.raw`
 			- {
-				prop false
+				prop #false
 				otherProp {
 					- 0
 					- 2
@@ -67,10 +70,11 @@ expect(
 			}
 		`,
 	),
-).toEqual({
-	prop: false,
-	otherProp: [0, 2, 4],
-});
+	{
+		prop: false,
+		otherProp: [0, 2, 4],
+	},
+);
 ```
 
 There are four functions:
