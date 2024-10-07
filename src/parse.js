@@ -65,6 +65,14 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 	let value;
 	try {
 		value = parserMethod(ctx);
+
+		if (!value) {
+			throw new InvalidKdlError(
+				`Expected ${/^[aeiouy]/.exec(as) ? "an" : "a"} ${as}`,
+			);
+		}
+
+		assertAtEOF(ctx);
 	} catch (e) {
 		if (e && e instanceof InvalidKdlError) {
 			// rethrow to clean up the stacktrace
@@ -73,12 +81,6 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 			throw e;
 		}
 	}
-
-	if (!value) {
-		throw new InvalidKdlError(`Expected a ${as}`);
-	}
-
-	assertAtEOF(ctx);
 
 	return value;
 }

@@ -20,4 +20,11 @@ test("invalid keywords", () => {
 	assert.throws(() => parse("test null"), /Invalid keyword "null"/);
 });
 
+test("empty inputs", () => {
+	assert.throws(() => parse("", {as: "value"}), /Expected a value/);
+	assert.throws(() => parse("", {as: "identifier"}), /Expected an identifier/);
+	assert.throws(() => parse("", {as: "node"}), /Expected a node/);
+	assert.throws(() => parse("", {as: "entry"}), /Expected an entry/);
+});
+
 test.run();
