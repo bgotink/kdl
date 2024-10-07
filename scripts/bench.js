@@ -44,13 +44,16 @@ node \
 	"of" "children" 4.20;
 `;
 
+const documentV1 = document.replace(/(\s)(#+")/g, "$1r$2");
+
 // sanity check: assert document parses
-kdljs.parse(document);
+if (kdljs.parse(documentV1).errors?.length)
+	throw new Error("kdljs failed to parse");
 dev.parse(document);
 built?.parse(document);
 
 suite.add("kdljs #parse", () => {
-	kdljs.parse(document);
+	kdljs.parse(documentV1);
 });
 
 suite.add("development #parse", () => {
