@@ -1,18 +1,7 @@
 import bench from "benchmark";
 import * as kdljs from "kdljs";
-import {stderr} from "node:process";
 
-import * as dev from "../src/index.js";
-
-let built;
-try {
-	built = await import("../out/index.js");
-} catch {
-	stderr.write(
-		"No out folder found, run `yarn build` to include the built version of @bgotink/kdl\n",
-	);
-	built = null;
-}
+import * as self from "../src/index.js";
 
 const suite = new bench.Suite();
 
@@ -49,31 +38,23 @@ const documentV1 = document.replace(/(\s)(#+")/g, "$1r$2");
 // sanity check: assert document parses
 if (kdljs.parse(documentV1).errors?.length)
 	throw new Error("kdljs failed to parse");
-dev.parse(document);
-built?.parse(document);
+self.parse(document);
 
 suite.add("kdljs #parse", () => {
 	kdljs.parse(documentV1);
 });
 
 suite.add("development #parse", () => {
-	dev.parse(document);
+	self.parse(document);
 });
 
 suite.add("development #parse {graphemeLocations: true}", () => {
-	dev.parse(document, {graphemeLocations: true});
+	self.parse(document, {graphemeLocations: true});
 });
 
 suite.add("development #parse {storeLocations: true}", () => {
-	dev.parse(document, {storeLocations: true});
+	self.parse(document, {storeLocations: true});
 });
-
-if (built) {
-	const _built = built;
-	suite.add("built #parse", () => {
-		_built.parse(document);
-	});
-}
 
 // add listeners
 suite

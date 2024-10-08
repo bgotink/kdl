@@ -716,6 +716,6 @@ function mkError(message) {
  */
 function cleanup() {
 	text = "";
-	iterator = null;
-	currentIter = null;
+	// @ts-ignore
+	iterator = currentIter = null;
 }

@@ -4,7 +4,7 @@ import {
 	Node,
 	parse as parseKdl,
 	format as formatKdl,
-} from "@bgotink/kdl";
+} from "./index.js";
 
 const arrayItemKey = "-";
 
