@@ -219,21 +219,43 @@ function iterateCodePoints(text) {
 	return text[Symbol.iterator]();
 }
 
+// Yay, global state!
+// Actually, we more or less have to make this state global for the sake of performance.
+// If we scope these variables to the tokenize function, then we also have to move any functions that modify the variables to that scope.
+// Redefining those functions for every call to tokenize results in a 25% slowdown in our benchmark.
+
+let text = "";
+let line = 1,
+	column = 1,
+	offset = 0;
+let length = 0;
+/** @type {Iterator<string, void, any>} */
+let iterator;
+/** @type {IteratorResult<string, void>} */
+let currentIter;
+let current = NaN;
+let start = {line, column, offset};
+let graphemeLocations = false;
+
 /**
- * @param {string} text
+ * @param {string} t
+ * @param {{graphemeLocations?: boolean}} opts
  * @returns {Generator<Token, void>}
  */
-export function* tokenize(text, {graphemeLocations = false} = {}) {
-	let line = 1;
-	let column = 1;
-	let offset = 0;
+export function* tokenize(t, opts) {
+	text = t;
+	graphemeLocations = opts.graphemeLocations ?? false;
 
-	const {length} = text;
+	line = 1;
+	column = 1;
+	offset = 0;
 
-	const iterator =
+	length = text.length;
+
+	iterator =
 		graphemeLocations ? iterateGraphemes(text) : iterateCodePoints(text);
 
-	let currentIter = iterator.next();
+	currentIter = iterator.next();
 
 	/**
 	 * The first code point of the iterator's last result, or NaN if the iterator has ended
@@ -246,12 +268,12 @@ export function* tokenize(text, {graphemeLocations = false} = {}) {
 	 * - "\r\n" is the only exception, which we want to count as a single newline,
 	 *   and by looking at the first code point we can easily handle that.
 	 */
-	let current =
+	current =
 		currentIter.done ? NaN : (
 			/** @type {number} */ (currentIter.value.codePointAt(0))
 		);
 
-	let start = {line, column, offset};
+	start = {line, column, offset};
 
 	if (consume(isBOM)) {
 		// don't let BOM count as column
@@ -331,9 +353,7 @@ export function* tokenize(text, {graphemeLocations = false} = {}) {
 
 				while (true) {
 					if (offset > length) {
-						throw new InvalidKdlError(
-							"Unexpected EOF while parsing raw string",
-						);
+						throw mkError("Unexpected EOF while parsing raw string");
 					}
 
 					if (consumeCodePoint(0x22)) {
@@ -578,112 +598,124 @@ export function* tokenize(text, {graphemeLocations = false} = {}) {
 		);
 	}
 
+	cleanup();
 	yield mkToken(T_EOF);
+}
 
-	function pop() {
-		offset += /** @type {string} */ (currentIter.value).length;
-		column++;
+function pop() {
+	offset += /** @type {string} */ (currentIter.value).length;
+	column++;
 
-		currentIter = iterator.next();
-		current =
-			currentIter.done ? NaN : (
-				/** @type {number} */ (currentIter.value.codePointAt(0))
-			);
+	currentIter = iterator.next();
+	current =
+		currentIter.done ? NaN : (
+			/** @type {number} */ (currentIter.value.codePointAt(0))
+		);
 
-		if (isInvalidCharacter(current)) {
-			throw mkError(`Invalid character \\u${current.toString(16)}`);
-		}
-
-		return current;
+	if (isInvalidCharacter(current)) {
+		throw mkError(`Invalid character \\u${current.toString(16)}`);
 	}
 
-	/** @param {(codePoint: number) => boolean} test */
-	function consume(test) {
-		if (test(current)) {
-			const previous = current;
-			pop();
-			return previous;
-		}
-	}
+	return current;
+}
 
-	/**
-	 * Consume the current code point if it matches the given code point
-	 *
-	 * @param {number} codePoint
-	 */
-	function consumeCodePoint(codePoint) {
-		if (current === codePoint) {
-			pop();
-			return codePoint;
-		}
-	}
-
-	function consumeNewline() {
-		if (!isNewLine(current)) {
-			return false;
-		}
-
-		// consume \r\n as a single newline
-		if (
-			!graphemeLocations &&
-			current === 0x0d &&
-			text.codePointAt(offset + 1) === 0x0a
-		) {
-			iterator.next();
-			offset++;
-		}
-
+/** @param {(codePoint: number) => boolean} test */
+function consume(test) {
+	if (test(current)) {
+		const previous = current;
 		pop();
+		return previous;
+	}
+}
 
-		column = 1;
-		line++;
+/**
+ * Consume the current code point if it matches the given code point
+ *
+ * @param {number} codePoint
+ */
+function consumeCodePoint(codePoint) {
+	if (current === codePoint) {
+		pop();
+		return codePoint;
+	}
+}
 
-		return true;
+function consumeNewline() {
+	if (!isNewLine(current)) {
+		return false;
 	}
 
-	/**
-	 * @param {(codePoint: number) => boolean} test
-	 * @param {string} message
-	 */
-	function require(test, message) {
-		if (test(current)) {
-			const previous = current;
-			pop();
-			return previous;
-		}
-
-		throw mkError(message);
+	// consume \r\n as a single newline
+	if (
+		!graphemeLocations &&
+		current === 0x0d &&
+		text.codePointAt(offset + 1) === 0x0a
+	) {
+		iterator.next();
+		offset++;
 	}
 
-	/** @param {(codePoint: number) => boolean} test */
-	function zerOrMore(test) {
-		while (test(current)) {
-			pop();
-		}
+	pop();
+
+	column = 1;
+	line++;
+
+	return true;
+}
+
+/**
+ * @param {(codePoint: number) => boolean} test
+ * @param {string} message
+ */
+function require(test, message) {
+	if (test(current)) {
+		const previous = current;
+		pop();
+		return previous;
 	}
 
-	/**
-	 * @param {number} type
-	 * @returns {Token}
-	 */
-	function mkToken(type) {
-		const end = {line, column, offset};
-		const s = start;
+	throw mkError(message);
+}
 
-		start = end;
-
-		return {
-			type,
-			text: text.slice(s.offset, end.offset),
-			start: s,
-			end,
-		};
+/** @param {(codePoint: number) => boolean} test */
+function zerOrMore(test) {
+	while (test(current)) {
+		pop();
 	}
+}
 
-	/**
-	 * @param {string} message
-	 */
-	function mkError(message) {
-		return new InvalidKdlError(`${message} at ${line}:${column}`);
-	}
+/**
+ * @param {number} type
+ * @returns {Token}
+ */
+function mkToken(type) {
+	const end = {line, column, offset};
+	const s = start;
+
+	start = end;
+
+	return {
+		type,
+		text: text.slice(s.offset, end.offset),
+		start: s,
+		end,
+	};
+}
+
+/**
+ * @param {string} message
+ */
+function mkError(message) {
+	cleanup();
+
+	return new InvalidKdlError(`${message} at ${line}:${column}`);
+}
+
+/**
+ * Clean up a few global variables to make sure we don't needlessly retain them in memory
+ */
+function cleanup() {
+	text = "";
+	iterator = null;
+	currentIter = null;
 }

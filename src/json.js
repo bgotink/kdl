@@ -340,7 +340,7 @@ function fromJsonValue(
 					useChild = true;
 				}
 
-				append(node, toAppend);
+				append(node, toAppend, allowEntriesInCurrent);
 			}
 
 			if (!node.hasChildren() && node.entries.length < 2) {
@@ -378,7 +378,7 @@ function fromJsonValue(
 					appendedChildren.add(name);
 				}
 
-				append(node, toAppend);
+				append(node, toAppend, allowEntriesInCurrent);
 			}
 
 			if (
@@ -396,36 +396,37 @@ function fromJsonValue(
 	return replaceKdlValue != null ?
 			replaceKdlValue(name, node, value, originalValue)
 		:	node;
+}
 
-	/**
-	 * @param {Node} node
-	 * @param {Node | Entry | undefined} value
-	 */
-	function append(node, value) {
-		if (value == null) {
+/**
+ * @param {Node} node
+ * @param {Node | Entry | undefined} value
+ * @param {boolean | undefined} allowEntriesInCurrent
+ */
+function append(node, value, allowEntriesInCurrent) {
+	if (value == null) {
+		return;
+	}
+
+	if (value.type === "entry") {
+		if (
+			allowEntriesInCurrent !== false &&
+			(value.name != null || !node.hasChildren())
+		) {
+			node.entries.push(value);
 			return;
 		}
 
-		if (value.type === "entry") {
-			if (
-				allowEntriesInCurrent !== false &&
-				(value.name != null || !node.hasChildren())
-			) {
-				node.entries.push(value);
-				return;
-			}
+		const newNode =
+			value.name ? new Node(value.name) : Node.create(arrayItemKey);
 
-			const newNode =
-				value.name ? new Node(value.name) : Node.create(arrayItemKey);
+		newNode.tag = value.tag;
+		newNode.entries = [new Entry(value.value, null)];
 
-			newNode.tag = value.tag;
-			newNode.entries = [new Entry(value.value, null)];
-
-			value = newNode;
-		}
-
-		node.appendNode(value);
+		value = newNode;
 	}
+
+	node.appendNode(value);
 }
 
 /**

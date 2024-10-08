@@ -205,7 +205,7 @@ export function parseNodeSpace(ctx) {
 			result.push(slashDash[0]);
 			if (slashDash[1][0]) {
 				result.push(
-					...parseNodeSpace(createParserCtx(tokenize(slashDash[1][0]))),
+					...parseNodeSpace(createParserCtx(tokenize(slashDash[1][0], {}))),
 				);
 			}
 			endsWithPlainSpace = slashDash[1][1];
