@@ -26,6 +26,7 @@ if (process.versions.node > "22") {
 		
 			${text}
 			`,
+				// @ts-expect-error type field not supported yet in @types/node
 				{eval: true, type: "module"},
 			);
 

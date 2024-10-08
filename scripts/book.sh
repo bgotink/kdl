@@ -17,8 +17,10 @@ yarn typedoc \
 	--excludeProtected \
 	--githubPages false \
 	--validation \
-	--entryDocument index.md \
+	--entryFileName index \
+	--membersWithOwnFile Class \
 	--hideBreadcrumbs \
+	--hidePageHeader \
 	src/index.js src/json.d.ts
 
 cd documentation

@@ -56,4 +56,4 @@ JavaScript stores all numbers as 64-bit [IEEE 754](https://en.wikipedia.org/wiki
 
 The original representation of parsed numbers is retained, unless `clearFormat` is called on the value or any entry/node/document containing the value.
 
-[getLocation]: ./reference/modules/index.md#getlocation
+[getLocation]: ./reference/index/index.md#getlocation
