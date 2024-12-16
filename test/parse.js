@@ -171,9 +171,9 @@ test("parse equals", () => {
 			new Node(
 				new Identifier("node"),
 				[
-					Entry.createProperty("p1", "val1"),
-					Entry.createProperty("p2", "val2"),
-					Entry.createProperty("p3", "val3"),
+					Entry.createArgument("p1﹦val1"),
+					Entry.createArgument("p2＝val2"),
+					Entry.createArgument("p3🟰val3"),
 				],
 				null,
 			),

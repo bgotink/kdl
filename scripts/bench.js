@@ -56,6 +56,15 @@ suite.add("development #parse {storeLocations: true}", () => {
 	self.parse(document, {storeLocations: true});
 });
 
+try {
+	const out = await import("../out/index.js");
+	suite.add("built #parse", () => {
+		out.parse(document);
+	});
+} catch {
+	// ignore
+}
+
 // add listeners
 suite
 	.on(

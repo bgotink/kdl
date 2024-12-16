@@ -28,7 +28,9 @@ function ensureStartsWithWhitespace(text) {
 		return " ";
 	}
 
-	return reInlineWhitespace.exec(text)?.index === 0 ? text : ` ${text}`;
+	return reInlineWhitespace.exec(text)?.index === 0 || text.startsWith("\\") ?
+			text
+		:	` ${text}`;
 }
 
 /**

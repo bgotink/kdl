@@ -48,47 +48,49 @@ test("invalid \\escapes", () => {
 test("invalid multiline escaped whitespace", () => {
 	assert.deepEqual(
 		parseAndClearFormat(String.raw`
-			node "
+			node """
 				foo \
 				bar
 				baz
-				"
+				"""
 		`),
 		new Document([
 			new Node(new Identifier("node"), [Entry.createArgument("foo bar\nbaz")]),
 		]),
 	);
 
-	assert.throws(() => {
-		parse(String.raw`
-			node "
+	assert.deepEqual(
+		parseAndClearFormat(String.raw`
+			node """
 				foo \
 			bar
 				baz
-				"
-		`);
-	}, /doesn't start with the offset defined by the last line of the string/);
-
-	assert.deepEqual(
-		parseAndClearFormat(String.raw`
-			node "
-				foo
-				bar\ ${""}
-				"
+				"""
 		`),
 		new Document([
-			new Node(new Identifier("node"), [Entry.createArgument("foo\nbar")]),
+			new Node(new Identifier("node"), [Entry.createArgument("foo bar\nbaz")]),
 		]),
+	);
+
+	assert.throws(
+		() =>
+			parseAndClearFormat(String.raw`
+			node """
+				foo
+				bar\ ${""}
+				"""
+		`),
+		/must end with a line containing only whitespace/,
 	);
 
 	assert.throws(() => {
 		parse(String.raw`
-			node "
+			node """
 				foo
 				bar\
-				"
+				"""
 		`);
-	}, /Invalid whitespace escape at the end of a string/);
+	}, /must end with a line containing only whitespace/);
 });
 
 test.run();

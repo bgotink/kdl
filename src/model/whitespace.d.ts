@@ -94,15 +94,22 @@ export interface SingleLineComment {
 	text: string;
 }
 
+type WS = InlineWhitespace | MultilineComment;
+
 /**
  * A single plain whitespace item inside of a node, e.g. between two arguments in a node.
  */
-export type PlainNodeSpace = InlineWhitespace | EscLine | MultilineComment;
+export type NodeSpace = EscLine | WS;
+
+/**
+ * A single plain whitespace item in a document, i.e. before/after/between nodes
+ */
+export type LineSpace = BOM | Newline | WS | SingleLineComment;
 
 /**
  * A slashdash comment inside a node, i.e. a slashdash commented argument, property, or child block
  */
-export interface NodeSpaceSlashDash {
+export interface SlashDashInNode {
 	/**
 	 * A property to differentiate the different types of whitespace
 	 */
@@ -111,7 +118,7 @@ export interface NodeSpaceSlashDash {
 	/**
 	 * Any whitespace between the slashdash token and the value
 	 */
-	preface: PlainNodeSpace[];
+	preface: NodeSpace[];
 
 	/**
 	 * The escaped value
@@ -122,22 +129,12 @@ export interface NodeSpaceSlashDash {
 /**
  * Whitespace inside of a node, e.g. between two arguments in a node.
  */
-export type NodeSpace = (PlainNodeSpace | NodeSpaceSlashDash)[];
-
-/**
- * A single plain whitespace item in a document, i.e. before/after/between nodes
- */
-export type PlainLineSpace =
-	| BOM
-	| InlineWhitespace
-	| Newline
-	| SingleLineComment
-	| MultilineComment;
+export type WhitespaceInNode = (NodeSpace | SlashDashInNode)[];
 
 /**
  * A slashdash comment in a document, i.e. a slashdash commented node
  */
-export interface LineSpaceSlashDash {
+export interface SlashDashInDocument {
 	/**
 	 * A property to differentiate the different types of whitespace
 	 */
@@ -146,7 +143,7 @@ export interface LineSpaceSlashDash {
 	/**
 	 * Any whitespace between the slashdash token and the value
 	 */
-	preface: PlainNodeSpace[];
+	preface: NodeSpace[];
 
 	/**
 	 * The escaped value
@@ -157,4 +154,4 @@ export interface LineSpaceSlashDash {
 /**
  * Whitespace in a document, i.e. before/after/between nodes
  */
-export type LineSpace = (PlainLineSpace | LineSpaceSlashDash)[];
+export type WhitespaceInDocument = (LineSpace | SlashDashInDocument)[];

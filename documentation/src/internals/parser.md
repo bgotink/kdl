@@ -11,6 +11,14 @@ Then it iterates over the token stream to result in the KDL document.
 
 The diagrams on this page are rendered using [railroad-diagrams], a lovely library by Tab Atkins Jr, who happens to be involved in KDL too!
 
+## Error handling
+
+The tokenizer and parser can throw two kinds of errors: recoverable and non-recoverable.
+In fact, a recoverable error is not really thrown but rather tracked separately (in the token or in the parser context).
+
+At the end, if both the tokenizer and parser have found no non-recoverable error, all recoverable errors are thrown in a single error object.
+This gives the calling code more context to what is wrong in the document, with the option to show the human who wrote the KDL document everything that's wrong in their document in one go.
+
 ## Tokenizer
 
 The first step of the parser turns the stream of code points (or graphemes) into a stream of tokens.
@@ -20,6 +28,7 @@ A token is an object with the following properties:
 - `text`: the text of the token, this can contain multiple code points / graphemes
 - `start`: the location of the first code point of this token in the source text
 - `end`: the location of the first code point after this token in the source text
+- `error`: any recoverable error that occurred while processing the text for this token
 
 The `start` and `end` locations are used when throwing errors upon encountering invalid KDL text, so these are stored even if the `storeLocations` option is false.
 These locations contain three properties: `offset` is the zero-indexed location of the character in the text, `line` and `column` are the one-indexed line and column positions. The `offset` can be used to programmatically find the token in the text, `line` and `column` are more interesting for human readers to e.g. see where in the document they've made a mistake.
@@ -46,24 +55,31 @@ Instead, the `document` non-terminal is modified to support ending on a `base-no
 > There's one downside to this rewritten non-terminal: It works in the LL(1) parser but I am unable to write it down in BNF or any derivative.
 > If someone else has any idea, feel free to make the necessary changes!
 
-### plain-node-space
+### node-space
 
-The KDL spec's `plain-node-space` is always used with either the `+` or `*` modifier.
-Instead of doing the same, the `plain-node-space` in this grammar is it's own `+`, so it's either used plain for `+` or marked optional for `*`.
+The KDL spec's `node-space` is always used with either the `+` or `*` modifier.
+Instead of doing the same, the `node-space` in this grammar is it's own `+`, so it's either used plain for `+` or marked optional for `*`.
+
+The official `node-space` is written as `ws* escline ws* | ws+`, but since `node-space` is only ever used with `+` or `*`, it is functionally equivalent with `escline | ws`.
 
 ### line-space
 
 Compared to the `line-space` defined in the KDL spec, this version includes its own "zero or more" operator.
 
-### node-space
+### slashdash
 
-The `optional-node-space` and `required-node-space` non-terminals defined in the KDL spec are combined into a single non-terminal.
-This `node-space` non-terminal does one extra thing that isn't shown in the diagram: it remembers whether the last subrule it applied was a `plain-node-space`.
+This diagram is exactly the same as in the specification, except `line-space | node-space` is resolved into its parts.
 
 ### base-node
 
-The `node-prop-or-arg` and `node-children` paths are only allowed if the last consumed `node-space` ended with a `plain-node-space`.
-Note `node-prop-or-arg` always ends on a `node-space`.
+The `base-node` non-terminal differs quite a bit from the one described in the KDL spec in order to remove any ambiguity for our LL(1) parser.
+
+The diagram above fails to show two things:
+
+- There can only be one non-slashdashed `node-children` block in the `base-node`.
+  This is validated separately in the parser.
+- The `node-prop-or-arg` rule actually already checks for the existence of `node-space`.
+  That result is used in parsing the `base-node`, instead of requiring multiple consecutive `node-space`s (which would be impossible anyway since `node-space` is a repetition).
 
 ### node
 
@@ -75,7 +91,7 @@ The `node-prop-or-arg` non-terminal is very different from its sibling in the KD
 - If the first token is a number or a keyword, then it must be an argument
 - If the first token is a string, then we need to check if there's an equals sign.
 
-Looking for the equals sign required unbounded lookahead thanks to the allowed `node-space` between the property name and the equals sign.
+Looking for the equals sign requires unbounded lookahead thanks to the allowed `node-space` between the property name and the equals sign.
 By changing this non-terminal so it also consumes any `node-space` that comes after the property or argument, we can remove the need for the look-ahead.
 
 ### node-children

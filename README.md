@@ -6,9 +6,8 @@ The parser in this package focuses on parsing documents in a way that allows for
 
 If you don't care about formatting or programmatic manipulation, you might want to check out the official parser [`kdljs`][kdljs] instead.
 
-> [!CAUTION]
-> This package handles KDL 2.0.0-draft.4, a draft of the KDL v2 spec.
-> There might still be breaking changes to that specification before it is finalized.
+> [!INFO]
+> This package handles KDL 2.0.0-draft.8, a draft of the KDL v2 spec.
 >
 > Use version 0.1.6 of this package if you want a stable version that supports KDL v1.
 

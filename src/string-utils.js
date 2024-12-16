@@ -1,5 +1,7 @@
 import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
 
+const escapeWhitespace =
+	/\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
 const escape =
 	/\\(?:$|([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
 
@@ -28,10 +30,31 @@ const reEndsWithEscapedWhitespace =
  * @returns {string}
  */
 export function postProcessRawStringValue(value, token) {
+	if (reAllNewlines.test(value)) {
+		throw new InvalidKdlError(
+			`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
+				token,
+			)}`,
+		);
+	}
+
+	return value;
+}
+
+/**
+ * @param {string} value
+ * @param {import("./parser/tokenize.js").Token} token
+ * @returns {string}
+ */
+export function postProcessMultilineRawStringValue(value, token) {
 	const lines = value.split(reAllNewlines);
 
 	if (lines.length === 1) {
-		return value;
+		throw new InvalidKdlError(
+			`Strings quotes with three quotes must be multiline at ${stringifyTokenOffset(
+				token,
+			)}`,
+		);
 	}
 
 	const firstLine = /** @type {string} */ (lines.shift());
@@ -78,26 +101,45 @@ export function postProcessRawStringValue(value, token) {
 export function postProcessStringValue(value, token) {
 	const lines = value.split(reAllNewlines);
 
-	if (lines.length === 1) {
-		return replaceEscapes(value);
-	}
-
-	if (lines[0].length) {
+	if (lines.length > 1) {
 		// mustn't be a multiline string...
 		if (
 			lines.slice(0, -1).some((line) => !reEndsWithEscapedWhitespace.test(line))
 		) {
 			throw new InvalidKdlError(
-				`Multi-line strings must start with a newline at ${stringifyTokenOffset(
+				`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
 					token,
 				)}`,
 			);
 		}
-
-		return replaceEscapes(value);
 	}
 
-	// multiline string
+	return replaceEscapes(value);
+}
+
+/**
+ * @param {string} value
+ * @param {import("./parser/tokenize.js").Token} token
+ * @returns {string}
+ */
+export function postProcessMultilineStringValue(value, token) {
+	const lines = removeWhitespaceEscapes(value).split(reAllNewlines);
+
+	if (lines.length === 1) {
+		throw new InvalidKdlError(
+			`Strings quotes with three quotes must be multiline at ${stringifyTokenOffset(
+				token,
+			)}`,
+		);
+	}
+
+	if (lines[0].length) {
+		throw new InvalidKdlError(
+			`Multi-line strings must start with a newline at ${stringifyTokenOffset(
+				token,
+			)}`,
+		);
+	}
 
 	lines.shift();
 	const lastLine = /** @type {string} */ (lines.pop());
@@ -127,6 +169,11 @@ export function postProcessStringValue(value, token) {
 			})
 			.join("\n"),
 	);
+}
+
+/** @param {string} value */
+function removeWhitespaceEscapes(value) {
+	return value.replaceAll(escapeWhitespace, () => "");
 }
 
 /**

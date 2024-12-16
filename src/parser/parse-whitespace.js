@@ -6,7 +6,6 @@
 
 import {
 	T_BOM,
-	T_ESCLINE,
 	T_INLINE_WHITESPACE,
 	T_NEWLINE,
 	T_SLASHDASH,
@@ -18,19 +17,39 @@ import {
 	mkError,
 	parseEscline,
 	parseMultilineComment,
-	parseNode,
+	parseBaseNode,
 	parseNodeChildren,
 	parseNodePropOrArg,
 	parseSingleLineComment,
+	parseNodeTerminator,
+	concatenate,
 } from "./parse.js";
 
 /** @typedef {import("./parse.js").ParserCtx} ParserCtx */
 
 /**
+ * @template T
  * @param {ParserCtx} ctx
- * @returns {import('../model/whitespace.js').PlainLineSpace=}
+ * @param {(ctx: ParserCtx) => T | undefined} fn
+ * @returns {T[] | undefined}
  */
-function parsePlainLineSpace(ctx) {
+function repeat(ctx, fn) {
+	/** @type {T[]} */
+	const parts = [];
+	let part;
+
+	while ((part = fn(ctx))) {
+		parts.push(part);
+	}
+
+	return parts.length > 0 ? parts : undefined;
+}
+
+/**
+ * @param {ParserCtx} ctx
+ * @returns {import('../model/whitespace.js').LineSpace=}
+ */
+function parseLineSpace(ctx) {
 	{
 		const bom = consume(ctx, T_BOM);
 		if (bom) {
@@ -71,9 +90,9 @@ function parsePlainLineSpace(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {import('../model/whitespace.js').PlainNodeSpace=}
+ * @returns {import('../model/whitespace.js').NodeSpace=}
  */
-function parsePlainNodeSpace(ctx) {
+function parseNodeSpace(ctx) {
 	{
 		const escLine = parseEscline(ctx);
 		if (escLine) {
@@ -100,15 +119,15 @@ function parsePlainNodeSpace(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {import('../model/whitespace.js').LineSpace}
+ * @returns {import('../model/whitespace.js').WhitespaceInDocument}
  */
-export function parseLineSpace(ctx) {
-	/** @type {import('../model/whitespace.js').LineSpace} */
+export function parseWhitespaceInDocument(ctx) {
+	/** @type {import('../model/whitespace.js').WhitespaceInDocument} */
 	const result = [];
 
 	while (true) {
 		{
-			const part = parsePlainLineSpace(ctx);
+			const part = parseLineSpace(ctx);
 			if (part) {
 				result.push(part);
 				continue;
@@ -119,15 +138,20 @@ export function parseLineSpace(ctx) {
 			let part = consume(ctx, T_SLASHDASH)?.text;
 			if (part) {
 				let tmp;
-				const preface = [];
-				while ((tmp = parsePlainNodeSpace(ctx))) {
-					preface.push(tmp);
-				}
+				const preface = repeat(ctx, parseNodeSpace) ?? [];
 
-				const node = parseNode(ctx);
+				const node = parseBaseNode(ctx);
 				if (!node) {
 					throw mkError(ctx, "Invalid slashdash, expected a commented node");
 				}
+
+				node.trailing = concatenate(
+					node.trailing,
+					repeat(ctx, parseNodeSpace)
+						?.map((v) => v.text)
+						.join(""),
+					parseNodeTerminator(ctx),
+				);
 
 				result.push({type: "slashdash", preface, value: node});
 				continue;
@@ -142,7 +166,7 @@ export function parseLineSpace(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {[import('../model/whitespace.js').NodeSpaceSlashDash, [string, boolean]]=}
+ * @returns {[import('../model/whitespace.js').SlashDashInNode, string]=}
  */
 function parseNodeSpaceSlashDash(ctx) {
 	const slashdash = consume(ctx, T_SLASHDASH);
@@ -150,18 +174,15 @@ function parseNodeSpaceSlashDash(ctx) {
 		return;
 	}
 
-	const result = [slashdash.text];
-
 	let part;
-	/** @type {import("../model/whitespace.js").PlainNodeSpace[]} */
+	/** @type {import("../model/whitespace.js").NodeSpace[]} */
 	const preface = [];
-	while ((part = parsePlainNodeSpace(ctx))) {
+	while ((part = parseNodeSpace(ctx))) {
 		preface.push(part);
 	}
 
 	let value, tmp;
-	/** @type {[string, boolean]} */
-	let finalSpace = ["", false];
+	let finalSpace = "";
 	if ((tmp = parseNodePropOrArg(ctx))) {
 		value = tmp[0];
 		if (tmp[1]) {
@@ -181,14 +202,14 @@ function parseNodeSpaceSlashDash(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {import("../model/whitespace.js").NodeSpace}
+ * @returns {import("../model/whitespace.js").WhitespaceInNode}
  */
-export function parseNodeSpace(ctx) {
-	/** @type {import("../model/whitespace.js").NodeSpace} */
+export function parseWhitespaceInNode(ctx) {
+	/** @type {import("../model/whitespace.js").WhitespaceInNode} */
 	const result = [];
 
 	while (true) {
-		const part = parsePlainNodeSpace(ctx);
+		const part = parseNodeSpace(ctx);
 		if (!part) {
 			break;
 		}
@@ -205,10 +226,12 @@ export function parseNodeSpace(ctx) {
 			result.push(slashDash[0]);
 			if (slashDash[1][0]) {
 				result.push(
-					...parseNodeSpace(createParserCtx(tokenize(slashDash[1][0], {}))),
+					...parseWhitespaceInNode(
+						createParserCtx(tokenize(slashDash[1][0], {})),
+					),
 				);
 			}
-			endsWithPlainSpace = slashDash[1][1];
+			endsWithPlainSpace = !!slashDash[1][0];
 		}
 	}
 

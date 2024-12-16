@@ -24,6 +24,22 @@ function terminal(name) {
 	return new Terminal(name);
 }
 
+function zeroOrMore(element, rep, skip) {
+	return new ZeroOrMore(element, rep, skip);
+}
+
+function oneOrMore(element, rep) {
+	return new OneOrMore(element, rep);
+}
+
+function sequence(...elements) {
+	return new Sequence(...elements);
+}
+
+function optional(element, skip) {
+	return new Optional(element, skip);
+}
+
 /**
  * @param {string} title
  * @param {...FakeSVG} diagram
@@ -39,7 +55,7 @@ addDiagram(
 	new (class extends DiagramMultiContainer {
 		constructor() {
 			const lineSpace = nonTerminal("line-space");
-			const node = new Sequence(
+			const node = sequence(
 				nonTerminal("base-node"),
 				nonTerminal("node-space"),
 			);
@@ -138,17 +154,11 @@ addDiagram(
 			return this;
 		}
 	})(),
-
-	// nonTerminal("line-space"),
-	// new ZeroOrMore(
-	// 	,
-	// 	new Sequence(nonTerminal("line-space"), ),
-	// ),
 );
 
 addDiagram(
-	"plain-node-space",
-	new OneOrMore(
+	"node-space",
+	oneOrMore(
 		new Choice(
 			0,
 			terminal("InlineWhiteSpace"),
@@ -160,66 +170,271 @@ addDiagram(
 
 addDiagram(
 	"line-space",
-	new ZeroOrMore(
+	zeroOrMore(
 		new Choice(
 			0,
 			terminal("InlineWhiteSpace"),
 			terminal("NewLine"),
 			nonTerminal("multiline-comment"),
 			nonTerminal("single-line-comment"),
-			new Sequence(
-				terminal("/-"),
-				new Optional(nonTerminal("plain-node-space")),
-				nonTerminal("node"),
-			),
 		),
 	),
 );
 
 addDiagram(
-	"node-space",
-	new ZeroOrMore(
-		new Sequence(
-			nonTerminal("plain-node-space"),
-			new Optional(
-				new Sequence(
-					terminal("/-"),
-					new Optional(nonTerminal("plain-node-space")),
-					new Choice(
-						0,
-						nonTerminal("node-prop-or-arg"),
-						nonTerminal("node-children"),
-					),
-				),
-			),
+	"slashdash",
+	terminal("/-"),
+	zeroOrMore(
+		new Choice(
+			0,
+			terminal("InlineWhiteSpace"),
+			terminal("NewLine"),
+			nonTerminal("multiline-comment"),
+			nonTerminal("single-line-comment"),
+			nonTerminal("escline"),
 		),
 	),
 );
 
 addDiagram(
 	"base-node",
-	new Choice(1, nonTerminal("tag"), new Skip()),
-	new Stack(
-		new Sequence(
-			nonTerminal("node-space"),
-			nonTerminal("string"),
-			nonTerminal("node-space"),
-		),
-		new Sequence(
-			new ZeroOrMore(
-				new Group(nonTerminal("node-prop-or-arg"), "requires plain-node-space"),
-			),
-			new Optional(
-				new Group(nonTerminal("node-children"), "requires plain-node-space"),
-			),
-		),
-	),
+	new (class extends DiagramMultiContainer {
+		constructor() {
+			const tag = new Choice(
+				1,
+				sequence(nonTerminal("tag"), optional(nonTerminal("node-space"))),
+				new Skip(),
+			);
+			const name = nonTerminal("string");
+			const entrySpace = nonTerminal("node-space");
+			const entrySlashdash = nonTerminal("slashdash");
+			const entry = nonTerminal("node-prop-or-arg");
+			const intermediaryChildren = nonTerminal("node-children");
+			const lastLine = sequence(
+				nonTerminal("node-space"),
+				optional(nonTerminal("slashdash"), "skip"),
+				nonTerminal("node-children"),
+			);
+
+			super("g", [
+				tag,
+				name,
+				entrySpace,
+				entrySlashdash,
+				entry,
+				intermediaryChildren,
+				lastLine,
+			]);
+
+			this.tag = tag;
+			this.name = name;
+			this.entrySpace = entrySpace;
+			this.entrySlashdash = entrySlashdash;
+			this.entry = entry;
+			this.intermediaryChildren = intermediaryChildren;
+			this.lastLine = lastLine;
+
+			this.tag = tag;
+			this.name = name;
+
+			this.up = Math.max(tag.up, name.up);
+			this.height = 0;
+			this.down =
+				Math.max(Math.max(tag.down, name.down) + Options.VS, 2 * Options.AR) +
+				Options.AR +
+				Math.max(
+					Math.max(entrySpace.up, entry.up) + Options.VS,
+					2 * Options.AR,
+				) +
+				4 * Options.AR +
+				Math.max(intermediaryChildren.down + Options.VS, 2 * Options.AR) +
+				Options.AR +
+				Math.max(lastLine.up + Options.VS, 2 * Options.AR) +
+				lastLine.height +
+				lastLine.down;
+
+			this.width = Math.max(
+				tag.width + name.width + Options.AR,
+				Options.AR +
+					entrySpace.width +
+					Options.AR +
+					Options.AR +
+					entrySlashdash.width +
+					Options.AR +
+					Options.AR +
+					Math.max(entry.width, intermediaryChildren.width) +
+					Options.AR,
+				Options.AR + lastLine.width + Options.AR,
+			);
+		}
+
+		format(x, y, width) {
+			this.tag.format(x, y, this.tag.width).addTo(this);
+			this.name.format(x + this.tag.width, y, this.name.width).addTo(this);
+
+			new Path(x + this.tag.width + this.name.width, y)
+				.h(this.width - this.tag.width - this.name.width)
+				.addTo(this);
+
+			const yLineAfterName =
+				y + Math.max(this.tag.down, this.name.down) + Options.AR;
+			const yEntry =
+				yLineAfterName +
+				Math.max(this.entrySpace.up, this.entry.up) +
+				Options.VS +
+				Options.AR;
+			new Path(x + this.tag.width + this.name.width, y)
+				.arc("ne")
+				.v(Math.max(0, yLineAfterName - y - 2 * Options.AR))
+				.arc("es")
+				.h(-this.tag.width - this.name.width + Options.AR)
+				.arc("nw")
+				.v(Math.max(0, yEntry - yLineAfterName - 2 * Options.AR))
+				.arc("ws")
+				.h(Options.AR)
+				.addTo(this);
+
+			const xEntrySpace = x + Options.AR;
+			const xEntrySlashdash =
+				xEntrySpace + this.entrySpace.width + 2 * Options.AR;
+			const yEntrySlashdash =
+				yEntry + Math.max(Options.VS + this.entrySpace.up, 2 * Options.AR);
+			const xEntry =
+				xEntrySlashdash + this.entrySlashdash.width + 2 * Options.AR;
+
+			this.entrySpace
+				.format(xEntrySpace, yEntry, this.entrySpace.width)
+				.addTo(this);
+			new Path(xEntrySpace + this.entrySpace.width, yEntry)
+				.h(2 * Options.AR + this.entrySlashdash.width + 2 * Options.AR)
+				.addTo(this);
+			this.entry.format(xEntry, yEntry, this.entry.width).addTo(this);
+			new Path(xEntry + this.entry.width, yEntry)
+				.arc("se")
+				.v(
+					-Math.max(
+						0,
+						Math.max(this.entry.up, this.entrySpace.up) +
+							Options.VS -
+							2 * Options.AR,
+					),
+				)
+				.arc("en")
+				.h(xEntrySpace - (xEntry + this.entry.width))
+				.arc("nw")
+				.v(
+					Math.max(
+						0,
+						Math.max(this.entry.up, this.entrySpace.up) +
+							Options.VS -
+							2 * Options.AR,
+					),
+				)
+				.arc("ws")
+				.addTo(this);
+			new Path(xEntry + this.entry.width, yEntry)
+				.h(Options.AR)
+				.arc("se")
+				.v(y - yEntry + 2 * Options.AR)
+				.arc("wn")
+				.addTo(this);
+
+			new Path(xEntrySpace + this.entrySpace.width, yEntry)
+				.arc("ne")
+				.v(Math.max(0, yEntrySlashdash - yEntry - 2 * Options.AR))
+				.arc("ws")
+				.addTo(this);
+			this.entrySlashdash
+				.format(xEntrySlashdash, yEntrySlashdash, this.entrySlashdash.width)
+				.addTo(this);
+			new Path(xEntrySlashdash + this.entrySlashdash.width, yEntrySlashdash)
+				.arc("se")
+				.v(-Math.max(0, yEntrySlashdash - yEntry - 2 * Options.AR))
+				.arc("wn")
+				.addTo(this);
+
+			new Path(xEntrySlashdash + this.entrySlashdash.width, yEntrySlashdash)
+				.arc("ne")
+				.arc("ws")
+				.addTo(this);
+			new Path(xEntrySpace + this.entrySpace.width, yEntry)
+				.arc("ne")
+				.v(2 * Options.AR)
+				.arc("ws")
+				.h(this.entrySlashdash.width + 2 * Options.AR)
+				.addTo(this);
+			const yIntermediaryChildren = yEntrySlashdash + 2 * Options.AR;
+			this.intermediaryChildren
+				.format(xEntry, yIntermediaryChildren, this.intermediaryChildren.width)
+				.addTo(this);
+			new Path(xEntry + this.intermediaryChildren.width, yIntermediaryChildren)
+				.h(
+					Math.max(
+						0,
+						this.entry.width + Options.AR - this.intermediaryChildren.width,
+					),
+				)
+				.arc("se")
+				.v(y - yIntermediaryChildren + 2 * Options.AR)
+				.arc("wn")
+				.addTo(this);
+			new Path(xEntry + this.intermediaryChildren.width, yIntermediaryChildren)
+				.arc("ne")
+				.arc("es")
+				.h(xEntrySpace - (xEntry + this.intermediaryChildren.width))
+				.arc("nw")
+				.v(Options.AR)
+				.arc("ws")
+				.addTo(this);
+
+			const yLastLine = yIntermediaryChildren + 5 * Options.AR;
+			this.lastLine
+				.format(xEntrySpace, yLastLine, this.lastLine.width)
+				.addTo(this);
+			new Path(xEntrySpace + this.lastLine.width, yLastLine)
+				.arc("se")
+				.arc("en")
+				.h(-this.lastLine.width)
+				.arc("nw")
+				.arc("ws")
+				.addTo(this);
+			new Path(xEntrySpace + this.lastLine.width, yLastLine)
+				.h(
+					Math.max(
+						0,
+						xEntry +
+							this.entry.width +
+							Options.AR -
+							(xEntrySpace + this.lastLine.width),
+					),
+				)
+				.arc("se")
+				.v(y - yLastLine + 2 * Options.AR)
+				.arc("wn")
+				.addTo(this);
+
+			return this;
+		}
+	})(),
+	// new Choice(1, sequence(nonTerminal("tag"), optional(nonTerminal("node-space"))), new Skip()),
+	// new Stack(
+	// 	nonTerminal("string"),
+	// 	// dit gaat custom moeten...
+	// 	sequence(
+	// 		zeroOrMore(
+	// 			new Group(nonTerminal("node-prop-or-arg"), "requires plain-node-space"),
+	// 		),
+	// 		optional(
+	// 			new Group(nonTerminal("node-children"), "requires plain-node-space"),
+	// 		),
+	// 	),
+	// ),
 );
 
 addDiagram(
 	"node",
 	nonTerminal("base-node"),
-	nonTerminal("node-space"),
+	optional(nonTerminal("node-space")),
 	nonTerminal("node-terminator"),
 );
 
@@ -227,26 +442,26 @@ addDiagram(
 	"node-prop-or-arg",
 	new Choice(
 		0,
-		new Sequence(
+		sequence(
 			nonTerminal("string"),
-			nonTerminal("node-space"),
-			new Optional(
-				new Sequence(
+			optional(nonTerminal("node-space")),
+			optional(
+				sequence(
 					terminal("equals"),
-					nonTerminal("node-space"),
+					optional(nonTerminal("node-space")),
 					nonTerminal("value"),
-					nonTerminal("node-space"),
+					optional(nonTerminal("node-space")),
 				),
 			),
 		),
-		new Sequence(
+		sequence(
 			nonTerminal("tag"),
-			nonTerminal("node-space"),
+			optional(nonTerminal("node-space")),
 			nonTerminal("value"),
-			nonTerminal("node-space"),
+			optional(nonTerminal("node-space")),
 		),
-		new Sequence(nonTerminal("keyword"), nonTerminal("node-space")),
-		new Sequence(nonTerminal("number"), nonTerminal("node-space")),
+		sequence(nonTerminal("keyword"), optional(nonTerminal("node-space"))),
+		sequence(nonTerminal("number"), optional(nonTerminal("node-space"))),
 	),
 );
 
@@ -270,16 +485,16 @@ addDiagram(
 addDiagram(
 	"tag",
 	terminal("("),
-	nonTerminal("node-space"),
+	optional(nonTerminal("node-space")),
 	nonTerminal("string"),
-	nonTerminal("node-space"),
+	optional(nonTerminal("node-space")),
 	terminal(")"),
 );
 
 addDiagram(
 	"escline",
 	terminal("\\"),
-	new ZeroOrMore(
+	zeroOrMore(
 		new Choice(
 			0,
 			terminal("InlineWhiteSpace"),
@@ -292,7 +507,7 @@ addDiagram(
 addDiagram(
 	"multiline-comment",
 	terminal("/*"),
-	new ZeroOrMore(
+	zeroOrMore(
 		new Choice(
 			0,
 			terminal("MultilineCommentContent"),
@@ -333,7 +548,7 @@ addDiagram(
 
 addDiagram(
 	"number",
-	new Optional(terminal("[+-]"), "skip"),
+	optional(terminal("[+-]"), "skip"),
 	new Choice(
 		1,
 		terminal("BinaryNumber"),

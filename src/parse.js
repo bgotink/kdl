@@ -1,6 +1,6 @@
 import {tokenize} from "./parser/tokenize.js";
 import {
-	assertAtEOF,
+	finalize,
 	createParserCtx,
 	parseDocument,
 	parseIdentifier,
@@ -8,7 +8,10 @@ import {
 	parseNodeWithSpace,
 	parseValue,
 } from "./parser/parse.js";
-import {parseLineSpace, parseNodeSpace} from "./parser/parse-whitespace.js";
+import {
+	parseWhitespaceInDocument,
+	parseWhitespaceInNode,
+} from "./parser/parse-whitespace.js";
 import {InvalidKdlError} from "./error.js";
 
 const methods = /** @type {const} */ ({
@@ -18,8 +21,8 @@ const methods = /** @type {const} */ ({
 	entry: parseNodePropOrArgWithSpace,
 	document: parseDocument,
 
-	"whitespace in document": parseLineSpace,
-	"whitespace in node": parseNodeSpace,
+	"whitespace in document": parseWhitespaceInDocument,
+	"whitespace in node": parseWhitespaceInNode,
 });
 
 /**
@@ -47,16 +50,6 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 		text = decoder.decode(text);
 	}
 
-	if (
-		as !== "document" &&
-		as !== "whitespace in document" &&
-		text.charCodeAt(0) === 0xfeff
-	) {
-		throw new InvalidKdlError(
-			"BOM can only appear at the start of a KDL document",
-		);
-	}
-
 	const tokens = tokenize(text, parserOptions);
 	// console.log(Array.from(tokens));
 
@@ -72,11 +65,21 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 			);
 		}
 
-		assertAtEOF(ctx);
+		finalize(ctx);
 	} catch (e) {
-		if (e && e instanceof InvalidKdlError) {
-			// rethrow to clean up the stacktrace
-			throw new InvalidKdlError(e.message);
+		// rethrow to clean up the stacktrace
+		if (e instanceof InvalidKdlError) {
+			throw new InvalidKdlError(e.message, {cause: e.cause});
+		} else if (e instanceof AggregateError) {
+			const errors = [];
+			for (const err of e.errors) {
+				if (err instanceof InvalidKdlError) {
+					errors.push(new InvalidKdlError(err.message, {cause: err.cause}));
+				} else {
+					errors.push(err);
+				}
+			}
+			throw new AggregateError(errors, e.message, {cause: e.cause});
 		} else {
 			throw e;
 		}

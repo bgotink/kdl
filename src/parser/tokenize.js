@@ -13,6 +13,7 @@ import {InvalidKdlError} from "../error.js";
  * @prop {string} text
  * @prop {Location} start
  * @prop {Location} end
+ * @prop {Error?} error
  */
 
 export const T_EOF = 1;
@@ -43,6 +44,9 @@ export const T_ESCLINE = 20;
 
 export const T_COMMENT_SINGLE = 21;
 export const T_COMMENT_MULTI = 22;
+
+export const T_MULTILINE_QUOTED_STRING = 23;
+export const T_MULTILINE_RAW_STRING = 24;
 
 /** @param {number} codePoint  */
 function isBOM(codePoint) {
@@ -109,17 +113,6 @@ function isInvalidCharacter(codePoint) {
 }
 
 /** @param {number} codePoint */
-function isEqualsSign(codePoint) {
-	return (
-		codePoint === 0x003d || // EQUALS SIGN =
-		codePoint === 0xfe66 || // SMALL EQUALS SIGN ﹦
-		codePoint === 0xff1d || // FULLWIDTH EQUALS SIGN ＝
-		codePoint === 0x1f7f0 || // HEAVY EQUALS SIGN 🟰
-		false
-	);
-}
-
-/** @param {number} codePoint */
 function isIdentifierChar(codePoint) {
 	// All other functions check whether the code point is one of a set of values,
 	// this check does the opposite, it checks that the code point doesn't have
@@ -130,7 +123,7 @@ function isIdentifierChar(codePoint) {
 		!isNaN(codePoint) &&
 		!isUnicodeSpace(codePoint) &&
 		!isNewLine(codePoint) &&
-		!isEqualsSign(codePoint) &&
+		codePoint !== 0x3d && // =
 		codePoint !== 0x5c && // \
 		codePoint !== 0x2f && // /
 		codePoint !== 0x28 && // (
@@ -286,7 +279,7 @@ export function* tokenize(t, opts) {
 	}
 
 	outer: while (!currentIter.done) {
-		if (consume(isEqualsSign)) {
+		if (consumeCodePoint(0x3d)) {
 			yield mkToken(T_EQUALS);
 			continue;
 		}
@@ -351,12 +344,36 @@ export function* tokenize(t, opts) {
 					);
 				}
 
+				let multiline = false;
+				if (consumeCodePoint(0x22)) {
+					// #"" -> either #""# or multiline string
+					if (current === 0x22) {
+						// three quotes! yay
+						pop();
+
+						if (current === 0x22) {
+							// That's too many quotes
+							throw mkError(
+								"Multiline strings must start with exactly three quotes",
+							);
+						}
+
+						multiline = true;
+					}
+				}
+
 				while (true) {
 					if (offset > length) {
 						throw mkError("Unexpected EOF while parsing raw string");
 					}
 
 					if (consumeCodePoint(0x22)) {
+						if (multiline) {
+							if (!consumeCodePoint(0x22) || !consumeCodePoint(0x22)) {
+								continue;
+							}
+						}
+
 						let numberOfClosingHashes = 0;
 						while (
 							numberOfClosingHashes < numberOfOpeningHashes &&
@@ -366,7 +383,7 @@ export function* tokenize(t, opts) {
 						}
 
 						if (numberOfClosingHashes === numberOfOpeningHashes) {
-							yield mkToken(T_RAW_STRING);
+							yield mkToken(multiline ? T_MULTILINE_RAW_STRING : T_RAW_STRING);
 							continue outer;
 						}
 					} else {
@@ -389,18 +406,47 @@ export function* tokenize(t, opts) {
 		if (consumeCodePoint(0x22)) {
 			// " -> quoted string
 
-			while (current !== 0x22 && offset < length) {
-				// backslash, skip the next character
-				consumeCodePoint(0x5c);
+			let multiline = false;
+			if (consumeCodePoint(0x22)) {
+				// "" -> either empty or multiline string
+				if (!consumeCodePoint(0x22)) {
+					// only two quotes
+					yield mkToken(T_QUOTED_STRING);
+					continue;
+				}
 
-				consumeNewline() || pop();
+				if (consumeCodePoint(0x22)) {
+					throw mkError(
+						"Multiline strings must start with exactly three quotes",
+					);
+				}
+
+				multiline = true;
 			}
 
-			if (!consumeCodePoint(0x22)) {
+			let finished = false;
+			while (offset < length) {
+				// backslash, skip the next character
+				if (consumeCodePoint(0x5c)) {
+					consumeNewline() || pop();
+				} else {
+					if (
+						consumeCodePoint(0x22) &&
+						(!multiline || (consumeCodePoint(0x22) && consumeCodePoint(0x22)))
+					) {
+						finished = true;
+						break;
+					}
+
+					consumeNewline() || pop();
+				}
+			}
+
+			if (!finished) {
 				throw mkError("Unexpected EOF inside string");
 			}
 
-			yield mkToken(T_QUOTED_STRING);
+			yield mkToken(multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING);
 			continue;
 		}
 
@@ -460,7 +506,9 @@ export function* tokenize(t, opts) {
 				// .
 
 				if (consume(isDecimalDigit)) {
-					throw mkError(`Invalid identifier`);
+					zerOrMore(isIdentifierChar);
+					yield mkToken(T_IDENTIFIER_STRING, mkError(`Invalid identifier`));
+					continue;
 				}
 
 				zerOrMore(isIdentifierChar);
@@ -479,7 +527,9 @@ export function* tokenize(t, opts) {
 			// .
 
 			if (consume(isDecimalDigit)) {
-				throw mkError(`Invalid identifier`);
+				zerOrMore(isIdentifierChar);
+				yield mkToken(T_IDENTIFIER_STRING, mkError(`Invalid identifier`));
+				continue;
 			}
 
 			zerOrMore(isIdentifierChar);
@@ -495,21 +545,48 @@ export function* tokenize(t, opts) {
 				switch (current) {
 					case 0x62: // b
 						pop();
-						require(isBinaryDigit, "Invalid binary number");
+
+						if (!consume(isBinaryDigit)) {
+							zerOrMore(isIdentifierChar);
+							yield mkToken(
+								T_IDENTIFIER_STRING,
+								mkError("Invalid binary number"),
+							);
+							continue;
+						}
+
 						zerOrMore(isBinaryDigitOrUnderscore);
 
 						yield mkToken(T_NUMBER_BINARY);
 						continue;
 					case 0x6f: // o
 						pop();
-						require(isOctalDigit, "Invalid octal number");
+
+						if (!consume(isOctalDigit)) {
+							zerOrMore(isIdentifierChar);
+							yield mkToken(
+								T_IDENTIFIER_STRING,
+								mkError("Invalid octal number"),
+							);
+							continue;
+						}
+
 						zerOrMore(isOctalDigitOrUnderscore);
 
 						yield mkToken(T_NUMBER_OCTAL);
 						continue;
 					case 0x78: // x
 						pop();
-						require(isHexadecimalDigit, "Invalid hexadecimal number");
+
+						if (!consume(isHexadecimalDigit)) {
+							zerOrMore(isIdentifierChar);
+							yield mkToken(
+								T_IDENTIFIER_STRING,
+								mkError("Invalid hexadecimal number"),
+							);
+							continue;
+						}
+
 						zerOrMore(isHexadecimalDigitOrUnderscore);
 
 						yield mkToken(T_NUMBER_HEXADECIMAL);
@@ -522,7 +599,12 @@ export function* tokenize(t, opts) {
 			if (consumeCodePoint(0x2e)) {
 				// .
 
-				require(isDecimalDigit, "Invalid decimal number");
+				if (!consume(isDecimalDigit)) {
+					zerOrMore(isIdentifierChar);
+					yield mkToken(T_IDENTIFIER_STRING, mkError("Invalid decimal number"));
+					continue;
+				}
+
 				zerOrMore(isDecimalDigitOrUnderscore);
 			}
 
@@ -531,7 +613,12 @@ export function* tokenize(t, opts) {
 
 				consume(isNumberSign);
 
-				require(isDecimalDigit, "Invalid decimal number");
+				if (!consume(isDecimalDigit)) {
+					zerOrMore(isIdentifierChar);
+					yield mkToken(T_IDENTIFIER_STRING, mkError("Invalid decimal number"));
+					continue;
+				}
+
 				zerOrMore(isDecimalDigitOrUnderscore);
 			}
 
@@ -686,9 +773,10 @@ function zerOrMore(test) {
 
 /**
  * @param {number} type
+ * @param {Error?=} error
  * @returns {Token}
  */
-function mkToken(type) {
+function mkToken(type, error = null) {
 	const end = {line, column, offset};
 	const s = start;
 
@@ -699,6 +787,7 @@ function mkToken(type) {
 		text: text.slice(s.offset, end.offset),
 		start: s,
 		end,
+		error,
 	};
 }
 
