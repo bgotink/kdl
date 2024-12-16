@@ -93,4 +93,17 @@ test("invalid multiline escaped whitespace", () => {
 	}, /must end with a line containing only whitespace/);
 });
 
+test("whitespace escapes in multiline", () => {
+	assert.deepEqual(
+		parseAndClearFormat(String.raw`
+			node """
+			test\\ value
+			"""
+		`),
+		new Document([
+			new Node(new Identifier("node"), [Entry.createArgument("test\\ value")]),
+		]),
+	);
+});
+
 test.run();

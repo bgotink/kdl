@@ -1,7 +1,7 @@
 import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
 
 const escapeWhitespace =
-	/\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
+	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
 const escape =
 	/\\(?:$|([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
 
@@ -173,7 +173,7 @@ export function postProcessMultilineStringValue(value, token) {
 
 /** @param {string} value */
 function removeWhitespaceEscapes(value) {
-	return value.replaceAll(escapeWhitespace, () => "");
+	return value.replaceAll(escapeWhitespace, (_, beforeEscape) => beforeEscape);
 }
 
 /**
