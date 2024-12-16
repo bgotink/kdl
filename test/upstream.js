@@ -42,7 +42,7 @@ function parseAndFormat(text) {
 	clearFormat(document);
 
 	// The expected output of the tests uses scientific notation
-	// for numbers that javascript itself still prints regularly
+	// for numbers that javascript itself still prints normally
 	document.nodes.forEach(function reformatNumbers(node) {
 		for (const {value} of node.entries) {
 			if (typeof value.value !== "number") {
@@ -72,7 +72,7 @@ function parseAndFormat(text) {
 	let formatted = format(document);
 
 	// Replace tabs with four spaces, as used in the expected output
-	formatted = formatted.replace(/\t/g, "    ");
+	formatted = formatted.replaceAll("\t", "    ");
 
 	// Turn empty output into a newline, as expected in the test
 	formatted = formatted || "\n";
