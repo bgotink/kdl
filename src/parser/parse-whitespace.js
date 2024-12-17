@@ -227,7 +227,7 @@ export function parseWhitespaceInNode(ctx) {
 			if (slashDash[1][0]) {
 				result.push(
 					...parseWhitespaceInNode(
-						createParserCtx(tokenize(slashDash[1][0], {})),
+						createParserCtx(slashDash[1][0], tokenize(slashDash[1][0], {})),
 					),
 				);
 			}

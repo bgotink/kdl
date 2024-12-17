@@ -3,7 +3,7 @@ import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
 const escapeWhitespace =
 	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
 const escape =
-	/\\(?:$|([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
+	/\\(?:$|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
 
 const escapedValues = new Map([
 	["\\n", "\n"],
@@ -20,9 +20,6 @@ const reAllNewlines = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/g;
 
 const reEntirelyInlineWhitespace =
 	/^[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
-
-const reEndsWithEscapedWhitespace =
-	/(?:^|[^\\])(?:\\\\)*\\[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
 
 /**
  * @param {string} value
@@ -99,19 +96,16 @@ export function postProcessMultilineRawStringValue(value, token) {
  * @returns {string}
  */
 export function postProcessStringValue(value, token) {
+	value = removeWhitespaceEscapes(value);
 	const lines = value.split(reAllNewlines);
 
 	if (lines.length > 1) {
 		// mustn't be a multiline string...
-		if (
-			lines.slice(0, -1).some((line) => !reEndsWithEscapedWhitespace.test(line))
-		) {
-			throw new InvalidKdlError(
-				`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
-					token,
-				)}`,
-			);
-		}
+		throw new InvalidKdlError(
+			`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
+				token,
+			)}`,
+		);
 	}
 
 	return replaceEscapes(value);
@@ -180,39 +174,33 @@ function removeWhitespaceEscapes(value) {
  * @param {string} value
  */
 function replaceEscapes(value) {
-	return value.replaceAll(
-		escape,
-		(escape, escapedWhitespace, unicode, invalidUnicode) => {
-			if (invalidUnicode) {
-				if (!invalidUnicode.startsWith("{")) {
-					throw new InvalidKdlError(
-						String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
-					);
-				} else {
-					throw new InvalidKdlError(
-						String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
-					);
-				}
-			}
-			if (escapedWhitespace) {
-				return "";
-			} else if (unicode) {
-				return String.fromCodePoint(parseInt(unicode, 16));
+	return value.replaceAll(escape, (escape, unicode, invalidUnicode) => {
+		if (invalidUnicode) {
+			if (!invalidUnicode.startsWith("{")) {
+				throw new InvalidKdlError(
+					String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
+				);
 			} else {
-				const replacement = escapedValues.get(escape);
+				throw new InvalidKdlError(
+					String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
+				);
+			}
+		} else if (unicode) {
+			return String.fromCodePoint(parseInt(unicode, 16));
+		} else {
+			const replacement = escapedValues.get(escape);
 
-				if (replacement == null) {
-					if (escape.length < 2) {
-						throw new InvalidKdlError(
-							"Invalid whitespace escape at the end of a string",
-						);
-					}
-
-					throw new InvalidKdlError(`Invalid escape "${escape}"`);
+			if (replacement == null) {
+				if (escape.length < 2) {
+					throw new InvalidKdlError(
+						"Invalid whitespace escape at the end of a string",
+					);
 				}
 
-				return replacement;
+				throw new InvalidKdlError(`Invalid escape "${escape}"`);
 			}
-		},
-	);
+
+			return replacement;
+		}
+	});
 }

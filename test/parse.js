@@ -304,4 +304,24 @@ test("parse whitespace", () => {
 	);
 });
 
+test("escline", () => {
+	assert.deepEqual(
+		clearFormat(
+			parse(String.raw`
+			node\
+				arg\
+				arg\
+				arg
+		`),
+		),
+		new Document([
+			new Node(new Identifier("node"), [
+				Entry.createArgument("arg"),
+				Entry.createArgument("arg"),
+				Entry.createArgument("arg"),
+			]),
+		]),
+	);
+});
+
 test.run();

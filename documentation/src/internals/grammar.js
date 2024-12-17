@@ -174,27 +174,15 @@ addDiagram(
 		new Choice(
 			0,
 			terminal("InlineWhiteSpace"),
+			nonTerminal("escline"),
+			nonTerminal("single-line-comment"),
 			terminal("NewLine"),
 			nonTerminal("multiline-comment"),
-			nonTerminal("single-line-comment"),
 		),
 	),
 );
 
-addDiagram(
-	"slashdash",
-	terminal("/-"),
-	zeroOrMore(
-		new Choice(
-			0,
-			terminal("InlineWhiteSpace"),
-			terminal("NewLine"),
-			nonTerminal("multiline-comment"),
-			nonTerminal("single-line-comment"),
-			nonTerminal("escline"),
-		),
-	),
-);
+addDiagram("slashdash", terminal("/-"), zeroOrMore(nonTerminal("line-space")));
 
 addDiagram(
 	"base-node",

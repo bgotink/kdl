@@ -681,7 +681,7 @@ export function* tokenize(t, opts) {
 		}
 
 		throw mkError(
-			`Unexpected character ${JSON.stringify(String.fromCodePoint(current))}, did you forget to quote an identifier\?`,
+			`Unexpected character ${JSON.stringify(String.fromCodePoint(current))}, did you forget to quote an identifier?`,
 		);
 	}
 

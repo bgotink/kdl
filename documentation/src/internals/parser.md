@@ -64,11 +64,9 @@ The official `node-space` is written as `ws* escline ws* | ws+`, but since `node
 
 ### line-space
 
-Compared to the `line-space` defined in the KDL spec, this version includes its own "zero or more" operator.
+Compared to the `line-space` defined in the KDL spec, this version includes its own "zero or more" operator and it inlines `node-space` instead of referencing the non-terminal.
 
 ### slashdash
-
-This diagram is exactly the same as in the specification, except `line-space | node-space` is resolved into its parts.
 
 ### base-node
 

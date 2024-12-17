@@ -38,6 +38,7 @@ import {
 
 /**
  * @typedef {object} ParserCtx
+ * @prop {string} text
  * @prop {IteratorResult<import("./tokenize.js").Token, void>} current
  * @prop {Iterator<import("./tokenize.js").Token, void>} tokens
  * @prop {import("./tokenize.js").Token} lastToken
@@ -105,15 +106,17 @@ export function concatenate(...parts) {
 }
 
 /**
+ * @param {string} text
  * @param {Iterable<import("./tokenize.js").Token>} tokens
  * @param {object} [options]
  * @param {boolean} [options.storeLocations]
  * @returns {ParserCtx}
  */
-export function createParserCtx(tokens, {storeLocations = false} = {}) {
+export function createParserCtx(text, tokens, {storeLocations = false} = {}) {
 	const iterator = tokens[Symbol.iterator]();
 
 	return {
+		text,
 		tokens: iterator,
 		current: iterator.next(),
 		storeLocations,
@@ -388,31 +391,33 @@ export function parseEscline(ctx) {
 
 /** @param {ParserCtx} ctx */
 function parseLineSpace(ctx) {
-	const result = [];
+	const start = ctx.lastToken.end;
 
-	let tmp;
 	while (
-		(tmp =
-			consume(ctx, T_NEWLINE)?.text ??
-			parseWs(ctx) ??
-			parseSingleLineComment(ctx))
-	) {
-		result.push(tmp);
+		consume(ctx, T_NEWLINE)?.text ??
+		parseSingleLineComment(ctx) ??
+		parseWs(ctx) ??
+		parseEscline(ctx)
+	) {}
+
+	if (ctx.lastToken.end === start) {
+		return undefined;
 	}
 
-	return result.length ? result : undefined;
+	return ctx.text.slice(start.offset, ctx.lastToken.end.offset);
 }
 
 /** @param {ParserCtx} ctx */
 function parseNodeSpace(ctx) {
-	const result = [];
+	const start = ctx.lastToken.end;
 
-	let tmp;
-	while ((tmp = parseWs(ctx) ?? parseEscline(ctx))) {
-		result.push(tmp);
+	while (parseWs(ctx) ?? parseEscline(ctx)) {}
+
+	if (ctx.lastToken.end === start) {
+		return undefined;
 	}
 
-	return result.length ? result : undefined;
+	return ctx.text.slice(start.offset, ctx.lastToken.end.offset);
 }
 
 /** @param {ParserCtx} ctx */
@@ -437,8 +442,8 @@ function parseTag(ctx) {
 	const result = new Tag(name[0]);
 	result.representation = name[1];
 
-	result.leading = leading?.join("");
-	result.trailing = trailing?.join("");
+	result.leading = leading;
+	result.trailing = trailing;
 
 	storeLocation(ctx, result, start, ctx.lastToken);
 	return result;
@@ -490,7 +495,7 @@ export function parseNodePropOrArg(ctx) {
 
 			const entry = new Entry(value, null);
 			entry.tag = tag;
-			entry.betweenTagAndValue = betweenTagAndValue?.join("");
+			entry.betweenTagAndValue = betweenTagAndValue;
 
 			storeLocation(ctx, entry, start, ctx.lastToken);
 			return [entry, undefined];
@@ -529,7 +534,7 @@ export function parseNodePropOrArg(ctx) {
 		const entry = new Entry(value, null);
 		storeLocation(ctx, entry, start, ctx.lastToken);
 
-		return [entry, beforeEquals?.join("")];
+		return [entry, beforeEquals];
 	}
 
 	const name = new Identifier(nameOrValue[0]);
@@ -548,15 +553,11 @@ export function parseNodePropOrArg(ctx) {
 
 	const entry = new Entry(value, name);
 	storeLocation(ctx, entry, start, ctx.lastToken);
-	entry.equals = concatenate(
-		beforeEquals?.join(""),
-		equals.text,
-		afterEquals?.join(""),
-	);
+	entry.equals = concatenate(beforeEquals, equals.text, afterEquals);
 
 	if (tag) {
 		entry.tag = tag;
-		entry.betweenTagAndValue = afterTag?.join("");
+		entry.betweenTagAndValue = afterTag;
 	}
 
 	return [entry, undefined];
@@ -564,7 +565,7 @@ export function parseNodePropOrArg(ctx) {
 
 /** @param {ParserCtx} ctx */
 export function parseNodePropOrArgWithSpace(ctx) {
-	const leading = parseNodeSpace(ctx) ?? [];
+	let leading = parseNodeSpace(ctx) ?? "";
 
 	let tmp;
 	while ((tmp = parseSlashdash(ctx))) {
@@ -573,9 +574,9 @@ export function parseNodePropOrArgWithSpace(ctx) {
 			throw mkError(ctx, `Expected a property or argument`);
 		}
 
-		leading.push(tmp, format(propOrArg[0]).slice(1));
+		leading = leading + tmp + format(propOrArg[0]).slice(1);
 
-		const space = propOrArg[1] ?? parseNodeSpace(ctx)?.join("");
+		const space = propOrArg[1] ?? parseNodeSpace(ctx);
 
 		if (!space) {
 			throw mkError(
@@ -584,7 +585,7 @@ export function parseNodePropOrArgWithSpace(ctx) {
 			);
 		}
 
-		leading.push(space);
+		leading = leading + space;
 	}
 
 	const _entry = parseNodePropOrArg(ctx);
@@ -592,7 +593,7 @@ export function parseNodePropOrArgWithSpace(ctx) {
 		return;
 	}
 
-	const trailing = _entry[1] ? [_entry[1]] : parseNodeSpace(ctx) ?? [];
+	let trailing = _entry[1] ?? parseNodeSpace(ctx) ?? "";
 
 	while ((tmp = parseSlashdash(ctx))) {
 		const propOrArg = parseNodePropOrArg(ctx);
@@ -600,21 +601,21 @@ export function parseNodePropOrArgWithSpace(ctx) {
 			throw mkError(ctx, `Expected a property or argument`);
 		}
 
-		trailing.push(tmp, format(propOrArg[0]).slice(1));
+		trailing = trailing + tmp + format(propOrArg[0]).slice(1);
 
-		const space = propOrArg[1] ?? parseNodeSpace(ctx)?.join("");
+		const space = propOrArg[1] ?? parseNodeSpace(ctx);
 
 		if (!space) {
 			break;
 		}
 
-		trailing.push(space);
+		trailing = trailing + space;
 	}
 
 	const entry = _entry[0];
 
-	entry.leading = leading.join("");
-	entry.trailing = trailing.join("");
+	entry.leading = leading;
+	entry.trailing = trailing;
 
 	return entry;
 }
@@ -626,19 +627,7 @@ function parseSlashdash(ctx) {
 		return;
 	}
 
-	/** @type {string[]} */
-	const result = [];
-
-	while (text) {
-		result.push(text);
-		text =
-			consume(ctx, T_NEWLINE)?.text ??
-			parseWs(ctx) ??
-			parseSingleLineComment(ctx) ??
-			parseEscline(ctx);
-	}
-
-	return result.join("");
+	return concatenate(text, parseLineSpace(ctx));
 }
 
 /** @param {ParserCtx} ctx */
@@ -674,28 +663,28 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			space.push(slashdash, format(_entry[0]).slice(1));
+			space = space + slashdash + format(_entry[0]).slice(1);
 			if (_entry[1]) {
-				space.push(_entry[1]);
+				space = space + _entry[1];
 			}
 			slashdash = undefined;
 
 			const extraSpace = parseNodeSpace(ctx);
 			if (extraSpace) {
-				space.push(extraSpace.join(""));
+				space = space + extraSpace;
 			}
 		} else {
 			const entry = _entry[0];
-			entry.leading = space.join("");
+			entry.leading = space;
 			entries.push(entry);
 
-			space = _entry[1] ? [_entry[1]] : parseNodeSpace(ctx);
+			space = _entry[1] || parseNodeSpace(ctx);
 		}
 	}
 
 	/** @type {Document=} */
 	let possibleChildren;
-	/** @type {string[]=} */
+	/** @type {string=} */
 	let spaceBeforeChildren;
 
 	while (space) {
@@ -711,7 +700,7 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			space.push(slashdash, "{", format(parsedChildren), "}");
+			space = space + slashdash + "{" + format(parsedChildren) + "}";
 			slashdash = undefined;
 		} else {
 			if (possibleChildren) {
@@ -731,7 +720,7 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (space) {
-			space.push(...spaceAfter);
+			space = space + spaceAfter;
 		} else {
 			space = spaceAfter;
 		}
@@ -739,10 +728,10 @@ export function parseBaseNode(ctx) {
 
 	const node = new Node(name, entries, possibleChildren);
 	node.tag = tag ?? null;
-	node.betweenTagAndName = betweenTagAndName?.join("");
+	node.betweenTagAndName = betweenTagAndName;
 
-	node.beforeChildren = spaceBeforeChildren?.join("");
-	node.trailing = space?.join("") ?? "";
+	node.beforeChildren = spaceBeforeChildren;
+	node.trailing = space ?? "";
 
 	storeLocation(ctx, node, startOfNode, ctx.lastToken);
 
@@ -759,12 +748,9 @@ export function parseNodeWithSpace(ctx) {
 		// way that the context is no longer used if we reach this code branch.
 		return;
 	}
-	const trailing = concatenate(
-		parseNodeTerminator(ctx),
-		parseLineSpace(ctx)?.join(""),
-	);
+	const trailing = concatenate(parseNodeTerminator(ctx), parseLineSpace(ctx));
 
-	node.leading = concatenate(leading?.join(""), node.leading);
+	node.leading = concatenate(leading, node.leading);
 	node.trailing = concatenate(node.trailing, trailing);
 
 	return node;
@@ -818,25 +804,23 @@ function _parseDocument(ctx) {
 		const terminator = parseNodeTerminator(ctx);
 
 		if (slashdash) {
-			space = [
+			space =
 				/** @type {string} */
 				(
 					concatenate(
-						space?.join(""),
+						space,
 						slashdash,
 						format(node),
-						trailing?.join(""),
+						trailing,
 						terminator,
-						parseLineSpace(ctx)?.join(""),
+						parseLineSpace(ctx),
 					)
-				),
-			];
+				);
 		} else {
-			node.trailing =
-				concatenate(node.trailing, trailing?.join(""), terminator) ?? "";
+			node.trailing = concatenate(node.trailing, trailing, terminator) ?? "";
 			nodes.push(node);
 
-			node.leading = space?.join("") ?? "";
+			node.leading = space ?? "";
 
 			space = parseLineSpace(ctx);
 		}
@@ -847,6 +831,6 @@ function _parseDocument(ctx) {
 	const document = new Document(nodes);
 	storeLocation(ctx, document, startOfDocument, ctx.lastToken);
 
-	document.trailing = space?.join("") ?? "";
+	document.trailing = space ?? "";
 	return document;
 }

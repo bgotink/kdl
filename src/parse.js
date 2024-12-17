@@ -53,7 +53,7 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 	const tokens = tokenize(text, parserOptions);
 	// console.log(Array.from(tokens));
 
-	const ctx = createParserCtx(tokens, parserOptions);
+	const ctx = createParserCtx(text, tokens, parserOptions);
 
 	let value;
 	try {
