@@ -1,4 +1,7 @@
-import {InvalidKdlError, stringifyTokenOffset} from "./error.js";
+import {InvalidKdlError} from "./error.js";
+
+/** @import {ParserCtx} from "./parser/parse.js" */
+/** @import {Token} from "./parser/tokenize.js" */
 
 const escapeWhitespace =
 	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
@@ -16,22 +19,24 @@ const escapedValues = new Map([
 	["\\s", " "],
 ]);
 
-const reAllNewlines = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/g;
+const reAllNewlines = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/;
 
 const reEntirelyInlineWhitespace =
 	/^[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
 
 /**
+ * @param {ParserCtx} ctx
  * @param {string} value
- * @param {import("./parser/tokenize.js").Token} token
+ * @param {Token} token
  * @returns {string}
  */
-export function postProcessRawStringValue(value, token) {
+export function postProcessRawStringValue(ctx, value, token) {
 	if (reAllNewlines.test(value)) {
-		throw new InvalidKdlError(
-			`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
-				token,
-			)}`,
+		ctx.errors.push(
+			new InvalidKdlError(
+				`Raw strings with single quotes cannot contain any newlines, use triple-quotes for multiline strings`,
+				{token},
+			),
 		);
 	}
 
@@ -39,38 +44,47 @@ export function postProcessRawStringValue(value, token) {
 }
 
 /**
+ * @param {ParserCtx} ctx
  * @param {string} value
- * @param {import("./parser/tokenize.js").Token} token
+ * @param {Token} token
  * @returns {string}
  */
-export function postProcessMultilineRawStringValue(value, token) {
+export function postProcessMultilineRawStringValue(ctx, value, token) {
 	const lines = value.split(reAllNewlines);
 
 	if (lines.length === 1) {
-		throw new InvalidKdlError(
-			`Strings quotes with three quotes must be multiline at ${stringifyTokenOffset(
-				token,
-			)}`,
+		ctx.errors.push(
+			new InvalidKdlError(
+				`Raw strings with three quotes must be multiline strings`,
+				{token},
+			),
 		);
+
+		return value;
 	}
 
 	const firstLine = /** @type {string} */ (lines.shift());
 	const lastLine = /** @type {string} */ (lines.pop());
 
 	if (firstLine.length) {
-		throw new InvalidKdlError(
-			`Multi-line strings must start with a newline at ${stringifyTokenOffset(
+		ctx.errors.push(
+			new InvalidKdlError(`Multi-line strings must start with a newline`, {
 				token,
-			)}`,
+			}),
 		);
+
+		return value;
 	}
 
 	if (!reEntirelyInlineWhitespace.test(lastLine)) {
-		throw new InvalidKdlError(
-			`Multi-line strings must end with a line containing only whitespace at ${stringifyTokenOffset(
-				token,
-			)}`,
+		ctx.errors.push(
+			new InvalidKdlError(
+				`The final line in a multiline string may only contain whitespace`,
+				{token},
+			),
 		);
+
+		return value;
 	}
 
 	return lines
@@ -78,11 +92,13 @@ export function postProcessMultilineRawStringValue(value, token) {
 			if (reEntirelyInlineWhitespace.test(line)) {
 				return "";
 			} else if (!line.startsWith(lastLine)) {
-				throw new InvalidKdlError(
-					`Line ${index + 1} of multi-line string at ${stringifyTokenOffset(
-						token,
-					)} doesn't start with the offset defined by the last line of the string`,
+				ctx.errors.push(
+					new InvalidKdlError(
+						`Line ${index + 1} of this multi-line string doesn't start with the offset defined by the last line of the string`,
+						{token},
+					),
 				);
+				return "";
 			} else {
 				return line.slice(lastLine.length);
 			}
@@ -91,77 +107,91 @@ export function postProcessMultilineRawStringValue(value, token) {
 }
 
 /**
+ * @param {ParserCtx} ctx
  * @param {string} value
- * @param {import("./parser/tokenize.js").Token} token
+ * @param {Token} token
  * @returns {string}
  */
-export function postProcessStringValue(value, token) {
+export function postProcessStringValue(ctx, value, token) {
 	value = removeWhitespaceEscapes(value);
-	const lines = value.split(reAllNewlines);
 
-	if (lines.length > 1) {
+	if (reAllNewlines.test(value)) {
 		// mustn't be a multiline string...
-		throw new InvalidKdlError(
-			`Multi-line strings must start with three quotes at ${stringifyTokenOffset(
-				token,
-			)}`,
+		ctx.errors.push(
+			new InvalidKdlError(
+				`Strings with single quotes cannot contain any unescaped newlines, use triple-quotes for multiline strings`,
+				{token},
+			),
 		);
 	}
 
-	return replaceEscapes(value);
+	return replaceEscapes(ctx, value, token);
 }
 
 /**
+ * @param {ParserCtx} ctx
  * @param {string} value
- * @param {import("./parser/tokenize.js").Token} token
+ * @param {Token} token
  * @returns {string}
  */
-export function postProcessMultilineStringValue(value, token) {
+export function postProcessMultilineStringValue(ctx, value, token) {
 	const lines = removeWhitespaceEscapes(value).split(reAllNewlines);
 
 	if (lines.length === 1) {
-		throw new InvalidKdlError(
-			`Strings quotes with three quotes must be multiline at ${stringifyTokenOffset(
-				token,
-			)}`,
+		ctx.errors.push(
+			new InvalidKdlError(
+				`Strings with three quotes must be multiline strings`,
+				{token},
+			),
 		);
+
+		return value;
 	}
 
-	if (lines[0].length) {
-		throw new InvalidKdlError(
-			`Multi-line strings must start with a newline at ${stringifyTokenOffset(
-				token,
-			)}`,
-		);
-	}
-
-	lines.shift();
+	const firstLine = /** @type {string} */ (lines.shift());
 	const lastLine = /** @type {string} */ (lines.pop());
 
-	if (!reEntirelyInlineWhitespace.test(lastLine)) {
-		throw new InvalidKdlError(
-			`Multi-line strings must end with a line containing only whitespace at ${stringifyTokenOffset(
+	if (firstLine.length) {
+		ctx.errors.push(
+			new InvalidKdlError(`Multi-line strings must start with a newline`, {
 				token,
-			)}`,
+			}),
 		);
+
+		return value;
+	}
+
+	if (!reEntirelyInlineWhitespace.test(lastLine)) {
+		ctx.errors.push(
+			new InvalidKdlError(
+				`The final line in a multiline string may only contain whitespace`,
+				{token},
+			),
+		);
+
+		return value;
 	}
 
 	return replaceEscapes(
+		ctx,
 		lines
 			.map((line, index) => {
 				if (reEntirelyInlineWhitespace.test(line)) {
 					return "";
 				} else if (!line.startsWith(lastLine)) {
-					throw new InvalidKdlError(
-						`Line ${index + 1} of multi-line string at ${stringifyTokenOffset(
-							token,
-						)} doesn't start with the offset defined by the last line of the string`,
+					ctx.errors.push(
+						new InvalidKdlError(
+							`Line ${index + 1} of this multi-line string doesn't start with the offset defined by the last line of the string`,
+							{token},
+						),
 					);
+					return "";
 				} else {
 					return line.slice(lastLine.length);
 				}
 			})
 			.join("\n"),
+		token,
 	);
 }
 
@@ -171,33 +201,53 @@ function removeWhitespaceEscapes(value) {
 }
 
 /**
+ * @param {ParserCtx} ctx
  * @param {string} value
+ * @param {Token} token
  */
-function replaceEscapes(value) {
+function replaceEscapes(ctx, value, token) {
+	let hadError = false;
+
 	return value.replaceAll(escape, (escape, unicode, invalidUnicode) => {
+		if (hadError) {
+			return escape;
+		}
+
 		if (invalidUnicode) {
 			if (!invalidUnicode.startsWith("{")) {
-				throw new InvalidKdlError(
-					String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
+				ctx.errors.push(
+					new InvalidKdlError(
+						String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
+						{token},
+					),
 				);
 			} else {
-				throw new InvalidKdlError(
-					String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
+				ctx.errors.push(
+					new InvalidKdlError(
+						String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
+						{token},
+					),
 				);
 			}
+
+			hadError = true;
+			return "";
 		} else if (unicode) {
 			return String.fromCodePoint(parseInt(unicode, 16));
 		} else {
 			const replacement = escapedValues.get(escape);
 
 			if (replacement == null) {
-				if (escape.length < 2) {
-					throw new InvalidKdlError(
-						"Invalid whitespace escape at the end of a string",
-					);
-				}
-
-				throw new InvalidKdlError(`Invalid escape "${escape}"`);
+				ctx.errors.push(
+					new InvalidKdlError(
+						escape.length < 2 ?
+							"Invalid whitespace escape at the end of a string"
+						:	`Invalid escape "${escape}"`,
+						{token},
+					),
+				);
+				hadError = true;
+				return "";
 			}
 
 			return replacement;

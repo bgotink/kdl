@@ -80,7 +80,7 @@ test("invalid multiline escaped whitespace", () => {
 				bar\ ${""}
 				"""
 		`),
-		/must end with a line containing only whitespace/,
+		/The final line in a multiline string may only contain whitespace/,
 	);
 
 	assert.throws(() => {
@@ -90,7 +90,7 @@ test("invalid multiline escaped whitespace", () => {
 				bar\
 				"""
 		`);
-	}, /must end with a line containing only whitespace/);
+	}, /The final line in a multiline string may only contain whitespace/);
 });
 
 test("whitespace escapes in multiline", () => {
@@ -103,6 +103,49 @@ test("whitespace escapes in multiline", () => {
 		new Document([
 			new Node(new Identifier("node"), [Entry.createArgument("test\\ value")]),
 		]),
+	);
+});
+
+test("multiple errors", () => {
+	assert.throws(
+		() =>
+			parse(String.raw`
+				node "test
+				oh no"
+
+				node #"test
+				oh no"#
+
+				node #""" not like this
+				"""#
+
+				node """
+				not like
+				this """
+			`),
+		(error) => {
+			assert(error instanceof AggregateError);
+			assert.equal(error.errors.length, 4);
+			// Include line numbers so a failure shows which error is missing,
+			// don't include columns so reformatting this file doesn't make this test fail.
+			assert.match(
+				error.errors[0].message,
+				/use triple-quotes for multiline strings at 2/,
+			);
+			assert.match(
+				error.errors[1].message,
+				/use triple-quotes for multiline strings at 5/,
+			);
+			assert.match(
+				error.errors[2].message,
+				/Multi-line strings must start with a newline at 8/,
+			);
+			assert.match(
+				error.errors[3].message,
+				/The final line in a multiline string may only contain whitespace at 11/,
+			);
+			return true;
+		},
 	);
 });
 

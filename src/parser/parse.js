@@ -1,4 +1,4 @@
-import {InvalidKdlError, stringifyTokenOffset} from "../error.js";
+import {InvalidKdlError} from "../error.js";
 import {format} from "../format.js";
 import {storeLocation as _storeLocation} from "../locations.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "../model.js";
@@ -78,10 +78,8 @@ export function consume(ctx, tokenType) {
  * @param {string} message
  */
 export function mkError(ctx, message) {
-	const token = "current" in ctx ? ctx.current.value : ctx;
-	return new InvalidKdlError(
-		`${message} at ${token ? stringifyTokenOffset(token) : "end of input"}`,
-	);
+	const token = "current" in ctx ? ctx.current.value ?? ctx.lastToken : ctx;
+	return new InvalidKdlError(message, {token});
 }
 
 /**
@@ -218,14 +216,14 @@ function _parseString(ctx) {
 		case T_QUOTED_STRING:
 			pop(ctx);
 			return [
-				postProcessStringValue(token.text.slice(1, -1), token),
+				postProcessStringValue(ctx, token.text.slice(1, -1), token),
 				token.text,
 				token,
 			];
 		case T_MULTILINE_QUOTED_STRING:
 			pop(ctx);
 			return [
-				postProcessMultilineStringValue(token.text.slice(3, -3), token),
+				postProcessMultilineStringValue(ctx, token.text.slice(3, -3), token),
 				token.text,
 				token,
 			];
@@ -237,6 +235,7 @@ function _parseString(ctx) {
 
 			return [
 				postProcessRawStringValue(
+					ctx,
 					raw.slice(quoteIndex + 1, -(quoteIndex + 1)),
 					token,
 				),
@@ -252,6 +251,7 @@ function _parseString(ctx) {
 
 			return [
 				postProcessMultilineRawStringValue(
+					ctx,
 					raw.slice(quoteIndex + 3, -(quoteIndex + 3)),
 					token,
 				),
