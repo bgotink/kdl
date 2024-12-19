@@ -58,31 +58,16 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 	let value;
 	try {
 		value = parserMethod(ctx);
-
-		if (!value) {
-			throw new InvalidKdlError(
-				`Expected ${/^[aeiouy]/.exec(as) ? "an" : "a"} ${as}`,
-			);
-		}
-
-		finalize(ctx);
 	} catch (e) {
-		// rethrow to clean up the stacktrace
-		if (e instanceof InvalidKdlError) {
-			throw new InvalidKdlError(e.message, {cause: e.cause});
-		} else if (e instanceof AggregateError) {
-			const errors = [];
-			for (const err of e.errors) {
-				if (err instanceof InvalidKdlError) {
-					errors.push(new InvalidKdlError(err.message, {cause: err.cause}));
-				} else {
-					errors.push(err);
-				}
-			}
-			throw new AggregateError(errors, e.message, {cause: e.cause});
-		} else {
-			throw e;
-		}
+		finalize(ctx, e);
+	}
+
+	finalize(ctx);
+
+	if (!value) {
+		throw new InvalidKdlError(
+			`Expected ${/^[aeiouy]/.exec(as) ? "an" : "a"} ${as}`,
+		);
 	}
 
 	return value;

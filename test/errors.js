@@ -15,19 +15,19 @@ test("invalid identifiers", () => {
 	);
 });
 
-test("invalid keywords", () => {
-	assert.throws(() => parse("test true"), /Invalid keyword "true"/);
-	assert.throws(() => parse("test false"), /Invalid keyword "false"/);
-	assert.throws(() => parse("test null"), /Invalid keyword "null"/);
-
+test("multiple errors", () => {
 	assert.throws(
-		() => parse("test null true false"),
+		() => parse("test null true false [ohno]"),
 		(e) => {
 			assert(e instanceof AggregateError);
-			assert.equal(e.errors.length, 3);
+			assert.equal(e.errors.length, 4);
 			assert.match(e.errors[0].message, /Invalid keyword "null"/);
 			assert.match(e.errors[1].message, /Invalid keyword "true"/);
 			assert.match(e.errors[2].message, /Invalid keyword "false"/);
+			assert.match(
+				e.errors[3].message,
+				/Unexpected character "\[", did you forget to quote an identifier\?/,
+			);
 			return true;
 		},
 	);

@@ -137,20 +137,25 @@ export function createParserCtx(text, tokens, {storeLocations = false} = {}) {
 	};
 }
 
-/** @param {ParserCtx} ctx */
-export function finalize(ctx) {
-	if (!ctx.current.done && ctx.current.value.type !== T_EOF) {
-		throw mkError(
+/**
+ * @param {ParserCtx} ctx
+ * @param {unknown} [fatalError]
+ */
+export function finalize(ctx, fatalError) {
+	if (!fatalError && !ctx.current.done && ctx.current.value.type !== T_EOF) {
+		fatalError = mkError(
 			ctx,
 			`Unexpected token ${JSON.stringify(ctx.current.value.text)}, did you forget to quote an identifier?`,
 		);
 	}
 
-	if (ctx.errors.length) {
-		if (ctx.errors.length === 1) {
-			throw ctx.errors[0];
+	if (fatalError != null || ctx.errors.length) {
+		const errors = fatalError ? [...ctx.errors, fatalError] : ctx.errors;
+
+		if (errors.length === 1) {
+			throw errors[0];
 		} else {
-			throw new AggregateError(ctx.errors);
+			throw new AggregateError(errors);
 		}
 	}
 }
