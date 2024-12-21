@@ -93,7 +93,7 @@ function isNewLine(codePoint) {
 }
 
 /** @param {number} codePoint */
-function isInvalidCharacter(codePoint) {
+export function isInvalidCharacter(codePoint) {
 	return (
 		// Everything < \x20 except those that count as whitespace
 		codePoint < 0x08 ||
@@ -113,7 +113,7 @@ function isInvalidCharacter(codePoint) {
 }
 
 /** @param {number} codePoint */
-function isIdentifierChar(codePoint) {
+export function isIdentifierChar(codePoint) {
 	// All other functions check whether the code point is one of a set of values,
 	// this check does the opposite, it checks that the code point doesn't have
 	// certain values.

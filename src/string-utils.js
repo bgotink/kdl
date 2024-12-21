@@ -1,4 +1,5 @@
 import {InvalidKdlError} from "./error.js";
+import {isIdentifierChar, isInvalidCharacter} from "./parser/tokenize.js";
 
 /** @import {ParserCtx} from "./parser/parse.js" */
 /** @import {Token} from "./parser/tokenize.js" */
@@ -7,6 +8,35 @@ const escapeWhitespace =
 	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
 const escape =
 	/\\(?:$|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
+
+/** @param {string} identifier */
+export function isValidBareIdentifier(identifier) {
+	// no values that can be confused with keywords
+	if (
+		identifier === "true" ||
+		identifier === "false" ||
+		identifier === "null" ||
+		identifier === "inf" ||
+		identifier === "-inf" ||
+		identifier === "nan"
+	) {
+		return false;
+	}
+
+	// no empty strings
+	if (identifier === "") {
+		return false;
+	}
+
+	for (const part of identifier) {
+		const c = /** @type {number} */ (part.codePointAt(0));
+		if (isInvalidCharacter(c) || !isIdentifierChar(c)) {
+			return false;
+		}
+	}
+
+	return !/^[+-]?\.?[0-9]/.test(identifier);
+}
 
 const escapedValues = new Map([
 	["\\n", "\n"],
@@ -19,7 +49,7 @@ const escapedValues = new Map([
 	["\\s", " "],
 ]);
 
-const reAllNewlines = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/;
+export const reNewline = /\x0D\x0A|[\x0A\x0C\x0D\x85\u2028\u2029]/;
 
 const reEntirelyInlineWhitespace =
 	/^[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
@@ -31,7 +61,7 @@ const reEntirelyInlineWhitespace =
  * @returns {string}
  */
 export function postProcessRawStringValue(ctx, value, token) {
-	if (reAllNewlines.test(value)) {
+	if (reNewline.test(value)) {
 		ctx.errors.push(
 			new InvalidKdlError(
 				`Raw strings with single quotes cannot contain any newlines, use triple-quotes for multiline strings`,
@@ -50,7 +80,7 @@ export function postProcessRawStringValue(ctx, value, token) {
  * @returns {string}
  */
 export function postProcessMultilineRawStringValue(ctx, value, token) {
-	const lines = value.split(reAllNewlines);
+	const lines = value.split(reNewline);
 
 	if (lines.length === 1) {
 		ctx.errors.push(
@@ -115,7 +145,7 @@ export function postProcessMultilineRawStringValue(ctx, value, token) {
 export function postProcessStringValue(ctx, value, token) {
 	value = removeWhitespaceEscapes(value);
 
-	if (reAllNewlines.test(value)) {
+	if (reNewline.test(value)) {
 		// mustn't be a multiline string...
 		ctx.errors.push(
 			new InvalidKdlError(
@@ -135,7 +165,7 @@ export function postProcessStringValue(ctx, value, token) {
  * @returns {string}
  */
 export function postProcessMultilineStringValue(ctx, value, token) {
-	const lines = removeWhitespaceEscapes(value).split(reAllNewlines);
+	const lines = removeWhitespaceEscapes(value).split(reNewline);
 
 	if (lines.length === 1) {
 		ctx.errors.push(

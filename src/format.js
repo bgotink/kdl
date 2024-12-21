@@ -1,9 +1,8 @@
 import {InvalidKdlError} from "./index.js";
 import {Document, Entry, Identifier, Node, Value} from "./model.js";
 import {Tag} from "./model/tag.js";
+import {isValidBareIdentifier} from "./string-utils.js";
 
-const rePlainIdentifier =
-	/(?![+-]?[0-9])(?:(?!﹦|＝|🟰)[^(){}\[\]/\\"#;=\x09-\x0D\x20\x85\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000])+/;
 const reInlineWhitespace =
 	/[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/;
 
@@ -47,8 +46,7 @@ function formatValue(value) {
 	}
 
 	if (typeof value.value === "string") {
-		const plainMatch = rePlainIdentifier.exec(value.value);
-		if (plainMatch && plainMatch[0].length === plainMatch.input.length) {
+		if (isValidBareIdentifier(value.value)) {
 			return value.value;
 		}
 	}
@@ -74,8 +72,7 @@ function formatIdentifier(identifier) {
 		return identifier.representation;
 	}
 
-	const plainMatch = rePlainIdentifier.exec(identifier.name);
-	if (plainMatch && plainMatch[0].length === plainMatch.input.length) {
+	if (isValidBareIdentifier(identifier.name)) {
 		return identifier.name;
 	}
 

@@ -21,7 +21,7 @@ yarn typedoc \
 	--membersWithOwnFile Class \
 	--hideBreadcrumbs \
 	--hidePageHeader \
-	src/index.js src/json.d.ts
+	src/index.js src/json.d.ts src/v1-compat.js
 
 cd documentation
 mdbook "${1:-build}"

@@ -1,3 +1,6 @@
 [submodule "test/upstream"]
 	path = test/upstream
 	url = https://github.com/kdl-org/kdl
+[submodule "test/upstream-v1"]
+	path = test/upstream-v1
+	url = https://github.com/kdl-org/kdl

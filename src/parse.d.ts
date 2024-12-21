@@ -3,7 +3,7 @@ import type {LineSpace, NodeSpace} from "./model/whitespace.js";
 
 export class InvalidKdlError extends Error {}
 
-interface ParserResult {
+export interface ParserResult {
 	value: Value;
 	identifier: Identifier;
 	entry: Entry;

@@ -23,7 +23,11 @@
 	"exports": {
 		".": "./src/index.js",
 		"./json": "./src/json.js",
+		"./v1-compat": "./src/v1-compat.js",
 		"./package.json": "./package.json"
+	},
+	"imports": {
+		"#v1": "@bgotink/kdl-v1"
 	},
 	"scripts": {
 		"postinstall": "is-ci || husky",
@@ -33,6 +37,7 @@
 		"book": "scripts/book.sh"
 	},
 	"devDependencies": {
+		"@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.6",
 		"@types/benchmark": "^2.1.5",
 		"@types/node": "^22",
 		"benchmark": "^2.1.4",

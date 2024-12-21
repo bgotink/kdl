@@ -1,7 +1,9 @@
 import bench from "benchmark";
 import * as kdljs from "kdljs";
+import * as v1 from "@bgotink/kdl-v1";
 
 import * as self from "../src/index.js";
+import * as compat from "../src/v1-compat.js";
 
 const suite = new bench.Suite();
 
@@ -42,6 +44,18 @@ self.parse(document);
 
 suite.add("kdljs #parse", () => {
 	kdljs.parse(documentV1);
+});
+
+suite.add("v1 #parse", () => {
+	v1.parse(documentV1);
+});
+
+suite.add("v1 compat #parseAndTransform", () => {
+	compat.parseAndTransform(documentV1);
+});
+
+suite.add("v1 compat #parseWithoutFormatting", () => {
+	compat.parseWithoutFormatting(documentV1);
 });
 
 suite.add("development #parse", () => {

@@ -7,6 +7,7 @@ import {
 	rmSync,
 	mkdirSync,
 	copyFileSync,
+	cpSync,
 } from "node:fs";
 import process from "node:process";
 import {fileURLToPath} from "node:url";
@@ -24,7 +25,8 @@ execSync("tsc -p tsconfig.compile.json");
 
 // JavaScript
 
-execSync("cp -a src/* out");
+cpSync("src", "out", {recursive: true});
+copyFileSync(new URL(import.meta.resolve("#v1")), "out/v1.cjs");
 
 // Write metadata
 
@@ -41,6 +43,9 @@ delete packageJson.packageManager;
 // Set exports
 packageJson.main = "./index.js";
 packageJson.types = "./index.d.ts";
+packageJson.imports = {
+	"#v1": "./v1.cjs",
+};
 packageJson.exports = {
 	".": {
 		types: "./index.d.ts",
@@ -49,6 +54,10 @@ packageJson.exports = {
 	"./json": {
 		types: "./json.d.ts",
 		default: "./json.js",
+	},
+	"./v1-compat": {
+		types: "./v1-compat.d.ts",
+		default: "./v1-compat.js",
 	},
 	"./package.json": "./package.json",
 };

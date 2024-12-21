@@ -12,6 +12,8 @@ export class InvalidKdlError extends Error {
 	name = "InvalidKdlError";
 
 	/**
+	 * The location of the error, if it can be tied to a single location
+	 *
 	 * @readonly
 	 * @type {Token=}
 	 */
