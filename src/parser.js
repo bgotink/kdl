@@ -847,7 +847,7 @@ export class KdlParser extends EmbeddedActionsParser {
 							ALT: () => {
 								const content = [$.CONSUME(slashDash).image];
 
-								$.MANY1(() => content.push($.SUBRULE(rWhitespace)));
+								$.MANY1(() => content.push($.SUBRULE(rNodeSpace)));
 
 								return new Comment(
 									content.join('') +
