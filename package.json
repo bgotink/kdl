@@ -37,7 +37,7 @@
 		"book": "scripts/book.sh"
 	},
 	"devDependencies": {
-		"@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.6",
+		"@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.7",
 		"@types/benchmark": "^2.1.5",
 		"@types/node": "^22",
 		"benchmark": "^2.1.4",

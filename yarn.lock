@@ -5,10 +5,10 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@bgotink/kdl-v1@npm:@bgotink/kdl@0.1.6":
-  version: 0.1.6
-  resolution: "@bgotink/kdl@npm:0.1.6"
-  checksum: a04f09648c3ec6ecba65322cdab63617af93590475eca31bf0e0f5601d2fc56d7ebd40eaa83546ff2632d728d988043b797c5638ab16c913c07c16d7ec56a7ae
+"@bgotink/kdl-v1@npm:@bgotink/kdl@0.1.7":
+  version: 0.1.7
+  resolution: "@bgotink/kdl@npm:0.1.7"
+  checksum: 9a6377f4ff2496472251ac8afbbbdc331d18c8fad22eea26ff52f735f044ab88db62557b6b07e87bdd23fd66f3cc41043ee2d10d9ad28d5665d3af06af068593
   languageName: node
   linkType: hard
 
@@ -16,7 +16,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@bgotink/kdl@workspace:."
   dependencies:
-    "@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.6"
+    "@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.7"
     "@types/benchmark": "npm:^2.1.5"
     "@types/node": "npm:^22"
     benchmark: "npm:^2.1.4"
