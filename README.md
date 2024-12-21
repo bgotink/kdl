@@ -4,15 +4,19 @@ This package contains a parser and stringifier for the [KDL Document Language][k
 
 The parser in this package focuses on parsing documents in a way that allows for format-preserving modifications. This is most useful when working with KDL files maintained by humans.
 
-> [!NOTE]
-> This package handles KDL 2.0.0-draft.8, a draft of the KDL v2 spec.
+> [!NOTE] This package handles KDL v2.
 >
-> Use version 0.1.7 of this package if you want a stable version that supports KDL v1.
+> Use version 0.1.x of this package if you want a stable version that supports KDL v1.
 
 ## Install
 
 ```sh
 yarn add @bgotink/kdl
+# or
+npm install @bgotink/kdl
+# or
+pnpm add @bgotink/kdl
+# or ...
 ```
 
 ## Usage
