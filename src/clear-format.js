@@ -1,6 +1,5 @@
 import {InvalidKdlError} from "./index.js";
-import {Document, Entry, Identifier, Node, Value} from "./model.js";
-import {Tag} from "./model/tag.js";
+import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
 
 /**
  * @param {Value} value

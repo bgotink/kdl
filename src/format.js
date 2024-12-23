@@ -1,10 +1,9 @@
 import {InvalidKdlError} from "./index.js";
-import {Document, Entry, Identifier, Node, Value} from "./model.js";
-import {Tag} from "./model/tag.js";
-import {isValidBareIdentifier} from "./string-utils.js";
-
-const reInlineWhitespace =
-	/[\uFEFF\u0009\u000B\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/;
+import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
+import {
+	isValidBareIdentifier,
+	reStartsWithInlineWhitespace,
+} from "./string-utils.js";
 
 /**
  * @param {Tag | null} tag
@@ -27,7 +26,7 @@ function ensureStartsWithWhitespace(text) {
 		return " ";
 	}
 
-	return reInlineWhitespace.exec(text)?.index === 0 || text.startsWith("\\") ?
+	return reStartsWithInlineWhitespace.test(text) || text.startsWith("\\") ?
 			text
 		:	` ${text}`;
 }

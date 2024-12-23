@@ -57,7 +57,6 @@ function isBOM(codePoint) {
 function isUnicodeSpace(codePoint) {
 	return (
 		codePoint === 0x0009 || // Character Tabulation
-		codePoint === 0x000b || // Line Tabulation
 		codePoint === 0x0020 || // Space
 		codePoint === 0x00a0 || // No-Break Space
 		codePoint === 0x1680 || // Ogham Space Mark
@@ -85,6 +84,7 @@ function isNewLine(codePoint) {
 		codePoint === 0x0d || // Carriage Return
 		codePoint === 0x0a || // Line Feed
 		codePoint === 0x85 || // Next Line
+		codePoint === 0x0b || // Line Tabulation
 		codePoint === 0x0c || // Form Feed
 		codePoint === 0x2028 || // Line Separator
 		codePoint === 0x2029 || // Paragraph Separator
