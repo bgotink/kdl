@@ -265,7 +265,19 @@ function replaceEscapes(ctx, value, token) {
 			hadError = true;
 			return "";
 		} else if (unicode) {
-			return String.fromCodePoint(parseInt(unicode, 16));
+			const codePoint = parseInt(unicode, 16);
+
+			// Non-scalar values
+			if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
+				ctx.errors.push(
+					new InvalidKdlError(
+						String.raw`Invalid unicode escape "\u{${unicode}}, only scalar values can be added using an escape`,
+						{token},
+					),
+				);
+			}
+
+			return String.fromCodePoint(codePoint);
 		} else {
 			const replacement = escapedValues.get(escape);
 
