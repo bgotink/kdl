@@ -21,11 +21,7 @@ if (process.versions.node > "22") {
 	).entries()) {
 		test(`README code block ${i}`, async () => {
 			const worker = new Worker(
-				`
-			import assert from "node:assert/strict";
-		
-			${text}
-			`,
+				text,
 				// @ts-expect-error type field not supported yet in @types/node
 				{eval: true, type: "module"},
 			);

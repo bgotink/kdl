@@ -21,8 +21,13 @@ pnpm add @bgotink/kdl
 
 ## Usage
 
+The examples below assume a Node.js environment.
+The `@bgotink/kdl` package works in any javascript runtime, including browsers, as long as it supports relatively modern browser standards.
+If you're trying to run these samples in a non-Node.js runtime, replace the import for `assert` with something equivalent in your runtime.
+
 ```js
 import {parse, format} from "@bgotink/kdl";
+import assert from "node:assert/strict";
 
 const doc = parse(String.raw`
 	node "value" #"other value"# 2.0 4 #false \
@@ -57,6 +62,7 @@ This package exports function from `@bgotink/kdl/json` to parse and stringify KD
 
 ```js
 import {parse} from "@bgotink/kdl/json";
+import assert from "node:assert/strict";
 
 assert.deepEqual(
 	parse(
