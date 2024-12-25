@@ -1,2 +1,5 @@
 book
 src/api/reference
+
+src/*.js
+src/*.js.map

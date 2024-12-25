@@ -5,6 +5,9 @@ multilingual = false
 src = "src"
 title = "KDL"
 
+[preprocessor.version]
+command = "preprocessors/version.js"
+
 [output.html]
 preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/bgotink/kdl"

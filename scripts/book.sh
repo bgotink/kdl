@@ -23,5 +23,12 @@ yarn typedoc \
 	--hidePageHeader \
 	src/index.js src/json.d.ts src/v1-compat.js
 
+yarn esbuild --bundle \
+	--minify --keep-names \
+	--sourcemap \
+	--format=esm --platform=browser --target=safari16 \
+	--outdir=documentation/src \
+	documentation/kdl.js
+
 cd documentation
 mdbook "${1:-build}"
