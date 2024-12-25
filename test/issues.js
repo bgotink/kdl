@@ -68,4 +68,11 @@ test("issue #8: escaped surrogates", () => {
 	);
 });
 
+test("issue #9: unicode escapes", () => {
+	assert.equal(
+		parse(String.raw`node "\u{00000a}"`).nodes[0].getArgument(0),
+		"\u{0a}",
+	);
+});
+
 test.run();

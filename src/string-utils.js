@@ -7,7 +7,7 @@ import {isIdentifierChar, isInvalidCharacter} from "./parser/tokenize.js";
 const escapeWhitespace =
 	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;
 const escape =
-	/\\(?:$|u\{([0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
+	/\\(?:$|u\{(0[0-9a-fA-F]{0,5}|10[0-9a-fA-F]{4}|[1-9a-fA-F][0-9a-fA-F]{0,4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|.)/g;
 
 /** @param {string} identifier */
 export function isValidBareIdentifier(identifier) {
