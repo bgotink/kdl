@@ -4,10 +4,6 @@ This package contains a parser and stringifier for the [KDL Document Language][k
 
 The parser in this package focuses on parsing documents in a way that allows for format-preserving modifications. This is most useful when working with KDL files maintained by humans.
 
-> [!NOTE] This package handles KDL v2.
->
-> Use version 0.1.x of this package if you want a stable version that supports KDL v1.
-
 ## Install
 
 ```sh
@@ -88,6 +84,43 @@ There are four functions:
 
 - `parse` and `stringify` turn text into the encoded JSON value and back. These functions are useful for encoding/decoding entire JiK files.
 - `toJson` and `fromJson` turn KDL nodes into the encoded JSON value and back. These functions give more fine-grained control over the output, and can be used for e.g. encoding/decoding a JiK node embedded in a KDL document.
+
+## KDL v1
+
+The package exports two functions from `@bgotink/kdl/v1-compat` to support documents written in KDL v1:
+
+- `parseWithoutFormatting` parses a KDL v1 document without storing any formatting information.
+  If the resulting document is passed to `format()`, a fresh KDL v2 document will be produced and any comments or formatting added by the original document's author will be lost.
+- `parseAndTransform` parses a KDL v1 document and transforms all linked formatting information to turn it into a valid KDL v2 document.
+  If the resulting document is passed to `format()`, the resulting string will be the same document but in KDL v2 syntax. It will include all comments and formatting applied by the original document's author.
+
+These functions embed the 0.1.x version of this package as parser for KDL v1.
+This old parser is many times larger and a lot slower than the parser written for KDL v2.
+As such, it is advised to lazy-load the KDL v1 support only if needed.
+For example, if you want to read configuration that can be KDL v2 or v1:
+
+```js example
+import {readFile} from "node:fs/promises";
+import {parse} from "@bgotink/kdl";
+
+export async function loadConfiguration(path) {
+	const content = await readFile(path);
+
+	try {
+		return parse(content);
+	} catch (e) {
+		const {parseWithoutFormatting} = await import("@bgotink/kdl/v1-compat");
+		try {
+			return parseWithoutFormatting(content);
+		} catch (e2) {
+			throw new AggregateError(
+				[e, e2],
+				`Failed to parse configuration at ${path}`,
+			);
+		}
+	}
+}
+```
 
 ## Quirks
 

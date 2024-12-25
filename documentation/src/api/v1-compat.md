@@ -9,7 +9,7 @@ The compatibility endpoint is a lot larger and slower than the regular `@bgotink
 Programs that want to provide compatiblity are therefore encouraged to lazy-load the compatibility code, for example:
 
 ```js
-import {readFile} from "fs/promises";
+import {readFile} from "node:fs/promises";
 import {parse} from "@bgotink/kdl";
 
 export async function loadConfiguration(path) {
@@ -21,8 +21,11 @@ export async function loadConfiguration(path) {
 		const {parseWithoutFormatting} = await import("@bgotink/kdl/v1-compat");
 		try {
 			return parseWithoutFormatting(content);
-		} catch {
-			throw e;
+		} catch (e2) {
+			throw new AggregateError(
+				[e, e2],
+				`Failed to parse configuration at ${path}`,
+			);
 		}
 	}
 }
@@ -45,6 +48,6 @@ The compatibility endpoint exposes two functions that parse a KDL v1 text into a
 Even though both functions yield documents that are functionally equivalent, they serve very different purposes:
 
 - [`parseWithoutFormatting`](./reference/v1-compat/index.md#parsewithoutformatting) reads the KDL v1 text without storing any formatting, whitespace, comments, etc.
-  The resulting document can be used everywhere a regular KDL v2 document can be used, but formatting the document will throw out any formatting its author added.
+  The resulting document can be used everywhere a regular KDL v2 document can be used, but stringifying the document via `format()` will throw out any comments and formatting its author added.
 - [`parseAndTransform`](./reference/v1-compat/index.md#parseandtransform) reads the KDL v1 text and transforms any formatting, whitespace, comments, etc. into their KDL v2 equivalent.
-  The resulting document can safely be formatted to overwrite the original KDL v1 text to automate the migration from KDL v1 to KDL v2.
+  The resulting document can safely be stringified via `format()` to overwrite the original KDL v1 text to automate the migration from KDL v1 to KDL v2.
