@@ -1,7 +1,7 @@
 import {deserialize} from "./deserialize.js";
 import {KdlDeserializeError} from "./error.js";
 
-/** @import {Node} from "../index.js" */
+/** @import {Node} from "../../index.js" */
 
 /** @import {Deserialized, Deserializer} from "./types.js" */
 

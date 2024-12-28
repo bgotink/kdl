@@ -1,12 +1,12 @@
-import {Identifier, Node, parse as parseDocument} from "../index.js";
-import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../json-impl.js";
+import {Identifier, Node, parse as parseDocument} from "../../index.js";
+import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../../json-impl.js";
 
 import {KdlDeserializeError} from "./error.js";
 import {joinWithAnd, joinWithOr} from "./utils.js";
 
 /** @import * as t from "./types.js" */
-/** @import {Document, Entry, Value} from "../index.js" */
-/** @import {JsonValue, JsonObject} from "../json.js" */
+/** @import {Document, Entry, Value} from "../../index.js" */
+/** @import {JsonValue, JsonObject} from "../../json.js" */
 
 /** @param {Value['value']} value */
 function primitiveTypeOf(value) {

@@ -1,5 +1,5 @@
-import {JsonObject, JsonValue} from "../json.js";
-import {Node} from "../index.js";
+import {JsonObject, JsonValue} from "../../json.js";
+import {Node} from "../../index.js";
 
 /**
  * A primitive is any type that can be represented as an argument or property

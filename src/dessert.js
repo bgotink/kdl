@@ -1,4 +1,4 @@
-export {KdlDeserializeError} from "./dessert/error.js";
-export {deserialize, parse} from "./dessert/deserialize.js";
+export {KdlDeserializeError} from "./dessert/deserialization/error.js";
+export {deserialize, parse} from "./dessert/deserialization/deserialize.js";
 
-export * from "./dessert/public-utils.js";
+export * from "./dessert/deserialization/public-utils.js";

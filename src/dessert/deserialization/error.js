@@ -1,4 +1,4 @@
-/** @import {Node, Entry} from "../index.js" */
+/** @import {Node, Entry} from "../../index.js" */
 
 /**
  * Error thrown if deserialization fails
