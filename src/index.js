@@ -6,6 +6,14 @@ export {getLocation} from "./locations.js";
 export {parse} from "./parse.js";
 
 /**
+ * @typedef {import("./parser/token.js").Token} Token
+ */
+
+/**
+ * @typedef {import("./parser/token.js").Location} TokenLocation
+ */
+
+/**
  * @typedef {import('./locations.js').Location} Location
  */
 

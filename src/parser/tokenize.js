@@ -1,20 +1,6 @@
-/**
- * @typedef {object} Location
- * @prop {number} offset
- * @prop {number} line
- * @prop {number} column
- */
-
 import {InvalidKdlError} from "../error.js";
 
-/**
- * @typedef {object} Token
- * @prop {number} type
- * @prop {string} text
- * @prop {Location} start
- * @prop {Location} end
- * @prop {Error?} error
- */
+/** @import {Token} from "./token.js" */
 
 export const T_EOF = 1;
 

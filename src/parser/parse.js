@@ -9,6 +9,8 @@ import {
 	postProcessStringValue,
 } from "../string-utils.js";
 
+/** @import {Token} from "./token.js" */
+
 import {
 	T_BOM,
 	T_CLOSE_BRACE,
@@ -39,9 +41,9 @@ import {
 /**
  * @typedef {object} ParserCtx
  * @prop {string} text
- * @prop {IteratorResult<import("./tokenize.js").Token, void>} current
- * @prop {Iterator<import("./tokenize.js").Token, void>} tokens
- * @prop {import("./tokenize.js").Token} lastToken
+ * @prop {IteratorResult<Token, void>} current
+ * @prop {Iterator<Token, void>} tokens
+ * @prop {Token} lastToken
  * @prop {boolean} storeLocations
  * @prop {Error[]} errors
  */
@@ -62,7 +64,7 @@ function pop(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @param {import("./tokenize.js").Token['type']} tokenType
+ * @param {Token['type']} tokenType
  */
 export function consume(ctx, tokenType) {
 	if (!ctx.current.done && ctx.current.value.type === tokenType) {
@@ -74,7 +76,7 @@ export function consume(ctx, tokenType) {
 }
 
 /**
- * @param {ParserCtx | import("./tokenize.js").Token} ctx
+ * @param {ParserCtx | Token} ctx
  * @param {string} message
  */
 export function mkError(ctx, message) {
@@ -85,8 +87,8 @@ export function mkError(ctx, message) {
 /**
  * @param {ParserCtx} ctx
  * @param {Value | Identifier | Tag | Entry | Node | Document} value
- * @param {import("./tokenize.js").Token} start
- * @param {import("./tokenize.js").Token} [end]
+ * @param {Token} start
+ * @param {Token} [end]
  */
 function storeLocation(ctx, value, start, end = start) {
 	if (ctx.storeLocations) {
@@ -105,7 +107,7 @@ export function concatenate(...parts) {
 
 /**
  * @param {string} text
- * @param {Iterable<import("./tokenize.js").Token>} tokens
+ * @param {Iterable<Token>} tokens
  * @param {object} [options]
  * @param {boolean} [options.storeLocations]
  * @returns {ParserCtx}
@@ -162,7 +164,7 @@ export function finalize(ctx, fatalError) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {[number, string, import("./tokenize.js").Token]=}
+ * @returns {[number, string, Token]=}
  */
 function _parseNumber(ctx) {
 	const {value: token} = ctx.current;
@@ -191,7 +193,7 @@ function _parseNumber(ctx) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {[string, string, import("./tokenize.js").Token]=}
+ * @returns {[string, string, Token]=}
  */
 function _parseString(ctx) {
 	if (ctx.current.done) {
@@ -484,9 +486,7 @@ export function parseNodeChildren(ctx) {
  * @returns {[Entry, string | undefined]=}
  */
 export function parseNodePropOrArg(ctx) {
-	const start = /** @type {import("./tokenize.js").Token} */ (
-		ctx.current.value
-	);
+	const start = /** @type {Token} */ (ctx.current.value);
 
 	{
 		let tag = parseTag(ctx);
@@ -637,9 +637,7 @@ function parseSlashdash(ctx) {
 
 /** @param {ParserCtx} ctx */
 export function parseBaseNode(ctx) {
-	const startOfNode = /** @type {import("./tokenize.js").Token} */ (
-		ctx.current.value
-	);
+	const startOfNode = /** @type {Token} */ (ctx.current.value);
 
 	const tag = parseTag(ctx);
 	const betweenTagAndName = tag && parseNodeSpace(ctx);
@@ -782,9 +780,7 @@ export function parseDocument(ctx) {
 
 /** @param {ParserCtx} ctx */
 function _parseDocument(ctx) {
-	const startOfDocument = /** @type {import("./tokenize.js").Token} */ (
-		ctx.current.value
-	);
+	const startOfDocument = /** @type {Token} */ (ctx.current.value);
 
 	/** @type {Node[]} */
 	const nodes = [];

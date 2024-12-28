@@ -65,6 +65,7 @@ export function firstMatchingDeserializer(...deserializers) {
 			if (runningNodes.has(node)) {
 				throw new KdlDeserializeError(
 					"Loop detected trying to deserialize a node",
+					{location: node},
 				);
 			}
 

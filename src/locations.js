@@ -30,8 +30,8 @@ export function getLocation(element) {
 
 /**
  * @param {import('./model.js').Value | import('./model.js').Identifier | import('./model.js').Tag | import('./model.js').Entry | import('./model.js').Node | import('./model.js').Document} element
- * @param {import('./parser/tokenize.js').Token} start
- * @param {import('./parser/tokenize.js').Token} end
+ * @param {import('./parser/token.js').Token} start
+ * @param {import('./parser/token.js').Token} end
  */
 export function storeLocation(element, {start}, {end}) {
 	locations.set(element, {

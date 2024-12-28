@@ -1,6 +1,6 @@
 import {T_EOF} from "./parser/tokenize.js";
 
-/** @import {Token} from "./parser/tokenize.js" */
+/** @import {Token} from "./parser/token.js" */
 
 /**
  * Error thrown when invalid KDL is encountered
@@ -37,7 +37,7 @@ export class InvalidKdlError extends Error {
 }
 
 /**
- * @param {import("./parser/tokenize.js").Token} token
+ * @param {Token} token
  */
 function stringifyTokenOffset(token) {
 	if (token.type === T_EOF) {

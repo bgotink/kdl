@@ -16,6 +16,7 @@ export class InvalidJsonInKdlError extends Error {
 /**
  * @param {Node} node
  * @param {ToJsonOptions} options
+ * @returns A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
  */
 export function nodeToJsonValue(
 	node,
@@ -40,6 +41,7 @@ export function nodeToJsonValue(
  * @param {Map<string, Entry>} props
  * @param {Node[]} children
  * @param {Omit<ToJsonOptions, 'ignoreValues'>} options
+ * @returns A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
  */
 export function nodePartsToJsonValue(
 	name,

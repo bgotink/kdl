@@ -2,7 +2,7 @@ import {InvalidKdlError} from "./error.js";
 import {isIdentifierChar, isInvalidCharacter} from "./parser/tokenize.js";
 
 /** @import {ParserCtx} from "./parser/parse.js" */
-/** @import {Token} from "./parser/tokenize.js" */
+/** @import {Token} from "./parser/token.js" */
 
 const escapeWhitespace =
 	/((?:^|[^\\])(?:\\\\)*)\\([\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)/g;

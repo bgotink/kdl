@@ -59,52 +59,57 @@ function makeArgument(node) {
 	const argument = /** @type {t.Argument} */ (
 		/** @param {...t.PrimitiveType} types */
 		(...types) => {
-			const argument = unusedArguments[0].getValue();
-			if (argument === undefined) {
-				return argument;
+			const arg = unusedArguments[0];
+			if (arg === undefined) {
+				return undefined;
 			}
+			const value = arg.getValue();
 
-			if (types.length && !hasValidType(types, argument)) {
+			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
-					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(argument)}`,
+					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+					{location: arg},
 				);
 			}
 
 			unusedArguments.shift();
-			return argument;
+			return value;
 		}
 	);
 
 	argument.if = (...types) => {
-		const argument = unusedArguments[0].getValue();
-		if (argument === undefined) {
-			return argument;
+		const arg = unusedArguments[0];
+		if (arg === undefined) {
+			return undefined;
 		}
+		const value = arg.getValue();
 
-		if (!hasValidType(types, argument)) {
+		if (!hasValidType(types, value)) {
 			return undefined;
 		}
 
 		unusedArguments.shift();
-		return argument;
+		return value;
 	};
 
 	argument.required = /** @type {t.Argument['required'] } */ (
 		/** @param {...t.PrimitiveType} types */
 		(...types) => {
-			const argument = unusedArguments[0].getValue();
-			if (argument === undefined) {
-				throw new KdlDeserializeError(`Missing argument`);
+			const arg = unusedArguments[0];
+			if (arg === undefined) {
+				throw new KdlDeserializeError(`Missing argument`, {location: node});
 			}
+			const value = arg.getValue();
 
-			if (types.length && !hasValidType(types, argument)) {
+			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
-					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(argument)}`,
+					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+					{location: arg},
 				);
 			}
 
 			unusedArguments.shift();
-			return argument;
+			return value;
 		}
 	);
 
@@ -119,6 +124,7 @@ function makeArgument(node) {
 			if (unusedArguments.length) {
 				throw new KdlDeserializeError(
 					`Found ${unusedArguments.length} superfluous arguments`,
+					{location: node},
 				);
 			}
 		},
@@ -152,6 +158,7 @@ function makeProperty(node) {
 			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+					{location: prop},
 				);
 			}
 
@@ -183,13 +190,16 @@ function makeProperty(node) {
 		(name, ...types) => {
 			const prop = unusedProperties.get(name);
 			if (prop === undefined) {
-				throw new KdlDeserializeError(`Missing property ${name}`);
+				throw new KdlDeserializeError(`Missing property ${name}`, {
+					location: node,
+				});
 			}
 			const value = prop.getValue();
 
 			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+					{location: prop},
 				);
 			}
 
@@ -212,6 +222,7 @@ function makeProperty(node) {
 			if (unusedProperties.size) {
 				throw new KdlDeserializeError(
 					`Found superfluous properties ${joinWithAnd(Array.from(unusedProperties.keys(), (name) => JSON.stringify(name)))}`,
+					{location: node},
 				);
 			}
 		},
@@ -258,6 +269,7 @@ function makeChildren(node) {
 				if (foundMatch) {
 					throw new KdlDeserializeError(
 						`Expected a single child called ${JSON.stringify(name)} but found multiple`,
+						{location: child},
 					);
 				}
 
@@ -283,6 +295,7 @@ function makeChildren(node) {
 
 			throw new KdlDeserializeError(
 				`Expected a child called ${JSON.stringify(name)} but found none`,
+				{location: node},
 			);
 		}
 	);
@@ -299,6 +312,7 @@ function makeChildren(node) {
 			if (foundMatch) {
 				throw new KdlDeserializeError(
 					`Expected a single child called ${JSON.stringify(name)} but found multiple`,
+					{location: child},
 				);
 			}
 
@@ -310,6 +324,7 @@ function makeChildren(node) {
 		if (!foundMatch) {
 			throw new KdlDeserializeError(
 				`Expected a child called ${JSON.stringify(name)} but found none`,
+				{location: node},
 			);
 		}
 
@@ -349,6 +364,7 @@ function makeChildren(node) {
 			if (result.length === 0) {
 				throw new KdlDeserializeError(
 					`Expected at least one child called ${JSON.stringify(name)} but found none`,
+					{location: node},
 				);
 			}
 
@@ -398,6 +414,7 @@ function makeChildren(node) {
 				if (result.has(name)) {
 					throw new KdlDeserializeError(
 						`Encountered multiple children named ${JSON.stringify(name)} but expected unique names`,
+						{location: child},
 					);
 				}
 
@@ -425,6 +442,7 @@ function makeChildren(node) {
 			if (result.has(name)) {
 				throw new KdlDeserializeError(
 					`Encountered multiple children named ${JSON.stringify(name)} but expected unique names`,
+					{location: child},
 				);
 			}
 
@@ -451,10 +469,13 @@ function makeChildren(node) {
 
 				throw new KdlDeserializeError(
 					`Found ${unusedChildren.size} superfluous children (${joinWithAnd(
-						Object.entries(counts).map(
-							([name, count]) => `${count} ${JSON.stringify(name)}`,
+						Object.entries(counts).map(([name, count]) =>
+							count > 1 ?
+								`${count} ${JSON.stringify(name)}`
+							:	JSON.stringify(name),
 						),
 					)})`,
+					{location: node},
 				);
 			}
 		},
@@ -482,7 +503,18 @@ export function deserialize(node, deserializer) {
 	}
 
 	if ("deserializeFromNode" in deserializer) {
-		return deserializer.deserializeFromNode(node);
+		try {
+			return deserializer.deserializeFromNode(node);
+		} catch (e) {
+			if (e instanceof KdlDeserializeError) {
+				throw e;
+			} else {
+				throw new KdlDeserializeError(
+					`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
+					{location: node, cause: e},
+				);
+			}
+		}
 	}
 
 	const [argument, finalizeArguments, getRemainingArguments] =
@@ -515,7 +547,7 @@ export function deserialize(node, deserializer) {
 				if (e instanceof InvalidJsonInKdlError) {
 					throw new KdlDeserializeError(
 						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
-						{cause: e},
+						{cause: e, location: node},
 					);
 				}
 
@@ -525,6 +557,7 @@ export function deserialize(node, deserializer) {
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected a ${joinWithOr(types)} but got a ${jsonTypeOf(value)}`,
+					{location: node},
 				);
 			}
 
@@ -551,7 +584,7 @@ export function deserialize(node, deserializer) {
 				if (e instanceof InvalidJsonInKdlError) {
 					throw new KdlDeserializeError(
 						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
-						{cause: e},
+						{cause: e, location: node},
 					);
 				}
 
@@ -561,6 +594,7 @@ export function deserialize(node, deserializer) {
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected a ${joinWithOr(types)} but got a ${jsonTypeOf(value)}`,
+					{location: node},
 				);
 			}
 
@@ -577,10 +611,23 @@ export function deserialize(node, deserializer) {
 		json,
 	};
 
-	const result =
-		"deserialize" in deserializer ?
-			deserializer.deserialize(context)
-		:	deserializer(context);
+	let result;
+
+	try {
+		result =
+			"deserialize" in deserializer ?
+				deserializer.deserialize(context)
+			:	deserializer(context);
+	} catch (e) {
+		if (e instanceof KdlDeserializeError) {
+			throw e;
+		} else {
+			throw new KdlDeserializeError(
+				`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
+				{location: node, cause: e},
+			);
+		}
+	}
 
 	finalizeArguments();
 	finalizeProperties();
