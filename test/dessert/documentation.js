@@ -4,7 +4,7 @@ import {test} from "uvu";
 import {deserialize} from "../../src/dessert.js";
 import {parse} from "../../src/index.js";
 
-/** @import {DeserializeContext} from "../../src/dessert.js" */
+/** @import {DeserializationContext} from "../../src/dessert.js" */
 
 const node = parse(
 	String.raw`
@@ -37,7 +37,7 @@ test("function", () => {
 	 */
 
 	/**
-	 * @param {DeserializeContext} ctx
+	 * @param {DeserializationContext} ctx
 	 * @returns {Tree}
 	 */
 	function treeDeserializer(ctx) {
@@ -74,7 +74,7 @@ test("function", () => {
 test("class", () => {
 	class Tree {
 		/**
-		 * @param {DeserializeContext} ctx
+		 * @param {DeserializationContext} ctx
 		 * @returns {Tree}
 		 */
 		static deserialize(ctx) {

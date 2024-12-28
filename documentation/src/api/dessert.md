@@ -17,16 +17,16 @@ There are three types of deserializer:
 - An object with a `deserialize` function on it that takes a deserialization context and returns the deserialized value, or
 - An object with a `deserializeFromNode` function on it that takes a KDL node and returns the deserialized value.
 
-A [deserialization context](./reference/dessert/index.md#deserializecontext) is an object with a bunch of functions on it to help extract arguments, properties, and children from the node.
+A [deserialization context](./reference/dessert/index.md#deserializationcontext) is an object with a bunch of functions on it to help extract arguments, properties, and children from the node.
 
 Here's an example of a deserializer using functions:
 
 ```ts
-import type {DeserializeContext} from "@bgotink/kdl/dessert";
+import type {DeserializationContext} from "@bgotink/kdl/dessert";
 
 type Tree = {value: number; left?: Tree; right?: Tree};
 
-function treeDeserializer(ctx: DeserializeContext): Tree {
+function treeDeserializer(ctx: DeserializationContext): Tree {
 	return {
 		value: ctx.argument.required("number"),
 		left: ctx.child.single("left", treeDeserializer),
@@ -42,10 +42,10 @@ export function readTree(node: Node): Tree {
 and here's that same deserializer as a `class`:
 
 ```ts
-import type {DeserializeContext} from "@bgotink/kdl/dessert";
+import type {DeserializationContext} from "@bgotink/kdl/dessert";
 
 class Tree {
-	static deserialize(ctx: DeserializeContext): Tree {
+	static deserialize(ctx: DeserializationContext): Tree {
 		return new Tree(
 			ctx.argument.required("number"),
 			ctx.child.single("left", Tree),

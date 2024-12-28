@@ -26,19 +26,25 @@ export type TypeOf<T extends PrimitiveType[]> = {
 }[T[number]];
 
 /**
+ * Function or object capable of deserializing objects of type `T` using a {@link DeserializationContext}
+ */
+export type DeserializerFromContext<T> =
+	| ((ctx: DeserializationContext) => T)
+	| {
+			/** Function that is given a {@link DeserializationContext} */
+			deserialize(ctx: DeserializationContext): T;
+	  };
+
+/**
  * Function or object capable of deserializing objects of type `T`
  *
  * There are three types of deserializers:
- * - Functions that are given a {@link DeserializeContext}
- * - A value (usually a class) with a `deserialize` function that is given a {@link DeserializeContext}
+ * - Functions that are given a {@link DeserializationContext}
+ * - A value (usually a class) with a `deserialize` function that is given a {@link DeserializationContext}
  * - A value (usually a class) with a `deserializeFromNode` function that is given a {@link Node}
  */
 export type Deserializer<T> =
-	| ((ctx: DeserializeContext) => T)
-	| {
-			/** Function that is given a {@link DeserializeContext} */
-			deserialize(ctx: DeserializeContext): T;
-	  }
+	| DeserializerFromContext<T>
 	| {
 			/** Function that is given a {@link Node} */
 			deserializeFromNode(node: Node): T;
@@ -91,6 +97,11 @@ export interface Argument {
 	 * Return all remaining arguments
 	 */
 	rest(): Primitive[];
+
+	/**
+	 * Return all remaining arguments
+	 */
+	rest<T extends [PrimitiveType, ...PrimitiveType[]]>(...types: T): TypeOf<T>[];
 }
 
 export interface Property {
@@ -322,7 +333,7 @@ export interface Json {
 /**
  * Wrapper around a {@link Node} to help deserializing a single {@link Node} into a value
  */
-export interface DeserializeContext {
+export interface DeserializationContext {
 	/**
 	 * Helper to access the node's arguments
 	 */
@@ -345,4 +356,9 @@ export interface DeserializeContext {
 	 * Helper for processing the node as JSON
 	 */
 	json: Json;
+
+	/**
+	 * Run the given deserializer
+	 */
+	run<T>(deserializer: DeserializerFromContext<T>): T;
 }

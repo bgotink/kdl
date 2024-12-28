@@ -13,7 +13,7 @@ import {KdlDeserializeError} from "./error.js";
  *
  * @template {unknown[]} A
  * @template T
- * @param {(...args: A) => T | undefined} fn
+ * @param {(...args: NoInfer<A>) => T | undefined} fn
  * @param {A} args
  * @returns {[T, ...T[]] | undefined}
  */

@@ -113,10 +113,22 @@ function makeArgument(node) {
 		}
 	);
 
-	argument.rest = () =>
-		unusedArguments
-			.splice(0, unusedArguments.length)
-			.map((entry) => entry.getValue());
+	argument.rest = /** @type {t.Argument["rest"]} */ (
+		/** @param {...t.PrimitiveType} types */ (...types) => {
+			return unusedArguments.splice(0, unusedArguments.length).map((arg) => {
+				const value = arg.getValue();
+
+				if (types.length && !hasValidType(types, value)) {
+					throw new KdlDeserializeError(
+						`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+						{location: arg},
+					);
+				}
+
+				return value;
+			});
+		}
+	);
 
 	return [
 		argument,
@@ -490,7 +502,7 @@ function makeChildren(node) {
 /**
  * Deserialize the given {@link Document} or {@link Node} using the given {@link t.Deserializer deserializer}.
  *
- * If this function is given a {@link Document}, the deserializer only has access to children on the {@link t.DeserializeContext DeserializeContext}, no arguments or properties will be present.
+ * If this function is given a {@link Document}, it will be wrapped with a nameless node (using "-" as name) without any arguments or properties.
  *
  * @template T
  * @param {Node | Document} node
@@ -602,32 +614,35 @@ export function deserialize(node, deserializer) {
 		}
 	);
 
-	/** @type {t.DeserializeContext} */
+	/** @type {t.DeserializationContext["run"]} */
+	const run = (deserializer) => {
+		try {
+			return "deserialize" in deserializer ?
+					deserializer.deserialize(context)
+				:	deserializer(context);
+		} catch (e) {
+			if (e instanceof KdlDeserializeError) {
+				throw e;
+			} else {
+				throw new KdlDeserializeError(
+					`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
+					{location: node, cause: e},
+				);
+			}
+		}
+	};
+
+	/** @type {t.DeserializationContext} */
 	const context = {
 		argument,
 		property,
 		child,
 		children,
 		json,
+		run,
 	};
 
-	let result;
-
-	try {
-		result =
-			"deserialize" in deserializer ?
-				deserializer.deserialize(context)
-			:	deserializer(context);
-	} catch (e) {
-		if (e instanceof KdlDeserializeError) {
-			throw e;
-		} else {
-			throw new KdlDeserializeError(
-				`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
-				{location: node, cause: e},
-			);
-		}
-	}
+	const result = run(deserializer);
 
 	finalizeArguments();
 	finalizeProperties();

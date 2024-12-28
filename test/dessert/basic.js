@@ -4,7 +4,7 @@ import {test} from "uvu";
 import {deserialize, firstMatchingDeserializer} from "../../src/dessert.js";
 import {parse} from "../../src/index.js";
 
-/** @import {Deserializer, DeserializeContext} from "../../src/dessert.js" */
+/** @import {Deserializer, DeserializationContext} from "../../src/dessert.js" */
 
 test("simple", () => {
 	const node = parse("node 0 1 2", {as: "node"});
@@ -53,7 +53,7 @@ test("types", () => {
 test("class", () => {
 	class Tree {
 		/**
-		 * @param {DeserializeContext} ctx
+		 * @param {DeserializationContext} ctx
 		 * @returns {Tree}
 		 */
 		static deserialize(ctx) {
@@ -112,7 +112,7 @@ test("fallback", () => {
 
 	class Node {
 		/**
-		 * @param {DeserializeContext} ctx
+		 * @param {DeserializationContext} ctx
 		 * @returns {Node}
 		 */
 		static deserialize(ctx) {
@@ -160,7 +160,7 @@ test("fallback", () => {
 });
 
 test("json", () => {
-	/** @param {DeserializeContext} ctx */
+	/** @param {DeserializationContext} ctx */
 	function deserializer(ctx) {
 		if (
 			ctx.property("type", "string") ??
