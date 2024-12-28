@@ -78,43 +78,59 @@ test("parse with precise locations", () => {
 	});
 
 	assert.deepEqual(getLocation(document), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
 
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 18,
+		end: {
+			offset: 23,
+			line: 1,
+			column: 18,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0]), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
 
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 18,
+		end: {
+			offset: 23,
+			line: 1,
+			column: 18,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].name), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
 
-		endOffset: 8,
-		endLine: 1,
-		endColumn: 3,
+		end: {
+			offset: 8,
+			line: 1,
+			column: 3,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
-		startOffset: 9,
-		startLine: 1,
-		startColumn: 4,
+		start: {
+			offset: 9,
+			line: 1,
+			column: 4,
+		},
 
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 18,
+		end: {
+			offset: 23,
+			line: 1,
+			column: 18,
+		},
 	});
 });
 
@@ -124,43 +140,57 @@ test("parse with locations", () => {
 	});
 
 	assert.deepEqual(getLocation(document), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
-
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 21,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
+		end: {
+			offset: 23,
+			line: 1,
+			column: 21,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0]), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
-
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 21,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
+		end: {
+			offset: 23,
+			line: 1,
+			column: 21,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].name), {
-		startOffset: 0,
-		startLine: 1,
-		startColumn: 1,
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
 
-		endOffset: 8,
-		endLine: 1,
-		endColumn: 6,
+		end: {
+			offset: 8,
+			line: 1,
+			column: 6,
+		},
 	});
 
 	assert.deepEqual(getLocation(document.nodes[0].entries[0]), {
-		startOffset: 9,
-		startLine: 1,
-		startColumn: 7,
+		start: {
+			offset: 9,
+			line: 1,
+			column: 7,
+		},
 
-		endOffset: 23,
-		endLine: 1,
-		endColumn: 21,
+		end: {
+			offset: 23,
+			line: 1,
+			column: 21,
+		},
 	});
 });
 

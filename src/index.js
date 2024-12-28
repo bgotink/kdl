@@ -10,11 +10,11 @@ export {parse} from "./parse.js";
  */
 
 /**
- * @typedef {import("./parser/token.js").Location} TokenLocation
+ * @typedef {import("./parser/token.js").Location} Location
  */
 
 /**
- * @typedef {import('./locations.js').Location} Location
+ * @typedef {import("./locations.js").StoredLocation} StoredLocation
  */
 
 /** @typedef {import('./model/whitespace.js').BOM} BOM */
