@@ -132,6 +132,11 @@ export interface Property {
 		name: string,
 		...types: T
 	): TypeOf<T>;
+
+	/**
+	 * Return all remaining properties
+	 */
+	rest(): Map<string, Primitive>;
 }
 
 export interface Child {
@@ -272,24 +277,46 @@ export type JsonTypeOf<T extends JsonType[]> = {
 
 export interface Json {
 	/**
-	 * Turn the entire context into a JSON value
+	 * Turn the remaining arguments, properties, and children into a JSON value
 	 *
-	 * If any argument has already been used in the context, all arguments are ignored by the JSON conversion, otherwise arguments are included.
+	 * After calling this function, all remaining arguments, properties, and children of the context have been consumed.
+	 * Further calls to any of the context's utilities will return undefined or throw, depending on how the utility handles an empty context.
 	 *
 	 * @throws If the context doesn't contain a valid JSON value
-	 * @throws If any of the context's properties or children have already been consumed
 	 */
-	(): JsonValue;
+	(): JsonValue | undefined;
 	/**
-	 * Turn the entire context into a JSON value matching any of the given types
+	 * Turn the remaining arguments, properties, and children into a JSON value matching any of the given types
 	 *
-	 * If any argument has already been used in the context, all arguments are ignored by the JSON conversion, otherwise arguments are included.
+	 * After calling this function, all remaining arguments, properties, and children of the context have been consumed.
+	 * Further calls to any of the context's utilities will return undefined or throw, depending on how the utility handles an empty context.
 	 *
 	 * @throws If the context doesn't contain a valid JSON value
-	 * @throws If any of the context's properties or children have already been consumed
 	 * @throws If the deserialized value doesn't match any of the given types
 	 */
-	<T extends [JsonType, ...JsonType[]]>(...types: T): JsonTypeOf<T>;
+	<T extends [JsonType, ...JsonType[]]>(...types: T): JsonTypeOf<T> | undefined;
+
+	/**
+	 * Turn the remaining arguments, properties, and children into a JSON value
+	 *
+	 * After calling this function, all remaining arguments, properties, and children of the context have been consumed.
+	 * Further calls to any of the context's utilities will return undefined or throw, depending on how the utility handles an empty context.
+	 *
+	 * @throws If the context doesn't contain a valid JSON value
+	 * @throws If the context is empty
+	 */
+	required(): JsonValue;
+	/**
+	 * Turn the remaining arguments, properties, and children into a JSON value matching any of the given types
+	 *
+	 * After calling this function, all remaining arguments, properties, and children of the context have been consumed.
+	 * Further calls to any of the context's utilities will return undefined or throw, depending on how the utility handles an empty context.
+	 *
+	 * @throws If the context doesn't contain a valid JSON value
+	 * @throws If the context is empty
+	 * @throws If the deserialized value doesn't match any of the given types
+	 */
+	required<T extends [JsonType, ...JsonType[]]>(...types: T): JsonTypeOf<T>;
 }
 
 /**

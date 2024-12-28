@@ -159,4 +159,37 @@ test("fallback", () => {
 	);
 });
 
+test("json", () => {
+	/** @param {DeserializeContext} ctx */
+	function deserializer(ctx) {
+		if (
+			ctx.property("type", "string") ??
+			ctx.child("type", (c) => c.argument.required("string")) === "json"
+		) {
+			return ctx.json.required();
+		} else {
+			throw new Error("Unsupported type");
+		}
+	}
+
+	assert.deepEqual(
+		deserialize(
+			parse(
+				`
+					node {
+						type json
+						prop value
+					}
+					node type=json prop=value
+					node prop=value type=json
+					node 0 type=json
+					node type=json 0 1 2
+				`,
+			),
+			(ctx) => ctx.children("node", deserializer),
+		),
+		[{prop: "value"}, {prop: "value"}, {prop: "value"}, 0, [0, 1, 2]],
+	);
+});
+
 test.run();

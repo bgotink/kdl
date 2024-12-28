@@ -39,7 +39,7 @@ export function readTree(node: Node): Tree {
 }
 ```
 
-and here's that same deserializer but as a `class`:
+and here's that same deserializer as a `class`:
 
 ```ts
 import type {DeserializeContext} from "@bgotink/kdl/dessert";

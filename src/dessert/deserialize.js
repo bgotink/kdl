@@ -1,11 +1,11 @@
 import {Identifier, Node, parse as parseDocument} from "../index.js";
-import {toJson} from "../json.js";
+import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../json-impl.js";
 
 import {KdlDeserializeError} from "./error.js";
 import {joinWithAnd, joinWithOr} from "./utils.js";
 
 /** @import * as t from "./types.js" */
-/** @import {Document, Value} from "../index.js" */
+/** @import {Document, Entry, Value} from "../index.js" */
 /** @import {JsonValue, JsonObject} from "../json.js" */
 
 /** @param {Value['value']} value */
@@ -51,16 +51,15 @@ function hasValidJsonType(types, value) {
 
 /**
  * @param {Node} node
- * @returns {[argument: t.Argument, finalize: (validate: boolean) => void, hasConsumedArguments: () => boolean]}
+ * @returns {[argument: t.Argument, finalize: () => void, getRest: () => Entry[]]}
  */
 function makeArgument(node) {
-	const unusedArguments = node.getArguments();
-	const numberOfArguments = unusedArguments.length;
+	const unusedArguments = node.getArgumentEntries();
 
 	const argument = /** @type {t.Argument} */ (
 		/** @param {...t.PrimitiveType} types */
 		(...types) => {
-			const argument = unusedArguments[0];
+			const argument = unusedArguments[0].getValue();
 			if (argument === undefined) {
 				return argument;
 			}
@@ -77,7 +76,7 @@ function makeArgument(node) {
 	);
 
 	argument.if = (...types) => {
-		const argument = unusedArguments[0];
+		const argument = unusedArguments[0].getValue();
 		if (argument === undefined) {
 			return argument;
 		}
@@ -93,7 +92,7 @@ function makeArgument(node) {
 	argument.required = /** @type {t.Argument['required'] } */ (
 		/** @param {...t.PrimitiveType} types */
 		(...types) => {
-			const argument = unusedArguments[0];
+			const argument = unusedArguments[0].getValue();
 			if (argument === undefined) {
 				throw new KdlDeserializeError(`Missing argument`);
 			}
@@ -109,30 +108,34 @@ function makeArgument(node) {
 		}
 	);
 
-	argument.rest = () => unusedArguments.splice(0, unusedArguments.length);
+	argument.rest = () =>
+		unusedArguments
+			.splice(0, unusedArguments.length)
+			.map((entry) => entry.getValue());
 
 	return [
 		argument,
-		(validate) => {
-			if (validate && unusedArguments.length) {
+		() => {
+			if (unusedArguments.length) {
 				throw new KdlDeserializeError(
 					`Found ${unusedArguments.length} superfluous arguments`,
 				);
 			}
-
-			unusedArguments.length = 0;
 		},
-		() => unusedArguments.length < numberOfArguments,
+		() => unusedArguments.splice(0, unusedArguments.length),
 	];
 }
 
 /**
  * @param {Node} node
- * @returns {[property: t.Property, finalize: (validate: boolean) => void, hasConsumedProperties: () => boolean]}
+ * @returns {[property: t.Property, finalize: () => void, getRest: () => Map<string, Entry>]}
  */
 function makeProperty(node) {
-	const unusedProperties = node.getProperties();
-	const numberOfProperties = unusedProperties.size;
+	const unusedProperties = new Map(
+		node
+			.getPropertyEntries()
+			.map((entry) => [/** @type {string} */ (entry.getName()), entry]),
+	);
 
 	const property = /** @type {t.Property} */ (
 		/**
@@ -140,34 +143,36 @@ function makeProperty(node) {
 		 * @param {...t.PrimitiveType} types
 		 */
 		(name, ...types) => {
-			const argument = unusedProperties.get(name);
-			if (argument === undefined) {
-				return argument;
+			const prop = unusedProperties.get(name);
+			if (prop === undefined) {
+				return prop;
 			}
+			const value = prop.getValue();
 
-			if (types.length && !hasValidType(types, argument)) {
+			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
-					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(argument)}`,
+					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
 				);
 			}
 
 			unusedProperties.delete(name);
-			return argument;
+			return value;
 		}
 	);
 
 	property.if = (name, ...types) => {
-		const argument = unusedProperties.get(name);
-		if (argument === undefined) {
-			return argument;
+		const prop = unusedProperties.get(name);
+		if (prop === undefined) {
+			return prop;
 		}
+		const value = prop.getValue();
 
-		if (!hasValidType(types, argument)) {
+		if (!hasValidType(types, value)) {
 			return undefined;
 		}
 
 		unusedProperties.delete(name);
-		return argument;
+		return value;
 	};
 
 	property.required = /** @type {t.Property['required'] } */ (
@@ -176,44 +181,54 @@ function makeProperty(node) {
 		 * @param {...t.PrimitiveType} types
 		 */
 		(name, ...types) => {
-			const argument = unusedProperties.get(name);
-			if (argument === undefined) {
+			const prop = unusedProperties.get(name);
+			if (prop === undefined) {
 				throw new KdlDeserializeError(`Missing property ${name}`);
 			}
+			const value = prop.getValue();
 
-			if (types.length && !hasValidType(types, argument)) {
+			if (types.length && !hasValidType(types, value)) {
 				throw new KdlDeserializeError(
-					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(argument)}`,
+					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
 				);
 			}
 
 			unusedProperties.delete(name);
-			return argument;
+			return value;
 		}
 	);
 
+	property.rest = () => {
+		const result = new Map(
+			Array.from(unusedProperties, ([name, prop]) => [name, prop.getValue()]),
+		);
+		unusedProperties.clear();
+		return result;
+	};
+
 	return [
 		property,
-		(validate) => {
-			if (validate && unusedProperties.size) {
+		() => {
+			if (unusedProperties.size) {
 				throw new KdlDeserializeError(
 					`Found superfluous properties ${joinWithAnd(Array.from(unusedProperties.keys(), (name) => JSON.stringify(name)))}`,
 				);
 			}
-
-			unusedProperties.clear();
 		},
-		() => unusedProperties.size < numberOfProperties,
+		() => {
+			const result = new Map(unusedProperties);
+			unusedProperties.clear();
+			return result;
+		},
 	];
 }
 
 /**
  * @param {Node} node
- * @return {[child: t.Child, children: t.Children, finalize: (validate: boolean) => void, hasConsumedChildren: () => boolean]}
+ * @return {[child: t.Child, children: t.Children, finalize: () => void, getRest: () => Node[]]}
  */
 function makeChildren(node) {
 	const unusedChildren = new Set(node.children?.nodes);
-	const numberOfChildren = unusedChildren.size;
 
 	const child = /** @type {t.Child} */ (
 		(name, deserializer) => {
@@ -423,8 +438,8 @@ function makeChildren(node) {
 	return [
 		child,
 		children,
-		(validate) => {
-			if (validate && unusedChildren.size) {
+		() => {
+			if (unusedChildren.size) {
 				// Replace with Object.groupBy once targeting node ≥ 22
 				const counts = Array.from(unusedChildren, (child) =>
 					child.getName(),
@@ -442,10 +457,12 @@ function makeChildren(node) {
 					)})`,
 				);
 			}
-
-			unusedChildren.clear();
 		},
-		() => unusedChildren.size < numberOfChildren,
+		() => {
+			const result = Array.from(unusedChildren);
+			unusedChildren.clear();
+			return result;
+		},
 	];
 }
 
@@ -468,31 +485,42 @@ export function deserialize(node, deserializer) {
 		return deserializer.deserializeFromNode(node);
 	}
 
-	const [argument, finalizeArgument, hasConsumedArguments] = makeArgument(node);
-	const [property, finalizeProperty, hasConsumedProperties] =
+	const [argument, finalizeArguments, getRemainingArguments] =
+		makeArgument(node);
+	const [property, finalizeProperties, getRemainingProperties] =
 		makeProperty(node);
-	const [child, children, finalizeChildren, hasConsumedChildren] =
+	const [child, children, finalizeChildren, getRemainingChildren] =
 		makeChildren(node);
-
-	const finalizers = [finalizeArgument, finalizeProperty, finalizeChildren];
 
 	const json = /** @type {t.Json} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
-			if (hasConsumedChildren()) {
-				throw new KdlDeserializeError(
-					`Cannot call .json() if any children were already used`,
-				);
-			}
-			if (hasConsumedProperties()) {
-				throw new KdlDeserializeError(
-					`Cannot call .json() if any properties were already used`,
-				);
+			let value;
+
+			const args = getRemainingArguments();
+			const props = getRemainingProperties();
+			const children = getRemainingChildren();
+
+			if (!args.length && !props.size && !children.length) {
+				return undefined;
 			}
 
-			const value = toJson(node, {
-				ignoreValues: hasConsumedArguments(),
-			});
+			try {
+				value = /** @type {JsonValue} */ (
+					nodePartsToJsonValue(node.getName(), args, props, children, {
+						type: types.length === 1 ? types[0] : undefined,
+					})
+				);
+			} catch (e) {
+				if (e instanceof InvalidJsonInKdlError) {
+					throw new KdlDeserializeError(
+						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
+						{cause: e},
+					);
+				}
+
+				throw e;
+			}
 
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
@@ -500,8 +528,40 @@ export function deserialize(node, deserializer) {
 				);
 			}
 
-			for (const finalizer of finalizers) {
-				finalizer(false);
+			return value;
+		}
+	);
+
+	json.required = /** @type {t.Json["required"]} */ (
+		/** @param {...t.JsonType} types */
+		(...types) => {
+			let value;
+
+			const args = getRemainingArguments();
+			const props = getRemainingProperties();
+			const children = getRemainingChildren();
+
+			try {
+				value = /** @type {JsonValue} */ (
+					nodePartsToJsonValue(node.getName(), args, props, children, {
+						type: types.length === 1 ? types[0] : undefined,
+					})
+				);
+			} catch (e) {
+				if (e instanceof InvalidJsonInKdlError) {
+					throw new KdlDeserializeError(
+						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
+						{cause: e},
+					);
+				}
+
+				throw e;
+			}
+
+			if (types.length && !hasValidJsonType(types, value)) {
+				throw new KdlDeserializeError(
+					`Expected a ${joinWithOr(types)} but got a ${jsonTypeOf(value)}`,
+				);
 			}
 
 			return value;
@@ -522,9 +582,9 @@ export function deserialize(node, deserializer) {
 			deserializer.deserialize(context)
 		:	deserializer(context);
 
-	for (const finalizer of finalizers) {
-		finalizer(true);
-	}
+	finalizeArguments();
+	finalizeProperties();
+	finalizeChildren();
 
 	return result;
 }
