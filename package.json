@@ -25,6 +25,7 @@
 		".": "./src/index.js",
 		"./json": "./src/json.js",
 		"./v1-compat": "./src/v1-compat.js",
+		"./dessert": "./src/dessert.js",
 		"./package.json": "./package.json"
 	},
 	"imports": {
@@ -49,8 +50,8 @@
 		"kdljs": "^0.2.0",
 		"marked": "^14.1.2",
 		"prettier": "^3.2.5",
-		"typedoc": "^0.26.8",
-		"typedoc-plugin-markdown": "^4.2.9",
+		"typedoc": "^0.27.6",
+		"typedoc-plugin-markdown": "^4.3.3",
 		"typescript": "~5.6.2",
 		"uvu": "^0.5.6"
 	}

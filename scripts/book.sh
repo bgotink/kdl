@@ -19,9 +19,10 @@ yarn typedoc \
 	--validation \
 	--entryFileName index \
 	--membersWithOwnFile Class \
+	--parametersFormat table \
 	--hideBreadcrumbs \
 	--hidePageHeader \
-	src/index.js src/json.d.ts src/v1-compat.js
+	src/index.js src/json.d.ts src/v1-compat.js src/dessert.d.ts
 
 yarn esbuild --bundle \
 	--minify --keep-names \

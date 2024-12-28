@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {test} from "uvu";
 
 import {parse} from "../src/index.js";
-import {AssertionError} from "node:assert";
 
 test("invalid identifiers", () => {
 	assert.throws(

@@ -1,6 +1,6 @@
 # JSON-in-KDL
 
-The `@bgotink/kdl/json` package entrypoint exposes functions to handle JSON-in-KDL, aka JiK.
+The `@bgotink/kdl/json` package export exposes functions to handle JSON-in-KDL, aka JiK.
 There are two families of functions:
 
 The [`parse`](./reference/json/index.md#parse) and [`stringify`](./reference/json/index.md#stringify) functions are built to be a drop-in replacement for the [`JSON.parse`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse) and [`JSON.stringify`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify) functions.

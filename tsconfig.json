@@ -13,5 +13,5 @@
 		},
 		"types": ["node"]
 	},
-	"include": ["src/**/*.js", "src/**/*.d.ts", "test/*.js"]
+	"include": ["src/**/*.js", "src/**/*.d.ts", "test/*.js", "test/dessert/*.js"]
 }

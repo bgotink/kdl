@@ -85,6 +85,54 @@ There are four functions:
 - `parse` and `stringify` turn text into the encoded JSON value and back. These functions are useful for encoding/decoding entire JiK files.
 - `toJson` and `fromJson` turn KDL nodes into the encoded JSON value and back. These functions give more fine-grained control over the output, and can be used for e.g. encoding/decoding a JiK node embedded in a KDL document.
 
+## (De)Serialization
+
+The package contains utilities for (de)serialization in `@bgotink/kdl/dessert`.
+
+```js
+import {parse} from "@bgotink/kdl/dessert";
+import assert from "node:assert/strict";
+
+assert.deepEqual(
+	parse(
+		String.raw`
+			name "my-package"
+			
+			dependency "@bgotink/kdl" range="^0.2.0"
+			dependency "prettier" range="^3" dev=#true
+		`,
+		(ctx) => {
+			const dependencies = {};
+			const devDependencies = {};
+
+			const name = ctx.child.single.required("name", (ctx) =>
+				ctx.argument.required("string"),
+			);
+
+			for (const dependency of ctx.children("dependency", (ctx) => ({
+				name: ctx.argument.required("string"),
+				range: ctx.property("range", "string") ?? "*",
+				dev: ctx.property("dev", "boolean") ?? false,
+			}))) {
+				(dependency.dev ? devDependencies : dependencies)[dependency.name] =
+					dependency.range;
+			}
+
+			return {name, dependencies, devDependencies};
+		},
+	),
+	{
+		name: "my-package",
+		dependencies: {
+			"@bgotink/kdl": "^0.2.0",
+		},
+		devDependencies: {
+			prettier: "^3",
+		},
+	},
+);
+```
+
 ## KDL v1
 
 The package exports two functions from `@bgotink/kdl/v1-compat` to support documents written in KDL v1:

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import {execSync} from "node:child_process";
-import {readFile} from "node:fs/promises";
 import {stdin, argv, exit} from "node:process";
 
 if (argv[2] === "supports") {
@@ -18,7 +17,12 @@ const input = JSON.parse(Buffer.concat(inputChunks).toString("utf-8"));
 
 let version;
 try {
-	version = `Version ${execSync("git describe --exact").toString("utf-8").trim().replace(/^v/, "")}`;
+	version = `Version ${execSync("git describe --exact", {
+		stdio: ["ignore", "pipe", "ignore"],
+	})
+		.toString("utf-8")
+		.trim()
+		.replace(/^v/, "")}`;
 } catch {
 	version = `Commit ${execSync("git describe").toString("utf-8").trim()}`;
 }

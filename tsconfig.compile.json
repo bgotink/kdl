@@ -7,7 +7,12 @@
 		"outDir": "out",
 		"rootDir": "src"
 	},
-	"files": ["src/index.js", "src/json.js"],
+	"files": [
+		"src/index.js",
+		"src/json.js",
+		"src/v1-compat.js",
+		"src/dessert.js"
+	],
 	"include": ["src/**/*"],
 	"exclude": ["test/**/*"]
 }

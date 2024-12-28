@@ -59,6 +59,10 @@ packageJson.exports = {
 		types: "./v1-compat.d.ts",
 		default: "./v1-compat.js",
 	},
+	"./dessert": {
+		types: "./dessert.d.ts",
+		default: "./dessert.js",
+	},
 	"./package.json": "./package.json",
 };
 
