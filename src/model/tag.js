@@ -18,6 +18,7 @@ export class Tag {
 	 * String representation of the tag
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	representation;
 
@@ -25,6 +26,7 @@ export class Tag {
 	 * Leading whitespace
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	leading;
 
@@ -32,6 +34,7 @@ export class Tag {
 	 * Trailing whitespace
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	trailing;
 
@@ -44,6 +47,7 @@ export class Tag {
 		 *
 		 * @type {string}
 		 * @readonly
+		 * @hidden
 		 */
 		this.name;
 
@@ -53,6 +57,27 @@ export class Tag {
 			writable: false,
 			value: name,
 		});
+	}
+
+	/**
+	 * Return the tag name
+	 *
+	 * @returns {string}
+	 */
+	getName() {
+		return this.name;
+	}
+
+	/**
+	 * Change the tag name
+	 *
+	 * @param {string} name
+	 */
+	setName(name) {
+		if (name !== this.name) {
+			/** @type {{name: string}} */ (this).name = name;
+			this.representation = undefined;
+		}
 	}
 
 	/**

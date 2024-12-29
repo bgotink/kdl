@@ -40,6 +40,7 @@ export class Document {
 	 * Trailing whitespace
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	trailing;
 

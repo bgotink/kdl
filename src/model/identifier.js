@@ -18,6 +18,7 @@ export class Identifier {
 	 * String representation of the identifier
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	representation;
 

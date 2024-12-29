@@ -133,12 +133,13 @@ function mapValue(value) {
  * @returns {Entry}
  */
 function mapEntryWithFormatting(entry) {
+	const value = mapValueWithFormatting(entry.value);
 	const result = new Entry(
-		mapValueWithFormatting(entry.value),
+		value,
 		entry.name && mapIdentifierWithFormatting(entry.name),
 	);
 
-	result.tag = entry.tag && mapTagWithFormatting(entry.tag);
+	value.tag = entry.tag && mapTagWithFormatting(entry.tag);
 
 	result.equals = entry.name ? "=" : undefined;
 
@@ -153,12 +154,10 @@ function mapEntryWithFormatting(entry) {
  * @returns {Entry}
  */
 function mapEntry(entry) {
-	const result = new Entry(
-		mapValue(entry.value),
-		entry.name && mapIdentifier(entry.name),
-	);
+	const value = mapValue(entry.value);
+	const result = new Entry(value, entry.name && mapIdentifier(entry.name));
 
-	result.tag = entry.tag && mapTag(entry.tag);
+	value.tag = entry.tag && mapTag(entry.tag);
 
 	return result;
 }

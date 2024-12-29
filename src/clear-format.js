@@ -6,6 +6,11 @@ import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
  */
 function clearFormatValue(value) {
 	value.representation = undefined;
+	value.betweenTagAndValue = undefined;
+
+	if (value.tag) {
+		clearFormatTag(value.tag);
+	}
 }
 
 /**
@@ -34,15 +39,11 @@ function clearFormatTag(tag) {
 function clearFormatEntry(entry) {
 	entry.leading = undefined;
 	entry.equals = undefined;
-	entry.betweenTagAndValue = undefined;
 	entry.trailing = undefined;
 
 	clearFormatValue(entry.value);
 	if (entry.name) {
 		clearFormatIdentifier(entry.name);
-	}
-	if (entry.tag) {
-		clearFormatTag(entry.tag);
 	}
 }
 

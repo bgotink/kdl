@@ -36,30 +36,32 @@ function ensureStartsWithWhitespace(text) {
  * @returns {string}
  */
 function formatValue(value) {
-	if (value.representation != null) {
-		return value.representation;
-	}
+	let representation = value.representation;
 
-	if (typeof value.value === "boolean" || value.value === null) {
-		return `#${value.value}`;
-	}
-
-	if (typeof value.value === "string") {
-		if (isValidBareIdentifier(value.value)) {
-			return value.value;
+	if (representation == null) {
+		if (typeof value.value === "boolean" || value.value === null) {
+			representation = `#${value.value}`;
+		} else if (typeof value.value === "string") {
+			if (isValidBareIdentifier(value.value)) {
+				representation = value.value;
+			}
+		} else if (typeof value.value === "number") {
+			if (Number.isNaN(value.value)) {
+				representation = "#nan";
+			} else if (!Number.isFinite(value.value)) {
+				representation = value.value > 0 ? "#inf" : "#-inf";
+			}
 		}
 	}
 
-	if (typeof value.value === "number") {
-		if (Number.isNaN(value.value)) {
-			return "#nan";
-		}
-		if (!Number.isFinite(value.value)) {
-			return value.value > 0 ? "#inf" : "#-inf";
-		}
+	if (representation == null) {
+		representation = JSON.stringify(value.value);
 	}
 
-	return JSON.stringify(value.value);
+	return (
+		(value.tag ? formatTag(value.tag) + (value.betweenTagAndValue ?? "") : "") +
+		representation
+	);
 }
 
 /**
@@ -85,9 +87,7 @@ function formatIdentifier(identifier) {
 function formatEntry(entry) {
 	return `${ensureStartsWithWhitespace(entry.leading)}${
 		entry.name ? `${formatIdentifier(entry.name)}${entry.equals ?? "="}` : ""
-	}${formatTag(entry.tag)}${entry.betweenTagAndValue ?? ""}${formatValue(
-		entry.value,
-	)}${entry.trailing ?? ""}`;
+	}${formatValue(entry.value)}${entry.trailing ?? ""}`;
 }
 
 /**

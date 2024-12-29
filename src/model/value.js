@@ -1,3 +1,5 @@
+import {Tag} from "./tag.js";
+
 /**
  * @typedef {string | number | boolean | null} Primitive
  * A primitive is any type that can be represented as an argument or property
@@ -29,6 +31,21 @@ export class Value {
 	representation;
 
 	/**
+	 * Tag attached to this value, if any
+	 *
+	 * @type {Tag | null}
+	 * @hidden
+	 */
+	tag = null;
+
+	/**
+	 * Whitespace between the tag and the value
+	 *
+	 * @type {string=}
+	 */
+	betweenTagAndValue;
+
+	/**
 	 * @param {Primitive} value
 	 */
 	constructor(value) {
@@ -37,15 +54,9 @@ export class Value {
 		 *
 		 * @type {Primitive}
 		 * @readonly
+		 * @hidden
 		 */
-		this.value;
-
-		Object.defineProperty(this, "value", {
-			enumerable: true,
-			configurable: true,
-			writable: false,
-			value,
-		});
+		this.value = value;
 	}
 
 	/**
@@ -55,7 +66,54 @@ export class Value {
 	 */
 	clone() {
 		const clone = new Value(this.value);
+		clone.tag = this.tag?.clone() ?? null;
+		clone.betweenTagAndValue = this.betweenTagAndValue;
 		clone.representation = this.representation;
 		return clone;
+	}
+
+	/**
+	 * Return the value itself
+	 *
+	 * @returns {Primitive}
+	 */
+	getValue() {
+		return this.value;
+	}
+
+	/**
+	 * Change the value
+	 *
+	 * @param {Primitive} value
+	 */
+	setValue(value) {
+		if (value !== this.value) {
+			/** @type {{value: Primitive}} */ (this).value = value;
+			this.representation = undefined;
+		}
+	}
+
+	/**
+	 * Return the tag of this entry, if any
+	 *
+	 * @returns {string | null}
+	 */
+	getTag() {
+		return this.tag ? this.tag.name : null;
+	}
+
+	/**
+	 * Set the tag of this entry to the given tag
+	 *
+	 * @param {string | null | undefined} tag
+	 */
+	setTag(tag) {
+		if (tag == null) {
+			this.tag = null;
+		} else if (this.tag != null) {
+			this.tag.setName(tag);
+		} else {
+			this.tag = new Tag(tag);
+		}
 	}
 }

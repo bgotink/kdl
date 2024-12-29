@@ -49,7 +49,10 @@ function parseAndFormat(text) {
 				continue;
 			}
 
-			let formatted = format(value);
+			const clone = value.clone();
+			clone.tag = null;
+
+			let formatted = format(clone);
 			if (formatted.length > 8 && formatted.endsWith("0000")) {
 				formatted = value.value.toExponential();
 			} else if (formatted.length > 8 && formatted.startsWith("0.0000")) {

@@ -1,5 +1,4 @@
 import {Identifier} from "./identifier.js";
-import {Tag} from "./tag.js";
 import {Value} from "./value.js";
 
 /**
@@ -54,13 +53,6 @@ export class Entry {
 	value;
 
 	/**
-	 * Tag attached to this value, if any
-	 *
-	 * @type {Tag | null}
-	 */
-	tag = null;
-
-	/**
 	 * Leading whitespace
 	 *
 	 * @type {string=}
@@ -82,13 +74,6 @@ export class Entry {
 	equals;
 
 	/**
-	 * Whitespace between the tag and the value
-	 *
-	 * @type {string=}
-	 */
-	betweenTagAndValue;
-
-	/**
 	 * @param {Value} value
 	 * @param {Identifier | null} name
 	 */
@@ -104,12 +89,10 @@ export class Entry {
 	 */
 	clone() {
 		const clone = new Entry(this.value.clone(), this.name?.clone() ?? null);
-		clone.tag = this.tag?.clone() ?? null;
 
 		clone.leading = this.leading;
 		clone.trailing = this.trailing;
 		clone.equals = this.equals;
-		clone.betweenTagAndValue = this.betweenTagAndValue;
 
 		return clone;
 	}
@@ -118,18 +101,20 @@ export class Entry {
 	 * Return the tag of this entry, if any
 	 *
 	 * @returns {string | null}
+	 * @see {@link Value.prototype.getTag}
 	 */
 	getTag() {
-		return this.tag ? this.tag.name : null;
+		return this.value.getTag();
 	}
 
 	/**
 	 * Set the tag of this entry to the given tag
 	 *
 	 * @param {string | null | undefined} tag
+	 * @see {@link Value.prototype.setTag}
 	 */
 	setTag(tag) {
-		this.tag = tag != null ? new Tag(tag) : null;
+		this.value.setTag(tag);
 	}
 
 	/**

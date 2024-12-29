@@ -498,9 +498,10 @@ export function parseNodePropOrArg(ctx) {
 				throw mkError(ctx, `Invalid argument`);
 			}
 
+			value.tag = tag;
+			value.betweenTagAndValue = betweenTagAndValue;
+
 			const entry = new Entry(value, null);
-			entry.tag = tag;
-			entry.betweenTagAndValue = betweenTagAndValue;
 
 			storeLocation(ctx, entry, start, ctx.lastToken);
 			return [entry, undefined];
@@ -556,14 +557,14 @@ export function parseNodePropOrArg(ctx) {
 		throw mkError(ctx, `Expected a value`);
 	}
 
+	if (tag) {
+		value.tag = tag;
+		value.betweenTagAndValue = afterTag;
+	}
+
 	const entry = new Entry(value, name);
 	storeLocation(ctx, entry, start, ctx.lastToken);
 	entry.equals = concatenate(beforeEquals, equals.text, afterEquals);
-
-	if (tag) {
-		entry.tag = tag;
-		entry.betweenTagAndValue = afterTag;
-	}
 
 	return [entry, undefined];
 }

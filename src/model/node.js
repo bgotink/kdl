@@ -46,7 +46,7 @@ export class Node {
 	name;
 
 	/**
-	 * Tag attached to this value, if any
+	 * Tag attached to this node, if any
 	 *
 	 * @type {Tag | null}
 	 */
@@ -73,6 +73,7 @@ export class Node {
 	 * Leading whitespace
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	leading;
 
@@ -80,6 +81,7 @@ export class Node {
 	 * Trailing whitespace
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	trailing;
 
@@ -87,6 +89,7 @@ export class Node {
 	 * Whitespace between the last entry and the children
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	beforeChildren;
 
@@ -94,6 +97,7 @@ export class Node {
 	 * Whitespace between the tag and the node name
 	 *
 	 * @type {string=}
+	 * @hidden
 	 */
 	betweenTagAndName;
 
@@ -268,7 +272,7 @@ export class Node {
 	 */
 	addArgument(value, tag, index) {
 		const entry = Entry.createArgument(value);
-		entry.setTag(tag);
+		entry.value.setTag(tag);
 
 		if (index != null) {
 			for (const [i, entry] of this.entries.entries()) {
@@ -403,13 +407,13 @@ export class Node {
 		for (const entry of reverseIterate(this.entries)) {
 			if (entry.getName() === name) {
 				entry.setValue(value);
-				entry.setTag(tag);
+				entry.value.setTag(tag);
 				return;
 			}
 		}
 
 		const entry = Entry.createProperty(name, value);
-		entry.setTag(tag);
+		entry.value.setTag(tag);
 		this.entries.push(entry);
 	}
 
