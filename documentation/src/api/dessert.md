@@ -88,4 +88,55 @@ root 10 {
 
 ## Serialization
 
-To come :)
+There is one serialization function: `serialize` takes a node name and a serializer and creates a node with that name and runs it through the serializer.
+Serializers can be parameterized, allowing for serializers to be shared across multiple values.
+
+There are three types of serializer:
+
+- A function that takes a serialization context,
+- An object with a `serialize` function on it that takes a serialization context, or
+- An object with a `serializeToNode` function on it that returns a KDL node.
+
+All three of these can be parameterized.
+
+Here's an example of a parameterized serializer for the `Tree` type from either of the two deserialization examples above.
+
+```ts
+function treeSerializer(ctx: SerializationContext, tree: Tree) {
+	ctx.argument(tree.value);
+
+	if (tree.left) {
+		ctx.child("left", treeSerializer, tree.left);
+	}
+	if (tree.right) {
+		ctx.child("right", treeSerializer, tree.right);
+	}
+}
+
+export function writeTree(tree: Tree): Node {
+	return serialize("root", treeDeserializer, tree);
+}
+```
+
+or we could extend the `Tree` class from the class-based sample with a serialize method:
+
+```ts
+class Tree {
+	// ... see the Tree class in the deserialize example
+
+	serialize(ctx: SerializationContext) {
+		ctx.argument(this.value);
+
+		if (this.left) {
+			ctx.child("left", this.left);
+		}
+		if (this.right) {
+			ctx.child("right", this.right);
+		}
+	}
+}
+
+export function writeTree(tree: Tree): Node {
+	return serialize("root", tree);
+}
+```

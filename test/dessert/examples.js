@@ -4,7 +4,8 @@ import {test} from "uvu";
 
 import {parse} from "../../src/dessert.js";
 
-/** @import {DeserializationContext, DeserializerFromContext, PrimitiveType, Primitive} from "../../src/dessert.js" */
+/** @import {DeserializationContext, DeserializerFromContext, PrimitiveType} from "../../src/dessert.js" */
+/** @import {Primitive} from "../../src/index.js" */
 
 const examplesFolder = new URL("../upstream/examples/", import.meta.url);
 

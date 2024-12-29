@@ -1,4 +1,4 @@
-/** @import {Node, Entry} from "./index.js" */
+import {Node, Entry} from "./index.js";
 
 const arrayItemKey = "-";
 
@@ -178,4 +178,242 @@ export function nodePartsToJsonValue(
 	}
 
 	return args[0].getValue();
+}
+
+/**
+ * @param {unknown} value
+ * @return {value is string | null | number | boolean}
+ */
+function isLiteral(value) {
+	switch (typeof value) {
+		case "boolean":
+		case "number":
+		case "string":
+			return true;
+		case "object":
+			return value == null;
+		default:
+			return false;
+	}
+}
+
+/**
+ * @overload
+ * @param {unknown} value
+ * @param {string | number} name
+ * @param {true} alwaysReturnNode
+ * @param {object} options
+ * @param {string} options.nodeName
+ * @param {boolean} options.allowEntriesInArrays
+ * @param {boolean} options.allowEntriesInObjects
+ * @param {boolean} [options.allowEntriesInCurrent]
+ * @param {(key: string | number, value: unknown, originalValue: unknown) => unknown} [options.replaceJsonValue]
+ * @param {(key: string | number, value: Entry | Node, jsonValue: unknown, originalJsonValue: unknown) => Entry | Node | undefined} [options.replaceKdlValue]
+ * @param {Set<unknown>} [parents]
+ * @returns {Node | undefined}
+ */
+/**
+ * @overload
+ * @param {unknown} value
+ * @param {string | number} name
+ * @param {boolean} alwaysReturnNode
+ * @param {object} options
+ * @param {string} options.nodeName
+ * @param {boolean} options.allowEntriesInArrays
+ * @param {boolean} options.allowEntriesInObjects
+ * @param {boolean} [options.allowEntriesInCurrent]
+ * @param {(key: string | number, value: unknown, originalValue: unknown) => unknown} [options.replaceJsonValue]
+ * @param {(key: string | number, value: Entry | Node, jsonValue: unknown, originalJsonValue: unknown) => Entry | Node | undefined} [options.replaceKdlValue]
+ * @param {Set<unknown>} [parents]
+ * @returns {Node | Entry | undefined}
+ */
+/**
+ * @param {unknown} value
+ * @param {string | number} name
+ * @param {boolean} alwaysReturnNode
+ * @param {object} options
+ * @param {string} options.nodeName
+ * @param {boolean} options.allowEntriesInArrays
+ * @param {boolean} options.allowEntriesInObjects
+ * @param {boolean} [options.allowEntriesInCurrent]
+ * @param {(key: string | number, value: unknown, originalValue: unknown) => unknown} [options.replaceJsonValue]
+ * @param {(key: string | number, value: Entry | Node, jsonValue: unknown, originalJsonValue: unknown) => Entry | Node | undefined} [options.replaceKdlValue]
+ * @param {Set<unknown>} [parents]
+ * @returns {Node | Entry | undefined}
+ */
+export function fromJsonValue(
+	value,
+	name,
+	alwaysReturnNode,
+	{
+		nodeName,
+		allowEntriesInArrays,
+		allowEntriesInObjects,
+		allowEntriesInCurrent,
+		replaceJsonValue,
+		replaceKdlValue,
+	},
+	parents = new Set(),
+) {
+	const originalValue = value;
+	if (
+		value != null &&
+		typeof value === "object" &&
+		typeof (/** @type {{toJSON: Function}} */ (value).toJSON) === "function"
+	) {
+		value = /** @type {{toJSON: Function}} */ (value).toJSON();
+	}
+	if (replaceJsonValue) {
+		value = replaceJsonValue(name, value, originalValue);
+	}
+
+	if (
+		value === undefined ||
+		typeof value === "function" ||
+		typeof value === "symbol"
+	) {
+		return undefined;
+	}
+
+	if (!alwaysReturnNode && isLiteral(value)) {
+		const entry =
+			typeof name === "number" ?
+				Entry.createArgument(value)
+			:	Entry.createProperty(nodeName, value);
+
+		return replaceKdlValue != null ?
+				replaceKdlValue(name, entry, value, originalValue)
+			:	entry;
+	}
+
+	const node = Node.create(nodeName);
+
+	if (isLiteral(value)) {
+		node.addArgument(value);
+		return replaceKdlValue != null ?
+				replaceKdlValue(name, node, value, originalValue)
+			:	node;
+	}
+
+	if (parents.has(value)) {
+		throw new InvalidJsonInKdlError(
+			`Cyclic JSON cannot be transformed into KDL`,
+		);
+	}
+
+	parents.add(value);
+	try {
+		if (Array.isArray(value)) {
+			let useChild = !(allowEntriesInCurrent ?? allowEntriesInArrays);
+
+			for (const [i, item] of value.entries()) {
+				const toAppend = fromJsonValue(
+					item,
+					i,
+					useChild,
+					{
+						nodeName: arrayItemKey,
+						allowEntriesInArrays,
+						allowEntriesInObjects,
+						replaceJsonValue,
+						replaceKdlValue,
+					},
+					parents,
+				);
+
+				if (toAppend == null) {
+					continue;
+				}
+
+				if (toAppend.type === "node") {
+					useChild = true;
+				}
+
+				append(node, toAppend, allowEntriesInCurrent);
+			}
+
+			if (!node.hasChildren() && node.entries.length < 2) {
+				node.setTag("array");
+			}
+		} else {
+			const useChild = !(allowEntriesInCurrent ?? allowEntriesInObjects);
+			const properties = Object.entries(
+				/** @type {Record<string, unknown>} */ (value),
+			);
+
+			/** @type {Set<string>} */
+			const appendedChildren = new Set();
+
+			for (const [name, property] of properties) {
+				const toAppend = fromJsonValue(
+					property,
+					name,
+					useChild,
+					{
+						nodeName: name,
+						allowEntriesInArrays,
+						allowEntriesInObjects,
+						replaceJsonValue,
+						replaceKdlValue,
+					},
+					parents,
+				);
+
+				if (toAppend == null) {
+					continue;
+				}
+
+				if (toAppend.type === "node") {
+					appendedChildren.add(name);
+				}
+
+				append(node, toAppend, allowEntriesInCurrent);
+			}
+
+			if (
+				!node.hasProperties() &&
+				(appendedChildren.size === 0 ||
+					(appendedChildren.size === 1 && appendedChildren.has(arrayItemKey)))
+			) {
+				node.setTag("object");
+			}
+		}
+	} finally {
+		parents.delete(value);
+	}
+
+	return replaceKdlValue != null ?
+			replaceKdlValue(name, node, value, originalValue)
+		:	node;
+}
+
+/**
+ * @param {Node} node
+ * @param {Node | Entry | undefined} value
+ * @param {boolean | undefined} allowEntriesInCurrent
+ */
+function append(node, value, allowEntriesInCurrent) {
+	if (value == null) {
+		return;
+	}
+
+	if (value.type === "entry") {
+		if (
+			allowEntriesInCurrent !== false &&
+			(value.name != null || !node.hasChildren())
+		) {
+			node.entries.push(value);
+			return;
+		}
+
+		const newNode =
+			value.name ? new Node(value.name) : Node.create(arrayItemKey);
+
+		newNode.tag = value.value.tag;
+		newNode.entries = [new Entry(value.value, null)];
+
+		value = newNode;
+	}
+
+	node.appendNode(value);
 }

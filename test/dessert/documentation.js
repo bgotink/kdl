@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import {test} from "uvu";
 
-import {deserialize} from "../../src/dessert.js";
-import {parse} from "../../src/index.js";
+import {deserialize, serialize} from "../../src/dessert.js";
+import {clearFormat, parse} from "../../src/index.js";
 
-/** @import {DeserializationContext} from "../../src/dessert.js" */
+/** @import {DeserializationContext, SerializationContext} from "../../src/dessert.js" */
 
-const node = parse(
-	String.raw`
+const node = clearFormat(
+	parse(
+		String.raw`
 		root 10 {
 			left 5 {
 				left 3
@@ -25,7 +26,8 @@ const node = parse(
 			}
 		}
 	`,
-	{as: "node"},
+		{as: "node"},
+	),
 );
 
 test("function", () => {
@@ -48,7 +50,22 @@ test("function", () => {
 		};
 	}
 
-	assert.deepEqual(deserialize(node, treeDeserializer), {
+	/**
+	 * @param {SerializationContext} ctx
+	 * @param {Tree} tree
+	 */
+	function treeSerializer(ctx, tree) {
+		ctx.argument(tree.value);
+
+		if (tree.left) {
+			ctx.child("left", treeSerializer, tree.left);
+		}
+		if (tree.right) {
+			ctx.child("right", treeSerializer, tree.right);
+		}
+	}
+
+	const value = {
 		value: 10,
 		left: {
 			value: 5,
@@ -68,7 +85,10 @@ test("function", () => {
 				},
 			},
 		},
-	});
+	};
+
+	assert.deepEqual(deserialize(node, treeDeserializer), value);
+	assert.deepEqual(serialize("root", treeSerializer, value), node);
 });
 
 test("class", () => {
@@ -95,20 +115,32 @@ test("class", () => {
 			this.left = left;
 			this.right = right;
 		}
+
+		/** @param {SerializationContext} ctx */
+		serialize(ctx) {
+			ctx.argument(this.value);
+
+			if (this.left) {
+				ctx.child("left", this.left);
+			}
+			if (this.right) {
+				ctx.child("right", this.right);
+			}
+		}
 	}
 
-	assert.deepEqual(
-		deserialize(node, Tree),
+	const value = new Tree(
+		10,
+		new Tree(5, new Tree(3), new Tree(2)),
 		new Tree(
-			10,
-			new Tree(5, new Tree(3), new Tree(2)),
-			new Tree(
-				5,
-				new Tree(1),
-				new Tree(4, new Tree(1), new Tree(3, new Tree(2), new Tree(1))),
-			),
+			5,
+			new Tree(1),
+			new Tree(4, new Tree(1), new Tree(3, new Tree(2), new Tree(1))),
 		),
 	);
+
+	assert.deepEqual(deserialize(node, Tree), value);
+	assert.deepEqual(serialize("root", value), node);
 });
 
 test.run();
