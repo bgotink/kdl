@@ -550,11 +550,9 @@ export function deserialize(node, deserializer) {
 			}
 
 			try {
-				value = /** @type {JsonValue} */ (
-					nodePartsToJsonValue(node.getName(), args, props, children, {
-						type: types.length === 1 ? types[0] : undefined,
-					})
-				);
+				value = nodePartsToJsonValue(node.getName(), args, props, children, {
+					type: types.length === 1 ? types[0] : undefined,
+				});
 			} catch (e) {
 				if (e instanceof InvalidJsonInKdlError) {
 					throw new KdlDeserializeError(
@@ -587,11 +585,9 @@ export function deserialize(node, deserializer) {
 			const children = getRemainingChildren();
 
 			try {
-				value = /** @type {JsonValue} */ (
-					nodePartsToJsonValue(node.getName(), args, props, children, {
-						type: types.length === 1 ? types[0] : undefined,
-					})
-				);
+				value = nodePartsToJsonValue(node.getName(), args, props, children, {
+					type: types.length === 1 ? types[0] : undefined,
+				});
 			} catch (e) {
 				if (e instanceof InvalidJsonInKdlError) {
 					throw new KdlDeserializeError(

@@ -14,9 +14,21 @@ export class InvalidJsonInKdlError extends Error {
  */
 
 /**
+ * @overload
+ * @param {Node} node
+ * @param {ToJsonOptions & {reviver?: undefined}} [options]
+ * @returns {import('./json.js').JsonValue}
+ */
+/**
+ * @overload
+ * @param {Node} node
+ * @param {ToJsonOptions} [options]
+ * @returns {unknown} A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
+ */
+/**
  * @param {Node} node
  * @param {ToJsonOptions} options
- * @returns A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
+ * @returns {unknown} A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
  */
 export function nodeToJsonValue(
 	node,
@@ -35,6 +47,24 @@ export function nodeToJsonValue(
 	);
 }
 
+/**
+ * @overload
+ * @param {string} name
+ * @param {Entry[]} args
+ * @param {Map<string, Entry>} props
+ * @param {Node[]} children
+ * @param {Omit<ToJsonOptions, 'ignoreValues'> & {reviver?: undefined}} [options]
+ * @returns {import('./json.js').JsonValue}
+ */
+/**
+ * @overload
+ * @param {string} name
+ * @param {Entry[]} args
+ * @param {Map<string, Entry>} props
+ * @param {Node[]} children
+ * @param {Omit<ToJsonOptions, 'ignoreValues'>} [options]
+ * @returns {unknown} A `JsonValue` if no reviver is passed, otherwise the type is truly unknown
+ */
 /**
  * @param {string} name
  * @param {Entry[]} args
