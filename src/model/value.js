@@ -1,4 +1,9 @@
 /**
+ * @typedef {string | number | boolean | null} Primitive
+ * A primitive is any type that can be represented as an argument or property
+ */
+
+/**
  * A value represents a primitive in KDL, i.e. a string, boolean, number, or null
  *
  * Values are always tied to an entry.
@@ -24,13 +29,13 @@ export class Value {
 	representation;
 
 	/**
-	 * @param {string | number | boolean | null} value
+	 * @param {Primitive} value
 	 */
 	constructor(value) {
 		/**
 		 * The value itself
 		 *
-		 * @type {string | number | boolean | null}
+		 * @type {Primitive}
 		 * @readonly
 		 */
 		this.value;

@@ -5,10 +5,10 @@ import {KdlDeserializeError} from "./error.js";
 import {joinWithAnd, joinWithOr} from "./utils.js";
 
 /** @import * as t from "./types.js" */
-/** @import {Document, Entry, Value} from "../../index.js" */
+/** @import {Document, Entry, Primitive} from "../../index.js" */
 /** @import {JsonValue, JsonObject} from "../../json.js" */
 
-/** @param {Value['value']} value */
+/** @param {Primitive} value */
 function primitiveTypeOf(value) {
 	return value === null ? "null" : (
 			/** @type {t.PrimitiveType} */ (typeof value)
@@ -18,7 +18,7 @@ function primitiveTypeOf(value) {
 /**
  * @template {t.PrimitiveType[]} T
  * @param {T} types
- * @param {Value['value']} value
+ * @param {Primitive} value
  * @returns {value is t.TypeOf<T>}
  */
 function hasValidType(types, value) {

@@ -1,10 +1,5 @@
 import {JsonObject, JsonValue} from "../../json.js";
-import {Node} from "../../index.js";
-
-/**
- * A primitive is any type that can be represented as an argument or property
- */
-export type Primitive = boolean | null | number | string;
+import {Node, Primitive} from "../../index.js";
 
 /**
  * String representation of the {@link Primitive} types
