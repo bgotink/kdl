@@ -80,7 +80,7 @@ export function consume(ctx, tokenType) {
  * @param {string} message
  */
 export function mkError(ctx, message) {
-	const token = "current" in ctx ? ctx.current.value ?? ctx.lastToken : ctx;
+	const token = "current" in ctx ? (ctx.current.value ?? ctx.lastToken) : ctx;
 	return new InvalidKdlError(message, {token});
 }
 

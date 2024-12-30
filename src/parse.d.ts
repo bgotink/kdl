@@ -99,7 +99,11 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: "node"; storeLocations?: boolean; graphemeLocations?: boolean},
+	options: {
+		as: "node";
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+	},
 ): Node;
 /**
  * Parse the given text as a whitespace in a document.

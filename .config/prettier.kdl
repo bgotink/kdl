@@ -1,0 +1,9 @@
+// Note: This file is parsed using a KDL parser compiled into @dot-config/prettier,
+//       so if there are breaking changes in the KDL syntax, don't include them here.
+
+bracketSpacing #false
+experimentalTernaries #true
+
+override "../test/jik/json/*.json" {
+  parser json-stringify
+}
