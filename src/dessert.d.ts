@@ -1,6 +1,8 @@
 export {KdlDeserializeError} from "./dessert/deserialization/error.js";
 export {deserialize, parse} from "./dessert/deserialization/deserialize.js";
-export {serialize} from "./dessert/serialization/serialize.js";
+// Serialize exported via DTS file because @overload + rest parameters == boom
+export {format /* , serialize */} from "./dessert/serialization/serialize.js";
+export {serialize} from "./dessert/serialization/types.js";
 
 export * from "./dessert/deserialization/public-utils.js";
 export * from "./dessert/serialization/public-utils.js";

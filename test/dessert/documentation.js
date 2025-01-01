@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {test} from "uvu";
 
 import {deserialize, serialize} from "../../src/dessert.js";
-import {clearFormat, parse} from "../../src/index.js";
+import {clearFormat, format, parse} from "../../src/index.js";
 
 /** @import {DeserializationContext, SerializationContext} from "../../src/dessert.js" */
 
@@ -98,12 +98,17 @@ test("class", () => {
 		 * @returns {Tree}
 		 */
 		static deserialize(ctx) {
-			return new Tree(
+			const tree = new Tree(
 				ctx.argument.required("number"),
 				ctx.child.single("left", Tree),
 				ctx.child.single("right", Tree),
 			);
+			tree.#deserializationCtx = ctx;
+			return tree;
 		}
+
+		/** @type {DeserializationContext=} */
+		#deserializationCtx;
 
 		/**
 		 * @param {number} value
@@ -116,8 +121,13 @@ test("class", () => {
 			this.right = right;
 		}
 
+		increment() {
+			this.value++;
+		}
+
 		/** @param {SerializationContext} ctx */
 		serialize(ctx) {
+			ctx.source(this.#deserializationCtx);
 			ctx.argument(this.value);
 
 			if (this.left) {
@@ -141,6 +151,35 @@ test("class", () => {
 
 	assert.deepEqual(deserialize(node, Tree), value);
 	assert.deepEqual(serialize("root", value), node);
+
+	const nodeBeforeModification = parse(
+		`
+			root 10 {
+				left 5 { /- left 0; right 5 }
+				right 5 { left 1; right 4 }
+			}
+		`,
+		{as: "node"},
+	);
+
+	const treeToModify = deserialize(nodeBeforeModification, Tree);
+
+	// Should be ! but ! is so much harder to write in JSDoc mode than ? ...
+	treeToModify.right?.left?.increment();
+	treeToModify.right?.increment();
+	treeToModify.increment();
+
+	const nodeAfterModification = serialize("root", treeToModify);
+
+	assert.equal(
+		format(nodeAfterModification),
+		`
+			root 11 {
+				left 5 { /- left 0; right 5 }
+				right 6 { left 2; right 4 }
+			}
+		`,
+	);
 });
 
 test.run();

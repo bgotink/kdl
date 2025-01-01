@@ -115,15 +115,19 @@ export class Node {
 	/**
 	 * Create an identical copy of this node
 	 *
+	 * @param {object} [options]
+	 * @param {boolean} [options.shallow] If true, only copy this node but don't clone this node's children.
 	 * @returns {Node}
 	 */
-	clone() {
+	clone(options) {
 		const clone = new Node(
 			this.name.clone(),
 			this.entries.map((entry) => entry.clone()),
-			this.children?.clone(),
+			this.children?.clone(options),
 		);
-		clone.tag = this.tag?.clone() ?? null;
+		if (this.tag) {
+			clone.tag = this.tag.clone();
+		}
 
 		clone.leading = this.leading;
 		clone.betweenTagAndName = this.betweenTagAndName;
@@ -166,7 +170,7 @@ export class Node {
 	 * @param {string} name
 	 */
 	setName(name) {
-		this.name = new Identifier(name);
+		this.name.setName(name);
 	}
 
 	/**

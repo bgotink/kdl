@@ -1,5 +1,5 @@
 /**
- * An
+ * An identifier
  */
 export class Identifier {
 	/**
@@ -30,16 +30,28 @@ export class Identifier {
 		 * The identifier itself
 		 *
 		 * @type {string}
-		 * @readonly
+		 * @hidden
 		 */
-		this.name;
+		this.name = name;
+	}
 
-		Object.defineProperty(this, "name", {
-			enumerable: true,
-			configurable: true,
-			writable: false,
-			value: name,
-		});
+	/**
+	 * Returns the name of this identifier
+	 */
+	getName() {
+		return this.name;
+	}
+
+	/**
+	 * Change the name of the identifier
+	 *
+	 * @param {string} name
+	 */
+	setName(name) {
+		if (name !== this.name) {
+			this.name = name;
+			this.representation = undefined;
+		}
 	}
 
 	/**

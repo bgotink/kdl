@@ -140,3 +140,92 @@ export function writeTree(tree: Tree): Node {
 	return serialize("root", tree);
 }
 ```
+
+## Preserving comments and formatting
+
+Programs that make modifications to human-edited files might want to preserve comments and formatting when making these changes.
+The `@bgotink/kdl/dessert` API supports this by allowing programs to link an object being serialized using a serialization context with its deserialization context.
+This process takes two steps:
+
+1. Store the `DeserializationContext` somewhere
+2. Pass call `source` on the `SerializationContext` at the beginning of the `serialize` function and pass it the stored `DeserializationContext`
+
+It is important this call to `source` happens before you make any other calls to any function on the `SerializationContext`.
+Calling it later in the serializer will cause an error.
+
+Here's an example of what this looks like in the class-based `Tree` example from above:
+
+```ts
+class Tree {
+	// ... see the Tree class in the deserialize and serialize examples
+
+	// We store the DeserializationContext
+	static deserialize(ctx: DeserializationContxt) {
+		const tree = new Tree(
+			ctx.argument.required("number"),
+			ctx.child.single("left", Tree),
+			ctx.child.single("right", Tree),
+		);
+		tree.#deserializationCtx = ctx;
+		return tree;
+	}
+
+	#deserializationCtx?: DeserializationContxt;
+
+	// ...
+
+	serialize(ctx: SerializationContext) {
+		ctx.source(this.#deserializationCtx);
+
+		// keep the rest of the original serialize function here
+	}
+}
+```
+
+If we now pass in this tree
+
+```kdl
+root 10 {
+	left 5 { /- left 0; right 5 }
+	right 5 { left 1; right 4 }
+}
+```
+
+and run
+
+```ts
+function modify(node: Node): Node {
+	const tree = readTree(node); // see deserialization example for this functino
+
+	tree.right.left.value++;
+	tree.right.value++;
+	tree.value++;
+
+	return writeTree(tree);
+}
+```
+
+the resulting node will be
+
+```kdl
+root 11 {
+	left 5 { /- left 0; right 5 }
+	right 6 { left 2; right 4 }
+}
+```
+
+instead of creating a fresh KDL document with default formatting, which would look more like this:
+
+```kdl
+root 11 {
+	left 5 {
+		right 5
+	}
+	right 6 {
+		left 2
+		right 4
+	}
+}
+```
+
+Deserializers and serializers that implement the `deserializeFromNode` and `serializeToNode` respectively are responsible for copying any comments and formatting from the original node being deserialized to the final serialized node.

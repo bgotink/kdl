@@ -1,5 +1,6 @@
 import {Identifier, Node, parse as parseDocument} from "../../index.js";
 import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../../json-impl.js";
+import {storeNodeForContext} from "../shared.js";
 
 import {KdlDeserializeError} from "./error.js";
 import {joinWithAnd, joinWithOr} from "./utils.js";
@@ -637,6 +638,8 @@ export function deserialize(node, deserializer) {
 		json,
 		run,
 	};
+
+	storeNodeForContext(context, node);
 
 	const result = run(deserializer);
 
