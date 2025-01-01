@@ -255,14 +255,14 @@ function makeChildren(node) {
 	const unusedChildren = new Set(node.children?.nodes);
 
 	const child = /** @type {t.Child} */ (
-		(name, deserializer) => {
+		(name, deserializer, ...parameters) => {
 			for (const child of unusedChildren) {
 				if (child.getName() !== name) {
 					continue;
 				}
 
 				unusedChildren.delete(child);
-				return deserialize(child, deserializer);
+				return deserialize(child, deserializer, ...parameters);
 			}
 
 			return undefined;
@@ -270,7 +270,7 @@ function makeChildren(node) {
 	);
 
 	child.single = /** @type {t.Child['single']} */ (
-		(name, deserializer) => {
+		(name, deserializer, ...parameters) => {
 			let result;
 			let foundMatch = false;
 
@@ -287,7 +287,7 @@ function makeChildren(node) {
 				}
 
 				foundMatch = true;
-				result = deserialize(child, deserializer);
+				result = deserialize(child, deserializer, ...parameters);
 				unusedChildren.delete(child);
 			}
 
@@ -296,14 +296,14 @@ function makeChildren(node) {
 	);
 
 	child.required = /** @type {t.Child['required']} */ (
-		(name, deserializer) => {
+		(name, deserializer, ...parameters) => {
 			for (const child of unusedChildren) {
 				if (child.getName() !== name) {
 					continue;
 				}
 
 				unusedChildren.delete(child);
-				return deserialize(child, deserializer);
+				return deserialize(child, deserializer, ...parameters);
 			}
 
 			throw new KdlDeserializeError(
@@ -313,7 +313,11 @@ function makeChildren(node) {
 		}
 	);
 
-	child.single.required = child.required.single = (name, deserializer) => {
+	child.single.required = child.required.single = (
+		name,
+		deserializer,
+		...parameters
+	) => {
 		let result;
 		let foundMatch = false;
 
@@ -330,7 +334,7 @@ function makeChildren(node) {
 			}
 
 			foundMatch = true;
-			result = deserialize(child, deserializer);
+			result = deserialize(child, deserializer, ...parameters);
 			unusedChildren.delete(child);
 		}
 
@@ -345,7 +349,7 @@ function makeChildren(node) {
 	};
 
 	const children = /** @type {t.Children} */ (
-		(name, deserializer) => {
+		(name, deserializer, ...parameters) => {
 			const result = [];
 
 			for (const child of unusedChildren) {
@@ -354,7 +358,7 @@ function makeChildren(node) {
 				}
 
 				unusedChildren.delete(child);
-				result.push(deserialize(child, deserializer));
+				result.push(deserialize(child, deserializer, ...parameters));
 			}
 
 			return result;
@@ -362,7 +366,7 @@ function makeChildren(node) {
 	);
 
 	children.required = /** @type {t.Children['required']} */ (
-		(name, deserializer) => {
+		(name, deserializer, ...parameters) => {
 			const result = [];
 
 			for (const child of unusedChildren) {
@@ -371,7 +375,7 @@ function makeChildren(node) {
 				}
 
 				unusedChildren.delete(child);
-				result.push(deserialize(child, deserializer));
+				result.push(deserialize(child, deserializer, ...parameters));
 			}
 
 			if (result.length === 0) {
@@ -386,11 +390,11 @@ function makeChildren(node) {
 	);
 
 	children.entries = /** @type {t.Children['entries']} */ (
-		(deserializer) => {
+		(deserializer, ...parameters) => {
 			/** @type {[string, t.Deserialized<typeof deserializer>][]} */
 			const result = Array.from(unusedChildren, (child) => [
 				child.getName(),
-				deserialize(child, deserializer),
+				deserialize(child, deserializer, ...parameters),
 			]);
 			unusedChildren.clear();
 			return result;
@@ -398,7 +402,7 @@ function makeChildren(node) {
 	);
 
 	children.entries.filtered = /** @type {t.Children['entries']['filtered']} */ (
-		(filter, deserializer) => {
+		(filter, deserializer, ...parameters) => {
 			/** @type {[string, t.Deserialized<typeof deserializer>][]} */
 			const result = [];
 
@@ -409,7 +413,7 @@ function makeChildren(node) {
 				}
 
 				unusedChildren.delete(child);
-				result.push([name, deserialize(child, deserializer)]);
+				result.push([name, deserialize(child, deserializer, ...parameters)]);
 			}
 
 			return result;
@@ -417,7 +421,7 @@ function makeChildren(node) {
 	);
 
 	children.entries.unique = /** @type {t.Children['entries']['unique']} */ (
-		(deserializer) => {
+		(deserializer, ...parameters) => {
 			/** @type {Map<string, t.Deserialized<typeof deserializer>>} */
 			const result = new Map();
 
@@ -432,7 +436,7 @@ function makeChildren(node) {
 				}
 
 				unusedChildren.delete(child);
-				result.set(name, deserialize(child, deserializer));
+				result.set(name, deserialize(child, deserializer, ...parameters));
 			}
 
 			return Array.from(result);
@@ -442,6 +446,7 @@ function makeChildren(node) {
 	children.entries.filtered.unique = children.entries.unique.filtered = (
 		filter,
 		deserializer,
+		...parameters
 	) => {
 		/** @type {Map<string, t.Deserialized<typeof deserializer>>} */
 		const result = new Map();
@@ -460,7 +465,7 @@ function makeChildren(node) {
 			}
 
 			unusedChildren.delete(child);
-			result.set(name, deserialize(child, deserializer));
+			result.set(name, deserialize(child, deserializer, ...parameters));
 		}
 
 		return Array.from(result);
@@ -506,18 +511,20 @@ function makeChildren(node) {
  * If this function is given a {@link Document}, it will be wrapped with a nameless node (using "-" as name) without any arguments or properties.
  *
  * @template T
+ * @template {unknown[]} [P=[]]
  * @param {Node | Document} node
- * @param {t.Deserializer<T>} deserializer
+ * @param {t.Deserializer<T, P>} deserializer
+ * @param {P} parameters
  * @returns {T}
  */
-export function deserialize(node, deserializer) {
+export function deserialize(node, deserializer, ...parameters) {
 	if (node.type === "document") {
 		node = new Node(new Identifier("-"), undefined, node);
 	}
 
 	if ("deserializeFromNode" in deserializer) {
 		try {
-			return deserializer.deserializeFromNode(node);
+			return deserializer.deserializeFromNode(node, ...parameters);
 		} catch (e) {
 			if (e instanceof KdlDeserializeError) {
 				throw e;
@@ -612,11 +619,11 @@ export function deserialize(node, deserializer) {
 	);
 
 	/** @type {t.DeserializationContext["run"]} */
-	const run = (deserializer) => {
+	const run = (deserializer, ...params) => {
 		try {
 			return "deserialize" in deserializer ?
-					deserializer.deserialize(context)
-				:	deserializer(context);
+					deserializer.deserialize(context, ...params)
+				:	deserializer(context, ...params);
 		} catch (e) {
 			if (e instanceof KdlDeserializeError) {
 				throw e;
@@ -641,7 +648,7 @@ export function deserialize(node, deserializer) {
 
 	storeNodeForContext(context, node);
 
-	const result = run(deserializer);
+	const result = run(deserializer, ...parameters);
 
 	finalizeArguments();
 	finalizeProperties();

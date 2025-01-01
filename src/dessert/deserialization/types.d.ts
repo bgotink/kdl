@@ -23,11 +23,11 @@ export type TypeOf<T extends PrimitiveType[]> = {
 /**
  * Function or object capable of deserializing objects of type `T` using a {@link DeserializationContext}
  */
-export type DeserializerFromContext<T> =
-	| ((ctx: DeserializationContext) => T)
+export type DeserializerFromContext<T, P extends unknown[] = []> =
+	| ((ctx: DeserializationContext, ...parameters: P) => T)
 	| {
 			/** Function that is given a {@link DeserializationContext} */
-			deserialize(ctx: DeserializationContext): T;
+			deserialize(ctx: DeserializationContext, ...parameters: P): T;
 	  };
 
 /**
@@ -37,19 +37,22 @@ export type DeserializerFromContext<T> =
  * - Functions that are given a {@link DeserializationContext}
  * - A value (usually a class) with a `deserialize` function that is given a {@link DeserializationContext}
  * - A value (usually a class) with a `deserializeFromNode` function that is given a {@link Node}
+ *
+ * All three variants can be parameterized.
+ * Parameters can be passed via `deserialize` or any of the `child`/`children` functions on a {@link DeserializationContext}
  */
-export type Deserializer<T> =
-	| DeserializerFromContext<T>
+export type Deserializer<T, P extends unknown[] = []> =
+	| DeserializerFromContext<T, P>
 	| {
 			/** Function that is given a {@link Node} */
-			deserializeFromNode(node: Node): T;
+			deserializeFromNode(node: Node, ...parameters: P): T;
 	  };
 
 /**
  * Helper type to extract the type a deserializer supports
  */
-export type Deserialized<T extends Deserializer<unknown>> =
-	T extends Deserializer<infer V> ? V : never;
+export type Deserialized<T extends Deserializer<unknown, any[]>> =
+	T extends Deserializer<infer V, any[]> ? V : never;
 
 export interface Argument {
 	/**
@@ -151,7 +154,11 @@ export interface Child {
 	 *
 	 * @throws If the deserializer fails
 	 */
-	<T>(name: string, deserializer: Deserializer<T>): T | undefined;
+	<T, P extends unknown[]>(
+		name: string,
+		deserializer: Deserializer<T, P>,
+		...parameters: P
+	): T | undefined;
 
 	required: {
 		/**
@@ -160,7 +167,11 @@ export interface Child {
 		 * @throws If there is no next child with the given name
 		 * @throws If the deserializer fails
 		 */
-		<T>(name: string, deserializer: Deserializer<T>): T;
+		<T, P extends unknown[]>(
+			name: string,
+			deserializer: Deserializer<T, P>,
+			...parameters: P
+		): T;
 		/**
 		 * Returns the next child with the given name and validate that there are no others
 		 *
@@ -168,7 +179,11 @@ export interface Child {
 		 * @throws If the deserializer fails
 		 * @throws If there are other children left with the given name
 		 */
-		single<T>(name: string, deserializer: Deserializer<T>): T;
+		single<T, P extends unknown[]>(
+			name: string,
+			deserializer: Deserializer<T, P>,
+			...parameters: P
+		): T;
 	};
 
 	single: {
@@ -178,7 +193,11 @@ export interface Child {
 		 * @throws If the deserializer fails
 		 * @throws If there are other children left with the given name
 		 */
-		<T>(name: string, deserializer: Deserializer<T>): T | undefined;
+		<T, P extends unknown[]>(
+			name: string,
+			deserializer: Deserializer<T, P>,
+			...parameters: P
+		): T | undefined;
 		/**
 		 * Returns the next child with the given name and validate that there are no others
 		 *
@@ -186,7 +205,11 @@ export interface Child {
 		 * @throws If the deserializer fails
 		 * @throws If there are other children left with the given name
 		 */
-		required<T>(name: string, deserializer: Deserializer<T>): T;
+		required<T, P extends unknown[]>(
+			name: string,
+			deserializer: Deserializer<T, P>,
+			...parameters: P
+		): T;
 	};
 }
 
@@ -196,7 +219,11 @@ export interface Children {
 	 *
 	 * @throws If the deserializer fails
 	 */
-	<T>(name: string, deserializer: Deserializer<T>): T[];
+	<T, P extends unknown[]>(
+		name: string,
+		deserializer: Deserializer<T, P>,
+		...parameters: P
+	): T[];
 
 	/**
 	 * Returns all remaining children with the given name, requiring at least one such child
@@ -204,7 +231,11 @@ export interface Children {
 	 * @throws If the deserializer fails
 	 * @throws If there are no remaining children with the given name
 	 */
-	required<T>(name: string, deserializer: Deserializer<T>): [T, ...T[]];
+	required<T, P extends unknown[]>(
+		name: string,
+		deserializer: Deserializer<T, P>,
+		...parameters: P
+	): [T, ...T[]];
 
 	entries: {
 		/**
@@ -212,7 +243,10 @@ export interface Children {
 		 *
 		 * @throws If the deserializer fails
 		 */
-		<T>(deserializer: Deserializer<T>): [name: string, value: T][];
+		<T, P extends unknown[]>(
+			deserializer: Deserializer<T, P>,
+			...parameters: P
+		): [name: string, value: T][];
 
 		filtered: {
 			/**
@@ -220,9 +254,10 @@ export interface Children {
 			 *
 			 * @throws If the deserializer fails
 			 */
-			<T>(
+			<T, P extends unknown[]>(
 				filter: RegExp,
-				deserializer: Deserializer<T>,
+				deserializer: Deserializer<T, P>,
+				...parameters: P
 			): [name: string, value: T][];
 			/**
 			 * Returns all remaining children with their name if that name matches the given filter, requiring all matching names to be unique
@@ -230,9 +265,10 @@ export interface Children {
 			 * @throws If the deserializer fails
 			 * @throws If a duplicate name is encountered
 			 */
-			unique<T>(
+			unique<T, P extends unknown[]>(
 				filter: RegExp,
-				deserializer: Deserializer<T>,
+				deserializer: Deserializer<T, P>,
+				...parameters: P
 			): [name: string, value: T][];
 		};
 
@@ -243,16 +279,20 @@ export interface Children {
 			 * @throws If the deserializer fails
 			 * @throws If a duplicate name is encountered
 			 */
-			<T>(deserializer: Deserializer<T>): [name: string, value: T][];
+			<T, P extends unknown[]>(
+				deserializer: Deserializer<T, P>,
+				...parameters: P
+			): [name: string, value: T][];
 			/**
 			 * Returns all remaining children with their name if that name matches the given filter, requiring all matching names to be unique
 			 *
 			 * @throws If the deserializer fails
 			 * @throws If a duplicate name is encountered
 			 */
-			filtered<T>(
+			filtered<T, P extends unknown[]>(
 				filter: RegExp,
-				deserializer: Deserializer<T>,
+				deserializer: Deserializer<T, P>,
+				...parameters: P
 			): [name: string, value: T][];
 		};
 	};
@@ -332,28 +372,31 @@ export interface DeserializationContext {
 	/**
 	 * Helper to access the node's arguments
 	 */
-	argument: Argument;
+	readonly argument: Argument;
 	/**
 	 * Helper to access the node's properties
 	 */
-	property: Property;
+	readonly property: Property;
 
 	/**
 	 * Helper to access the node's children
 	 */
-	child: Child;
+	readonly child: Child;
 	/**
 	 * Helper to access the node's children
 	 */
-	children: Children;
+	readonly children: Children;
 
 	/**
 	 * Helper for processing the node as JSON
 	 */
-	json: Json;
+	readonly json: Json;
 
 	/**
 	 * Run the given deserializer
 	 */
-	run<T>(deserializer: DeserializerFromContext<T>): T;
+	readonly run: <T, P extends unknown[]>(
+		deserializer: DeserializerFromContext<T, P>,
+		...parameters: P
+	) => T;
 }
