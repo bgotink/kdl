@@ -370,6 +370,16 @@ export interface Json {
  */
 export interface DeserializationContext {
 	/**
+	 * Name of the node being deserialized
+	 */
+	readonly name: string;
+
+	/**
+	 * Tag of the node being deserialized
+	 */
+	readonly tag: string | null;
+
+	/**
 	 * Helper to access the node's arguments
 	 */
 	readonly argument: Argument;

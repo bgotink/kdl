@@ -1,7 +1,6 @@
 import {Document, Entry, Node, format as formatDocument} from "../../index.js";
-import {fromJsonValue} from "../../json-impl.js";
+import {serializeJson} from "../json.js";
 import {getNodeForContext} from "../shared.js";
-import {concat} from "./public-utils.js";
 
 /** @import * as t from "./types.js" */
 
@@ -9,12 +8,13 @@ import {concat} from "./public-utils.js";
  * @template {unknown[]} A
  * @template R
  * @param {(tag: string | null, ...args: NoInfer<A>) => R} fn
- * @returns {t.Tagged<(...args: A) => R>}
+ * @returns {{ (...args: A): R; tagged(tag: string, ...args: A): R}}
  */
 function tagged(fn) {
-	const result = /** @type {t.Tagged<(...args: A) => R>} */ (
-		(...args) => fn(null, ...args)
-	);
+	const result =
+		/** @type {{ (...args: A): R; tagged(tag: string, ...args: A): R}} */ (
+			(...args) => fn(null, ...args)
+		);
 
 	result.tagged = (tag, ...args) => fn(tag, ...args);
 
@@ -40,6 +40,7 @@ export function serialize(name, serializer, ...parameters) {
 	}
 
 	let node = Node.create(typeof name === "string" ? name : "-");
+	const isSerializingDocument = typeof name !== "string";
 
 	/**
 	 * @template {unknown[]} P
@@ -90,55 +91,54 @@ export function serialize(name, serializer, ...parameters) {
 			node = sourceNode.clone({shallow: true});
 			node.setName(typeof name === "string" ? name : "-");
 
-			existingArguments = node.getArgumentEntries();
-			existingProperties = new Map(
-				node
-					.getPropertyEntries()
-					.map((entry) => [/** @type {string} */ (entry.getName()), entry]),
-			);
-
-			// Clear out the children, existing children can get updated if their SerializationContext.source function is called
-			if (node.children) {
-				node.children.nodes = [];
-			}
+			existingArguments = sourceNode.getArgumentEntries();
+			existingProperties = sourceNode.getPropertyEntryMap();
 		},
 
 		argument: tagged((tag, value) => {
-			if (typeof name !== "string")
+			if (isSerializingDocument) {
 				throw new TypeError(
 					"The argument function on SerializationContext is not available when serializing to a Document",
 				);
-
-			const existingArgument = existingArguments.shift();
-
-			if (existingArgument) {
-				existingArgument.setValue(value);
-				existingArgument.setTag(tag);
-			} else {
-				node.addArgument(value, tag);
 			}
+
+			let argument = existingArguments.shift()?.clone();
+
+			if (argument) {
+				argument.setValue(value);
+			} else {
+				argument = Entry.createArgument(value);
+			}
+
+			argument.setTag(tag);
+			node.entries.push(argument);
 		}),
 
 		property: tagged((tag, key, value) => {
-			if (typeof name !== "string")
+			if (isSerializingDocument) {
 				throw new TypeError(
 					"The property function on SerializationContext is not available when serializing to a Document",
 				);
-
-			const existingProperty = existingProperties.get(key);
-
-			if (existingProperty) {
-				existingProperty.setValue(value);
-				existingProperty.setTag(tag);
-			} else {
-				node.setProperty(key, value, tag);
 			}
+
+			let property = existingProperties.get(key)?.clone();
+
+			if (property) {
+				property.setValue(value);
+			} else {
+				property = Entry.createProperty(key, value);
+			}
+
+			property.setTag(tag);
+			node.entries.push(property);
 		}),
 
 		child: /** @type {t.SerializationContext["child"]} */ (
 			tagged((tag, n, serializer, ...parameters) => {
-				if (typeof n !== "string")
+				if (typeof n !== "string") {
 					throw new TypeError("Child name must be a string");
+				}
+
 				// @overload + rest parameters == boom, so we have to cast here
 				const child = /** @type {Node} */ (
 					serialize(n, serializer, ...parameters)
@@ -150,28 +150,15 @@ export function serialize(name, serializer, ...parameters) {
 		),
 
 		json(value) {
-			const {entries, children} =
-				fromJsonValue(value, "", true, {
-					nodeName: "-",
-					allowEntriesInArrays: true,
-					allowEntriesInObjects: true,
-					allowEntriesInCurrent: false,
-				}) ?? {};
-
-			// Only happens if the value is a primitive
-			if (entries?.length) {
-				if (typeof name !== "string")
-					throw new TypeError(
-						"The json function on SerializationContext can only be passed an object or array when serializing to a Document",
-					);
-
-				node.entries.push(...entries);
-			}
-
-			if (children) {
-				node.children =
-					node.children ? concat(node.children, children) : children;
-			}
+			serializeJson(
+				!isSerializingDocument,
+				value,
+				node.getTag(),
+				node,
+				source && getNodeForContext(source),
+				existingArguments,
+				existingProperties,
+			);
 		},
 
 		run,

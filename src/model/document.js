@@ -54,13 +54,13 @@ export class Document {
 	/**
 	 * Create an identical copy of this document
 	 *
-	 * @param {object} [options]
-	 * @param {boolean} [options.shallow] Only clone this document, don't clone the nodes it contains
 	 * @returns {Document}
+	 * @param {object} [options]
+	 * @param {boolean} [options.shallow] If true, only clone this document and without any children
 	 */
-	clone({shallow = false} = {}) {
+	clone({shallow} = {}) {
 		const clone = new Document(
-			shallow ? this.nodes.map((node) => node.clone()) : [...this.nodes],
+			shallow ? [] : this.nodes.map((node) => node.clone()),
 		);
 
 		clone.trailing = this.trailing;

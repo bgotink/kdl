@@ -18,7 +18,7 @@ function _insertAndInLastItem(t, i, {length}) {
 	return i === length - 1 ? `and ${t}` : t;
 }
 
-/** @param {string[]} strings */
+/** @param {readonly string[]} strings */
 export function joinWithOr(strings) {
 	if (strings.length === 1) {
 		return strings[0];
@@ -32,7 +32,7 @@ export function joinWithOr(strings) {
 /**
  * @param {string} t
  * @param {number} i
- * @param {string[]} a
+ * @param {readonly string[]} a
  */
 function _insertOrInLastItem(t, i, {length}) {
 	return i === length - 1 ? `or ${t}` : t;

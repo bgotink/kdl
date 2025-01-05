@@ -1,24 +1,16 @@
-import {JsonObject, JsonValue} from "../../json.js";
+import {JsonValue} from "../../json.js";
 import {Document, Node, Primitive} from "../../model.js";
 import {DeserializationContext} from "../deserialization/types.js";
-
-export type Tagged<F extends Function> =
-	F extends (...args: infer A) => infer R ?
-		{
-			(...args: A): R;
-			/**
-			 * Creates whatever the function without `.tagged` creates but adds a tag to the value/node
-			 */
-			tagged(type: string, ...args: A): R;
-		}
-	:	never;
 
 /**
  * Function or object capable of serializing via a {@link SerializationContext}
  */
 export type SerializerFromContext<P extends unknown[]> =
 	| ((ctx: SerializationContext, ...parameters: P) => void)
-	| {serialize(ctx: SerializationContext, ...parameters: P): void};
+	| {
+			/** Function that is given a {@link SerializationContext} */
+			serialize(ctx: SerializationContext, ...parameters: P): void;
+	  };
 
 /**
  * Function or object capable of serializing a {@link Node}
@@ -32,7 +24,10 @@ export type SerializerFromContext<P extends unknown[]> =
  */
 export type Serializer<P extends unknown[]> =
 	| SerializerFromContext<P>
-	| {serializeToNode(name: string, ...parameters: P): Node};
+	| {
+			/** Function to serialize a Node of the given name */
+			serializeToNode(name: string, ...parameters: P): Node;
+	  };
 
 /**
  * Function or object capable of serializing a {@link Document}
@@ -45,7 +40,10 @@ export type Serializer<P extends unknown[]> =
  */
 export type DocumentSerializer<P extends unknown[]> =
 	| ((ctx: DocumentSerializationContext, ...parameters: P) => void)
-	| {serialize(ctx: DocumentSerializationContext, ...parameters: P): void};
+	| {
+			/** Function that is given a {@link DocumentSerializationContext} */
+			serialize(ctx: DocumentSerializationContext, ...parameters: P): void;
+	  };
 
 /**
  * Wrapper around a {@link Node} to help serializing a value into a single {@link Node}
@@ -66,15 +64,31 @@ export interface SerializationContext {
 		sourceCtx: DeserializationContext | null | undefined,
 	) => void;
 
-	/**
-	 * Add an argument to the serialized node
-	 */
-	readonly argument: Tagged<(value: Primitive) => void>;
+	readonly argument: {
+		/**
+		 * Add an argument to the serialized node
+		 */
+		(value: Primitive): void;
+		/**
+		 * Add an argument with a tag to the serialized node
+		 */
+		tagged(tag: string, value: Primitive): void;
+	};
 
-	/**
-	 * Set a property on the serialized node
-	 */
-	readonly property: Tagged<(name: string, value: Primitive) => void>;
+	readonly property: {
+		/**
+		 * Set a property on the serialized node
+		 *
+		 * If the same property was already set previously, the previous value is overwritten.
+		 */
+		(name: string, value: Primitive): void;
+		/**
+		 * Set a property with a tag on the serialized node
+		 *
+		 * If the same property was already set previously, the previous value is overwritten.
+		 */
+		tagged(tag: string, name: string, value: Primitive): void;
+	};
 
 	/**
 	 * Serialize a child node and add it to this serialized node

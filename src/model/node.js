@@ -119,11 +119,11 @@ export class Node {
 	 * @param {boolean} [options.shallow] If true, only copy this node but don't clone this node's children.
 	 * @returns {Node}
 	 */
-	clone(options) {
+	clone({shallow = false} = {}) {
 		const clone = new Node(
 			this.name.clone(),
-			this.entries.map((entry) => entry.clone()),
-			this.children?.clone(options),
+			shallow ? [] : this.entries.map((entry) => entry.clone()),
+			this.children?.clone({shallow}),
 		);
 		if (this.tag) {
 			clone.tag = this.tag.clone();
@@ -357,6 +357,23 @@ export class Node {
 	 */
 	getPropertyEntries() {
 		return this.entries.filter((entry) => entry.isProperty());
+	}
+
+	/**
+	 * Return a snapshot of all properties of this node
+	 *
+	 * Changes to the returned map are not reflected back onto this node
+	 * itself, and updates to the node won't reflect in the returned map.
+	 *
+	 * @returns {Map<string, Entry>}
+	 */
+	getPropertyEntryMap() {
+		return new Map(
+			this.getPropertyEntries().map((entry) => [
+				/** @type {string} */ (entry.getName()),
+				entry,
+			]),
+		);
 	}
 
 	/**

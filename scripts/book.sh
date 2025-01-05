@@ -25,7 +25,7 @@ yarn typedoc \
 	src/index.js src/json.d.ts src/v1-compat.js src/dessert.d.ts
 
 yarn esbuild --bundle \
-	--minify --keep-names \
+	--minify \
 	--sourcemap \
 	--format=esm --platform=browser --target=safari16 \
 	--outdir=documentation/src \

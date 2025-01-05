@@ -1,5 +1,6 @@
 import {Identifier, Node, parse as parseDocument} from "../../index.js";
 import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../../json-impl.js";
+import {deserializeJson} from "../json.js";
 import {storeNodeForContext} from "../shared.js";
 
 import {KdlDeserializeError} from "./error.js";
@@ -547,30 +548,18 @@ export function deserialize(node, deserializer, ...parameters) {
 	const json = /** @type {t.Json} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
-			let value;
-
 			const args = getRemainingArguments();
 			const props = getRemainingProperties();
 			const children = getRemainingChildren();
 
 			if (!args.length && !props.size && !children.length) {
-				return undefined;
-			}
-
-			try {
-				value = nodePartsToJsonValue(node.getName(), args, props, children, {
-					type: types.length === 1 ? types[0] : undefined,
-				});
-			} catch (e) {
-				if (e instanceof InvalidJsonInKdlError) {
-					throw new KdlDeserializeError(
-						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
-						{cause: e, location: node},
-					);
+				const tag = node.getTag();
+				if (tag !== "object" && tag !== "array") {
+					return undefined;
 				}
-
-				throw e;
 			}
+
+			const value = deserializeJson(types, node, args, props, children);
 
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
@@ -586,26 +575,11 @@ export function deserialize(node, deserializer, ...parameters) {
 	json.required = /** @type {t.Json["required"]} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
-			let value;
-
 			const args = getRemainingArguments();
 			const props = getRemainingProperties();
 			const children = getRemainingChildren();
 
-			try {
-				value = nodePartsToJsonValue(node.getName(), args, props, children, {
-					type: types.length === 1 ? types[0] : undefined,
-				});
-			} catch (e) {
-				if (e instanceof InvalidJsonInKdlError) {
-					throw new KdlDeserializeError(
-						`Failed to deserialize JSON ${types.length ? joinWithOr(types) : "value"}: ${e.message}`,
-						{cause: e, location: node},
-					);
-				}
-
-				throw e;
-			}
+			const value = deserializeJson(types, node, args, props, children);
 
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
@@ -638,11 +612,15 @@ export function deserialize(node, deserializer, ...parameters) {
 
 	/** @type {t.DeserializationContext} */
 	const context = {
+		name: node.getName(),
+		tag: node.getTag(),
+
 		argument,
 		property,
 		child,
 		children,
 		json,
+
 		run,
 	};
 

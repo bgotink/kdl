@@ -138,4 +138,60 @@ b {
 	);
 });
 
+class WrappedJson {
+	/** @param {DeserializationContext} ctx */
+	static deserialize(ctx) {
+		const value = new WrappedJson(ctx.json.required("object"));
+		value.#ctx = ctx;
+		return value;
+	}
+
+	/** @type {DeserializationContext=} */
+	#ctx;
+
+	/** @param {import("../../src/json.js").JsonObject} value */
+	constructor(value) {
+		this.value = value;
+	}
+
+	/** @param {SerializationContext | DocumentSerializationContext} ctx */
+	serialize(ctx) {
+		ctx.source(this.#ctx);
+		ctx.json(this.value);
+	}
+}
+
+test("json replacement", () => {
+	const object = parse(
+		`
+prop /- "test" #false
+otherProp /- -1 0 1 2
+		`,
+		WrappedJson,
+	);
+
+	assert.deepEqual(object.value, {
+		prop: false,
+		otherProp: /** @type {import("../../src/json.js").JsonValue[]} */ ([
+			0, 1, 2,
+		]),
+	});
+
+	object.value.prop = true;
+	object.value.otherProp[1] = {};
+
+	assert.deepEqual(
+		format(object),
+		`
+prop /- "test" #true
+otherProp /- -1 0 {
+	(object)-
+	- 2
+}
+		`,
+	);
+
+	assert.deepEqual(parse(format(object), WrappedJson), object);
+});
+
 test.run();

@@ -51,15 +51,9 @@ test("json", () => {
 				),
 			),
 		),
-		`node type=json {
-	prop value
-}
+		`node type=json prop=value
 node type=json 0
-node type=json {
-	- 0
-	- 1
-	- 2
-}
+node type=json 0 1 2
 `,
 	);
 });
