@@ -362,7 +362,7 @@ export function* tokenize(t, opts) {
 				}
 
 				while (true) {
-					if (offset > length) {
+					if (offset >= length) {
 						throw mkError("Unexpected EOF while parsing raw string");
 					}
 
