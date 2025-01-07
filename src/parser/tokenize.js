@@ -779,12 +779,23 @@ function mkToken(type, error = null) {
 }
 
 /**
+ * Create an error based on the current token and location
+ *
  * @param {string} message
  */
 function mkError(message) {
-	cleanup();
+	const start = {line, column, offset};
+	let end;
 
-	return new InvalidKdlError(`${message} at ${line}:${column}`);
+	if (offset < length) {
+		if (isNewLine(current)) {
+			end = {line: line + 1, column: 1, offset: offset + 1};
+		} else {
+			end = {line, column: column + 1, offset: offset + 1};
+		}
+	}
+
+	return new InvalidKdlError(`${message}`, {start, end});
 }
 
 /**
