@@ -88,6 +88,7 @@ export function isInvalidCharacter(codePoint) {
 		codePoint === 0x7f ||
 		// Non-scalar values
 		(codePoint >= 0xd800 && codePoint <= 0xdfff) ||
+		codePoint > 0x10ffff ||
 		// Direction control characters
 		codePoint === 0x200e ||
 		codePoint === 0x200f ||
