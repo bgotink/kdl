@@ -62,5 +62,5 @@ export interface Token {
 	 *
 	 * @hidden
 	 */
-	error: Error | null;
+	errors: Error[] | null;
 }

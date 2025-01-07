@@ -216,6 +216,8 @@ let currentIter;
 let current = NaN;
 let start = {line, column, offset};
 let graphemeLocations = false;
+/** @type {Error[] | null} */
+let errorsInToken = null;
 
 /**
  * @param {string} t
@@ -457,21 +459,72 @@ export function* tokenize(t, opts) {
 					switch (current) {
 						case 0x62: // b
 							pop();
-							require(isBinaryDigit, "Invalid binary number");
+
+							if (!consume(isHexadecimalDigit)) {
+								if (consume(isHexadecimalDigitOrUnderscore)) {
+									(errorsInToken ??= []).push(
+										mkError(
+											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
+										),
+									);
+								} else {
+									zerOrMore(isIdentifierChar);
+									yield mkToken(
+										T_IDENTIFIER_STRING,
+										"Invalid hexadecimal number",
+									);
+									continue;
+								}
+							}
+
 							zerOrMore(isBinaryDigitOrUnderscore);
 
 							yield mkToken(T_NUMBER_BINARY);
 							continue;
 						case 0x6f: // o
 							pop();
-							require(isOctalDigit, "Invalid octal number");
+
+							if (!consume(isHexadecimalDigit)) {
+								if (consume(isHexadecimalDigitOrUnderscore)) {
+									(errorsInToken ??= []).push(
+										mkError(
+											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
+										),
+									);
+								} else {
+									zerOrMore(isIdentifierChar);
+									yield mkToken(
+										T_IDENTIFIER_STRING,
+										"Invalid hexadecimal number",
+									);
+									continue;
+								}
+							}
+
 							zerOrMore(isOctalDigitOrUnderscore);
 
 							yield mkToken(T_NUMBER_OCTAL);
 							continue;
 						case 0x78: // x
 							pop();
-							require(isHexadecimalDigit, "Invalid hexadecimal number");
+
+							if (!consume(isHexadecimalDigit)) {
+								if (consume(isHexadecimalDigitOrUnderscore)) {
+									(errorsInToken ??= []).push(
+										mkError(
+											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
+										),
+									);
+								} else {
+									zerOrMore(isIdentifierChar);
+									yield mkToken(
+										T_IDENTIFIER_STRING,
+										"Invalid hexadecimal number",
+									);
+									continue;
+								}
+							}
+
 							zerOrMore(isHexadecimalDigitOrUnderscore);
 
 							yield mkToken(T_NUMBER_HEXADECIMAL);
@@ -484,7 +537,22 @@ export function* tokenize(t, opts) {
 				if (consumeCodePoint(0x2e)) {
 					// .
 
-					require(isDecimalDigit, "Invalid decimal number");
+					if (!consume(isDecimalDigit)) {
+						if (consume(isDecimalDigitOrUnderscore)) {
+							(errorsInToken ??= []).push(
+								mkError(
+									"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
+								),
+							);
+						} else {
+							(errorsInToken ??= []).push(
+								mkError(
+									"Invalid decimal number, a decimal point must be followed by a digit",
+								),
+							);
+						}
+					}
+
 					zerOrMore(isDecimalDigitOrUnderscore);
 				}
 
@@ -493,7 +561,23 @@ export function* tokenize(t, opts) {
 
 					consume(isNumberSign);
 
-					require(isDecimalDigit, "Invalid decimal number");
+					if (!consume(isDecimalDigit)) {
+						if (consume(isDecimalDigitOrUnderscore)) {
+							zerOrMore(isDecimalDigitOrUnderscore);
+							yield mkToken(
+								T_NUMBER_DECIMAL,
+								"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+							);
+							continue;
+						}
+
+						yield mkToken(
+							T_NUMBER_DECIMAL,
+							"Invalid decimal number, missing a number after the exponent",
+						);
+						continue;
+					}
+
 					zerOrMore(isDecimalDigitOrUnderscore);
 				}
 
@@ -504,7 +588,10 @@ export function* tokenize(t, opts) {
 
 				if (consume(isDecimalDigit)) {
 					zerOrMore(isIdentifierChar);
-					yield mkToken(T_IDENTIFIER_STRING, mkError(`Invalid identifier`));
+					yield mkToken(
+						T_IDENTIFIER_STRING,
+						"Invalid identifier or number, surround with quotes to make it an identifier or add a zero between the sign and the decimal point",
+					);
 					continue;
 				}
 
@@ -525,7 +612,10 @@ export function* tokenize(t, opts) {
 
 			if (consume(isDecimalDigit)) {
 				zerOrMore(isIdentifierChar);
-				yield mkToken(T_IDENTIFIER_STRING, mkError(`Invalid identifier`));
+				yield mkToken(
+					T_IDENTIFIER_STRING,
+					"Invalid identifier, identifiers that start with a sign and a dot must be quoted if the next character is a digit to prevent confusion with decimal numbers",
+				);
 				continue;
 			}
 
@@ -544,12 +634,17 @@ export function* tokenize(t, opts) {
 						pop();
 
 						if (!consume(isBinaryDigit)) {
-							zerOrMore(isIdentifierChar);
-							yield mkToken(
-								T_IDENTIFIER_STRING,
-								mkError("Invalid binary number"),
-							);
-							continue;
+							if (consume(isBinaryDigitOrUnderscore)) {
+								(errorsInToken ??= []).push(
+									mkError(
+										"Invalid binary number, the first character after 0b cannot be an underscore",
+									),
+								);
+							} else {
+								zerOrMore(isIdentifierChar);
+								yield mkToken(T_IDENTIFIER_STRING, "Invalid binary number");
+								continue;
+							}
 						}
 
 						zerOrMore(isBinaryDigitOrUnderscore);
@@ -560,12 +655,17 @@ export function* tokenize(t, opts) {
 						pop();
 
 						if (!consume(isOctalDigit)) {
-							zerOrMore(isIdentifierChar);
-							yield mkToken(
-								T_IDENTIFIER_STRING,
-								mkError("Invalid octal number"),
-							);
-							continue;
+							if (consume(isOctalDigitOrUnderscore)) {
+								(errorsInToken ??= []).push(
+									mkError(
+										"Invalid octal number, the first character after 0o cannot be an underscore",
+									),
+								);
+							} else {
+								zerOrMore(isIdentifierChar);
+								yield mkToken(T_IDENTIFIER_STRING, "Invalid octal number");
+								continue;
+							}
 						}
 
 						zerOrMore(isOctalDigitOrUnderscore);
@@ -576,12 +676,20 @@ export function* tokenize(t, opts) {
 						pop();
 
 						if (!consume(isHexadecimalDigit)) {
-							zerOrMore(isIdentifierChar);
-							yield mkToken(
-								T_IDENTIFIER_STRING,
-								mkError("Invalid hexadecimal number"),
-							);
-							continue;
+							if (consume(isHexadecimalDigitOrUnderscore)) {
+								(errorsInToken ??= []).push(
+									mkError(
+										"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
+									),
+								);
+							} else {
+								zerOrMore(isIdentifierChar);
+								yield mkToken(
+									T_IDENTIFIER_STRING,
+									"Invalid hexadecimal number",
+								);
+								continue;
+							}
 						}
 
 						zerOrMore(isHexadecimalDigitOrUnderscore);
@@ -598,7 +706,7 @@ export function* tokenize(t, opts) {
 
 				if (!consume(isDecimalDigit)) {
 					zerOrMore(isIdentifierChar);
-					yield mkToken(T_IDENTIFIER_STRING, mkError("Invalid decimal number"));
+					yield mkToken(T_IDENTIFIER_STRING, "Invalid decimal number");
 					continue;
 				}
 
@@ -612,7 +720,7 @@ export function* tokenize(t, opts) {
 
 				if (!consume(isDecimalDigit)) {
 					zerOrMore(isIdentifierChar);
-					yield mkToken(T_IDENTIFIER_STRING, mkError("Invalid decimal number"));
+					yield mkToken(T_IDENTIFIER_STRING, "Invalid decimal number");
 					continue;
 				}
 
@@ -667,7 +775,7 @@ export function* tokenize(t, opts) {
 					}
 				}
 
-				throw mkError("Unexpected EOF in multiline comment" + level);
+				throw mkError("Unexpected EOF in multiline comment");
 			}
 		}
 
@@ -697,7 +805,18 @@ function pop() {
 		);
 
 	if (isInvalidCharacter(current)) {
-		throw mkError(`Invalid character \\u${current.toString(16)}`);
+		if ((current >= 0xd800 && current <= 0xdfff) || current > 0x10ffff) {
+			// Non-scalar value, cannot be represented whatsoever
+			(errorsInToken ??= []).push(
+				mkError(`Invalid character \\u${current.toString(16)}`),
+			);
+		} else {
+			(errorsInToken ??= []).push(
+				mkError(
+					`Invalid character \\u${current.toString(16)}, this character is not allowed but can be included in strings as \\u{${current.toString(16)}}`,
+				),
+			);
+		}
 	}
 
 	return current;
@@ -747,20 +866,6 @@ function consumeNewline() {
 	return true;
 }
 
-/**
- * @param {(codePoint: number) => boolean} test
- * @param {string} message
- */
-function require(test, message) {
-	if (test(current)) {
-		const previous = current;
-		pop();
-		return previous;
-	}
-
-	throw mkError(message);
-}
-
 /** @param {(codePoint: number) => boolean} test */
 function zerOrMore(test) {
 	while (test(current)) {
@@ -770,7 +875,7 @@ function zerOrMore(test) {
 
 /**
  * @param {number} type
- * @param {Error?=} error
+ * @param {string?=} error
  * @returns {Token}
  */
 function mkToken(type, error = null) {
@@ -779,13 +884,27 @@ function mkToken(type, error = null) {
 
 	start = end;
 
-	return {
+	/** @type {Error[] | null} */
+	let errors = null;
+	if (errorsInToken) {
+		errors = errorsInToken;
+		errorsInToken = null;
+	}
+
+	/** @type {Token} */
+	const token = {
 		type,
 		text: text.slice(s.offset, end.offset),
 		start: s,
 		end,
-		error,
+		errors,
 	};
+
+	if (error) {
+		(token.errors ??= []).push(new InvalidKdlError(error, {token}));
+	}
+
+	return token;
 }
 
 /**

@@ -6,11 +6,11 @@ import {parse} from "../src/index.js";
 test("invalid identifiers", () => {
 	assert.throws(
 		() => parse("lorem[ipsum"),
-		/Unexpected character \"\[\", did you forget to quote an identifier\? at 1:6/,
+		/Unexpected character "\[", did you forget to quote an identifier\? at 1:6/,
 	);
 	assert.throws(
 		() => parse("lorem 2=3"),
-		/Unexpected token "=", did you forget to quote an identifier\? at 1:8/,
+		/Unexpected equals sign, did you forget to quote the property name\? at 1:8/,
 	);
 });
 

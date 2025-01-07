@@ -56,9 +56,9 @@ function pop(ctx) {
 
 	ctx.current = ctx.tokens.next();
 
-	const error = !ctx.current.done && ctx.current.value.error;
-	if (error) {
-		ctx.errors.push(error);
+	const errors = !ctx.current.done && ctx.current.value.errors;
+	if (errors) {
+		ctx.errors.push(...errors);
 	}
 }
 
@@ -133,7 +133,7 @@ export function createParserCtx(text, tokens, {storeLocations = false} = {}) {
 				line: 1,
 				column: 1,
 			},
-			error: null,
+			errors: null,
 		},
 		errors: [],
 	};
@@ -301,7 +301,56 @@ function _parseKeyword(ctx) {
 			value = NaN;
 			break;
 		default:
-			ctx.errors.push(mkError(ctx, `Invalid keyword ${raw}`));
+			switch (raw.toLowerCase()) {
+				case "#null":
+				case "#true":
+				case "#false":
+				case "#inf":
+				case "#-inf":
+				case "#nan":
+					ctx.errors.push(
+						mkError(
+							ctx,
+							`Invalid keyword ${raw}, keywords are case sensitive, write ${raw.toLowerCase} instead`,
+						),
+					);
+					break;
+				case "#nul":
+				case "#nill":
+					ctx.errors.push(
+						mkError(ctx, `Invalid keyword ${raw}, did you mean #null?`),
+					);
+					break;
+				case "#fals":
+				case "#fasle":
+					ctx.errors.push(
+						mkError(ctx, `Invalid keyword ${raw}, did you mean #false?`),
+					);
+					break;
+				case "#ture":
+				case "#treu":
+					ctx.errors.push(
+						mkError(ctx, `Invalid keyword ${raw}, did you mean #true?`),
+					);
+					break;
+				case "#ifn":
+					ctx.errors.push(
+						mkError(ctx, `Invalid keyword ${raw}, did you mean #inf?`),
+					);
+					break;
+				case "#-ifn":
+					ctx.errors.push(
+						mkError(ctx, `Invalid keyword ${raw}, did you mean #-inf?`),
+					);
+					break;
+				default:
+					ctx.errors.push(
+						mkError(
+							ctx,
+							`Invalid keyword ${raw}, surround it with quotes to use a string`,
+						),
+					);
+			}
 			value = null;
 	}
 
@@ -435,13 +484,56 @@ function parseTag(ctx) {
 	}
 
 	const leading = parseNodeSpace(ctx);
-	const name = _parseString(ctx);
+
+	/** @type {[string, string, ...unknown[]]=} */
+	let name = _parseString(ctx);
+
+	if (!name && ctx.current.value) {
+		const location = ctx.current.value;
+		if (parseLineSpace(ctx)) {
+			ctx.errors.push(
+				mkError(
+					location,
+					"This type of whitespace is not allowed inside a tag",
+				),
+			);
+		}
+
+		name = _parseString(ctx);
+	}
+
+	if (!name) {
+		const value = _parseNumber(ctx) ?? _parseKeyword(ctx);
+		if (value) {
+			ctx.errors.push(
+				mkError(value[2], "Invalid tag, did you forget to quote a string?"),
+			);
+			name = ["error", "error"];
+		}
+	}
+
 	if (!name) {
 		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
 	}
+
 	const trailing = parseNodeSpace(ctx);
 
-	const end = consume(ctx, T_CLOSE_PAREN);
+	let end = consume(ctx, T_CLOSE_PAREN);
+
+	if (!end && ctx.current.value) {
+		const location = ctx.current.value;
+		if (parseLineSpace(ctx)) {
+			ctx.errors.push(
+				mkError(
+					location,
+					"This type of whitespace is not allowed inside a tag",
+				),
+			);
+		}
+
+		end = consume(ctx, T_CLOSE_PAREN);
+	}
+
 	if (!end) {
 		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
 	}
@@ -503,8 +595,29 @@ export function parseNodePropOrArg(ctx) {
 
 			const entry = new Entry(value, null);
 
+			storeLocation(ctx, value, start, ctx.lastToken);
 			storeLocation(ctx, entry, start, ctx.lastToken);
-			return [entry, undefined];
+
+			let trailing = parseNodeSpace(ctx);
+			if (consume(ctx, T_EQUALS)) {
+				ctx.errors.push(
+					mkError(
+						ctx.lastToken,
+						typeof value.value === "string" ?
+							"Unexpected equals sign, properties are name=(tag)value not (tag)name=value"
+						:	"Unexpected equals sign",
+					),
+				);
+
+				// Consume any space after the equals sign, and then drop the equals sign
+				// whatever would come after the equals sign will then get picked up as argument
+				// which is fine because we'll error out anyway.
+				// As any value would get consumed as argument, ensure there always is whitespace,
+				// even if in reality there isn't.
+				trailing = concatenate(trailing, parseNodeSpace(ctx)) || " ";
+			}
+
+			return [entry, trailing];
 		}
 	}
 
@@ -519,7 +632,24 @@ export function parseNodePropOrArg(ctx) {
 			const entry = new Entry(value, null);
 			storeLocation(ctx, entry, start, ctx.lastToken);
 
-			return [entry, undefined];
+			let trailing = parseNodeSpace(ctx);
+			if (consume(ctx, T_EQUALS)) {
+				ctx.errors.push(
+					mkError(
+						ctx.lastToken,
+						"Unexpected equals sign, did you forget to quote the property name?",
+					),
+				);
+
+				// Consume any space after the equals sign, and then drop the equals sign
+				// whatever would come after the equals sign will then get picked up as argument
+				// which is fine because we'll error out anyway.
+				// As any value would get consumed as argument, ensure there always is whitespace,
+				// even if in reality there isn't.
+				trailing = concatenate(trailing, parseNodeSpace(ctx)) || " ";
+			}
+
+			return [entry, trailing];
 		}
 	}
 
