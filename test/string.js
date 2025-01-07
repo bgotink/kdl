@@ -142,7 +142,7 @@ test("multiple errors", () => {
 			);
 			assert.match(
 				error.errors[3].message,
-				/The final line in a multiline string may only contain whitespace at 11/,
+				/The final line in a multiline string may only contain whitespace at 13/,
 			);
 			return true;
 		},

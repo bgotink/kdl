@@ -1,9 +1,9 @@
 import {InvalidKdlError} from "./index.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
-import {
-	isValidBareIdentifier,
-	reStartsWithInlineWhitespace,
-} from "./string-utils.js";
+import {isValidBareIdentifier} from "./string-utils.js";
+
+const reStartsWithInlineWhitespace =
+	/^[\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
 
 /**
  * @param {Tag | null} tag
