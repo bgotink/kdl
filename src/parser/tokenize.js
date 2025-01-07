@@ -334,9 +334,8 @@ export function* tokenize(t, opts) {
 				let multiline = false;
 				if (consumeCodePoint(0x22)) {
 					// #"" -> either #""# or multiline string
-					if (current === 0x22) {
+					if (consumeCodePoint(0x22)) {
 						// three quotes! yay
-						pop();
 
 						if (current === 0x22) {
 							// That's too many quotes
@@ -346,6 +345,17 @@ export function* tokenize(t, opts) {
 						}
 
 						multiline = true;
+					} else {
+						let numberOfClosingHashes = 0;
+
+						while (consumeCodePoint(0x23)) {
+							numberOfClosingHashes++;
+						}
+
+						if (numberOfClosingHashes === numberOfOpeningHashes) {
+							yield mkToken(T_RAW_STRING);
+							continue;
+						}
 					}
 				}
 
@@ -402,7 +412,7 @@ export function* tokenize(t, opts) {
 					continue;
 				}
 
-				if (consumeCodePoint(0x22)) {
+				if (current === 0x22) {
 					throw mkError(
 						"Multiline strings must start with exactly three quotes",
 					);

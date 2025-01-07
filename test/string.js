@@ -149,4 +149,10 @@ test("multiple errors", () => {
 	);
 });
 
+test("raw string edge cases", () => {
+	assert.equal(parse(`#""#`, {as: "value"}).value, "");
+	assert.equal(parse(`##""##`, {as: "value"}).value, "");
+	assert.equal(parse(`##""#"##`, {as: "value"}).value, '"#');
+});
+
 test.run();
