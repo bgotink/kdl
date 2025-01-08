@@ -458,10 +458,11 @@ export function* tokenize(t, opts) {
 
 					switch (current) {
 						case 0x62: // b
-							pop();
+							current = pop();
 
-							if (!consume(isHexadecimalDigit)) {
-								if (consume(isHexadecimalDigitOrUnderscore)) {
+							if (!consume(isBinaryDigit)) {
+								if (current === 0x5f) {
+									// _
 									(errorsInToken ??= []).push(
 										mkError(
 											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
@@ -482,10 +483,11 @@ export function* tokenize(t, opts) {
 							yield mkToken(T_NUMBER_BINARY);
 							continue;
 						case 0x6f: // o
-							pop();
+							current = pop();
 
-							if (!consume(isHexadecimalDigit)) {
-								if (consume(isHexadecimalDigitOrUnderscore)) {
+							if (!consume(isOctalDigit)) {
+								if (current === 0x5f) {
+									// _
 									(errorsInToken ??= []).push(
 										mkError(
 											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
@@ -506,10 +508,11 @@ export function* tokenize(t, opts) {
 							yield mkToken(T_NUMBER_OCTAL);
 							continue;
 						case 0x78: // x
-							pop();
+							current = pop();
 
 							if (!consume(isHexadecimalDigit)) {
-								if (consume(isHexadecimalDigitOrUnderscore)) {
+								if (current === 0x5f) {
+									// _
 									(errorsInToken ??= []).push(
 										mkError(
 											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
@@ -538,7 +541,8 @@ export function* tokenize(t, opts) {
 					// .
 
 					if (!consume(isDecimalDigit)) {
-						if (consume(isDecimalDigitOrUnderscore)) {
+						if (current === 0x5f) {
+							// _
 							(errorsInToken ??= []).push(
 								mkError(
 									"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
@@ -562,20 +566,22 @@ export function* tokenize(t, opts) {
 					consume(isNumberSign);
 
 					if (!consume(isDecimalDigit)) {
-						if (consume(isDecimalDigitOrUnderscore)) {
-							zerOrMore(isDecimalDigitOrUnderscore);
+						if (current === 0x5f) {
+							// _
+							(errorsInToken ??= []).push(
+								mkError(
+									"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+								),
+							);
+						} else {
+							zerOrMore(isIdentifierChar);
+
 							yield mkToken(
 								T_NUMBER_DECIMAL,
-								"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+								"Invalid decimal number, missing a number after the exponent",
 							);
 							continue;
 						}
-
-						yield mkToken(
-							T_NUMBER_DECIMAL,
-							"Invalid decimal number, missing a number after the exponent",
-						);
-						continue;
 					}
 
 					zerOrMore(isDecimalDigitOrUnderscore);
@@ -631,10 +637,11 @@ export function* tokenize(t, opts) {
 
 				switch (current) {
 					case 0x62: // b
-						pop();
+						current = pop();
 
 						if (!consume(isBinaryDigit)) {
-							if (consume(isBinaryDigitOrUnderscore)) {
+							if (current === 0x5f) {
+								// _
 								(errorsInToken ??= []).push(
 									mkError(
 										"Invalid binary number, the first character after 0b cannot be an underscore",
@@ -652,10 +659,11 @@ export function* tokenize(t, opts) {
 						yield mkToken(T_NUMBER_BINARY);
 						continue;
 					case 0x6f: // o
-						pop();
+						current = pop();
 
 						if (!consume(isOctalDigit)) {
-							if (consume(isOctalDigitOrUnderscore)) {
+							if (current === 0x5f) {
+								// _
 								(errorsInToken ??= []).push(
 									mkError(
 										"Invalid octal number, the first character after 0o cannot be an underscore",
@@ -673,10 +681,11 @@ export function* tokenize(t, opts) {
 						yield mkToken(T_NUMBER_OCTAL);
 						continue;
 					case 0x78: // x
-						pop();
+						current = pop();
 
 						if (!consume(isHexadecimalDigit)) {
-							if (consume(isHexadecimalDigitOrUnderscore)) {
+							if (current === 0x5f) {
+								// _
 								(errorsInToken ??= []).push(
 									mkError(
 										"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
@@ -705,9 +714,20 @@ export function* tokenize(t, opts) {
 				// .
 
 				if (!consume(isDecimalDigit)) {
-					zerOrMore(isIdentifierChar);
-					yield mkToken(T_IDENTIFIER_STRING, "Invalid decimal number");
-					continue;
+					if (current === 0x5f) {
+						// _
+						(errorsInToken ??= []).push(
+							mkError(
+								"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
+							),
+						);
+					} else {
+						(errorsInToken ??= []).push(
+							mkError(
+								"Invalid decimal number, a decimal point must be followed by a digit",
+							),
+						);
+					}
 				}
 
 				zerOrMore(isDecimalDigitOrUnderscore);
@@ -719,9 +739,22 @@ export function* tokenize(t, opts) {
 				consume(isNumberSign);
 
 				if (!consume(isDecimalDigit)) {
-					zerOrMore(isIdentifierChar);
-					yield mkToken(T_IDENTIFIER_STRING, "Invalid decimal number");
-					continue;
+					if (current === 0x5f) {
+						// _
+						(errorsInToken ??= []).push(
+							mkError(
+								"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+							),
+						);
+					} else {
+						zerOrMore(isIdentifierChar);
+
+						yield mkToken(
+							T_NUMBER_DECIMAL,
+							"Invalid decimal number, missing a number after the exponent",
+						);
+						continue;
+					}
 				}
 
 				zerOrMore(isDecimalDigitOrUnderscore);
