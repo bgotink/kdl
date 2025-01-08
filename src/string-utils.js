@@ -92,7 +92,7 @@ export function postProcessRawStringValue(ctx, value, token) {
 const reFinalWhitespaceLine =
 	/[\x0A\x0B\x0C\x0D\x85\u2028\u2029]([\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)$/;
 const reFinalWhitespaceLineIncludingEscapes =
-	/(?:^|[^\\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000])(?:\\\\)*[\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*[\x0A\x0B\x0C\x0D\x85\u2028\u2029]([\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)(?:\\[\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)*$/;
+	/(?:^|[^\\\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000])(?:\\\\)*[\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*[\x0A\x0B\x0C\x0D\x85\u2028\u2029]([\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)(?:\\[\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)*$/;
 const reNewlineWithLeadingSpace =
 	/(\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029])([\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)([^\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]?)/g;
 const reLastNonWhitespaceOrNewline =
