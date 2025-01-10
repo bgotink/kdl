@@ -22,7 +22,7 @@ __metadata:
     benchmark: "npm:^2.1.4"
     esbuild: "npm:^0.24.2"
     express-check-in: "npm:^0.2.0"
-    husky: "npm:^9.0.11"
+    husky: "npm:@dot-config/husky@9.1.7-dotconfig.0.1.0"
     is-ci: "npm:^3.0.1"
     kdljs: "npm:^0.2.0"
     marked: "npm:^14.1.2"
@@ -512,12 +512,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"husky@npm:^9.0.11":
-  version: 9.0.11
-  resolution: "husky@npm:9.0.11"
+"husky@npm:@dot-config/husky@9.1.7-dotconfig.0.1.0":
+  version: 9.1.7-dotconfig.0.1.0
+  resolution: "@dot-config/husky@npm:9.1.7-dotconfig.0.1.0"
   bin:
-    husky: bin.mjs
-  checksum: 2c787dcf74a837fc9a4fea7da907509d4bd9a289f4ea10ecc9d86279e4d4542b0f5f6443a619bccae19e265f2677172cc2b86aae5c932a35a330cc227d914605
+    husky: bin.js
+  checksum: 391d96a39c95478c2c0cd18e84f524885341d3433b4e6df52af81acfcc4d44082514095b4ac8574c5e8d1f5729f82faf037a69394be16c6387ad7270340df278
   languageName: node
   linkType: hard
 
