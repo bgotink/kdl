@@ -911,7 +911,7 @@ function zerOrMore(test) {
  * @param {string?=} error
  * @returns {Token}
  */
-function mkToken(type, error = null) {
+function mkToken(type, error) {
 	const end = {line, column, offset};
 	const s = start;
 

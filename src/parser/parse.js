@@ -1,5 +1,4 @@
 import {InvalidKdlError} from "../error.js";
-import {format} from "../format.js";
 import {storeLocation as _storeLocation} from "../locations.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "../model.js";
 import {
@@ -96,13 +95,8 @@ function storeLocation(ctx, value, start, end = start) {
 	}
 }
 
-/**
- * @param  {...(string | undefined | null)} parts
- */
-export function concatenate(...parts) {
-	parts = parts.filter(Boolean);
-
-	return parts.length ? parts.join("") : undefined;
+export function concatenate(one = "", two = "", three = "") {
+	return one + two + three || undefined;
 }
 
 /**
@@ -416,33 +410,22 @@ export function parseEscline(ctx) {
 		return;
 	}
 
-	const parts = [start.text];
+	while (parseWs(ctx)) {}
 
-	while (true) {
-		const part = parseWs(ctx);
-		if (!part) {
-			break;
-		}
-
-		parts.push(part);
-	}
-
-	let end =
-		parseSingleLineComment(ctx) ??
-		consume(ctx, T_NEWLINE)?.text ??
-		consume(ctx, T_EOF)?.text;
-	if (end == null) {
+	if (
+		!parseSingleLineComment(ctx) &&
+		!consume(ctx, T_NEWLINE) &&
+		!consume(ctx, T_EOF)
+	) {
 		ctx.errors.push(
 			mkError(
 				ctx,
 				`Expected newline or single-line comment after backslash but got ${ctx.current.value?.text ?? "EOF"}`,
 			),
 		);
-		end = "";
 	}
-	parts.push(end);
 
-	return parts.join("");
+	return ctx.text.slice(start.start.offset, ctx.lastToken.end.offset);
 }
 
 /** @param {ParserCtx} ctx */
@@ -705,15 +688,13 @@ export function parseNodePropOrArgWithSpace(ctx) {
 
 	let tmp;
 	while ((tmp = parseSlashdash(ctx))) {
+		const start = ctx.lastToken.end;
 		const propOrArg = parseNodePropOrArg(ctx);
 		if (!propOrArg) {
 			throw mkError(ctx, `Expected a property or argument`);
 		}
 
-		leading = leading + tmp + format(propOrArg[0]).slice(1);
-
 		const space = propOrArg[1] ?? parseNodeSpace(ctx);
-
 		if (!space) {
 			throw mkError(
 				ctx,
@@ -721,7 +702,8 @@ export function parseNodePropOrArgWithSpace(ctx) {
 			);
 		}
 
-		leading = leading + space;
+		leading =
+			leading + tmp + ctx.text.slice(start.offset, ctx.lastToken.end.offset);
 	}
 
 	const _entry = parseNodePropOrArg(ctx);
@@ -732,20 +714,19 @@ export function parseNodePropOrArgWithSpace(ctx) {
 	let trailing = _entry[1] ?? parseNodeSpace(ctx) ?? "";
 
 	while ((tmp = parseSlashdash(ctx))) {
+		const start = ctx.lastToken.end;
 		const propOrArg = parseNodePropOrArg(ctx);
 		if (!propOrArg) {
 			throw mkError(ctx, `Expected a property or argument`);
 		}
 
-		trailing = trailing + tmp + format(propOrArg[0]).slice(1);
-
 		const space = propOrArg[1] ?? parseNodeSpace(ctx);
-
 		if (!space) {
 			break;
 		}
 
-		trailing = trailing + space;
+		trailing =
+			trailing + tmp + ctx.text.slice(start.offset, ctx.lastToken.end.offset);
 	}
 
 	const entry = _entry[0];
@@ -790,6 +771,7 @@ export function parseBaseNode(ctx) {
 
 	while (space) {
 		slashdash = parseSlashdash(ctx);
+		const start = ctx.lastToken.end;
 
 		const _entry = parseNodePropOrArg(ctx);
 		if (!_entry) {
@@ -797,16 +779,14 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			space = space + slashdash + format(_entry[0]).slice(1);
-			if (_entry[1]) {
-				space = space + _entry[1];
-			}
-			slashdash = undefined;
+			parseNodeSpace(ctx);
+			space = concatenate(
+				space,
+				slashdash,
+				ctx.text.slice(start.offset, ctx.lastToken.end.offset),
+			);
 
-			const extraSpace = parseNodeSpace(ctx);
-			if (extraSpace) {
-				space = space + extraSpace;
-			}
+			slashdash = undefined;
 		} else {
 			const entry = _entry[0];
 			entry.leading = space;
@@ -823,6 +803,7 @@ export function parseBaseNode(ctx) {
 
 	while (space) {
 		slashdash ??= parseSlashdash(ctx);
+		const start = ctx.lastToken.end;
 
 		const parsedChildren = parseNodeChildren(ctx);
 		if (!parsedChildren) {
@@ -834,7 +815,11 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			space = space + slashdash + "{" + format(parsedChildren) + "}";
+			space = concatenate(
+				space,
+				slashdash,
+				ctx.text.slice(start.offset, ctx.lastToken.end.offset),
+			);
 			slashdash = undefined;
 		} else {
 			if (possibleChildren) {
@@ -853,11 +838,7 @@ export function parseBaseNode(ctx) {
 			break;
 		}
 
-		if (space) {
-			space = space + spaceAfter;
-		} else {
-			space = spaceAfter;
-		}
+		space = concatenate(space, spaceAfter);
 	}
 
 	const node = new Node(name, entries, possibleChildren);
@@ -921,6 +902,7 @@ function _parseDocument(ctx) {
 	let space = parseLineSpace(ctx);
 
 	while (hasSeparator) {
+		const start = ctx.lastToken.end;
 		const slashdash = parseSlashdash(ctx);
 
 		const node = parseBaseNode(ctx);
@@ -941,10 +923,7 @@ function _parseDocument(ctx) {
 				(
 					concatenate(
 						space,
-						slashdash,
-						format(node),
-						trailing,
-						terminator,
+						ctx.text.slice(start.offset, ctx.lastToken.end.offset),
 						parseLineSpace(ctx),
 					)
 				);
