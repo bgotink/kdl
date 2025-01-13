@@ -59,18 +59,18 @@ export const reAllUnescapedNewline =
 	/(?:^|[^\\\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029])(?:\\\\)*[\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029]*(\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029])/dgs;
 
 /**
- * @param {ParserCtx} ctx
+ * @param {Error[]} errors
  * @param {string} value
  * @param {Token} token
  * @returns {string}
  */
-export function postProcessRawStringValue(ctx, value, token) {
+export function postProcessRawStringValue(errors, value, token) {
 	// mustn't be a multiline string...
 	let newlineMatch;
 	while ((newlineMatch = reAllNewline.exec(value))) {
 		const start = computeStartLocation(token, value, newlineMatch.index);
 
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(
 				`Raw strings with single quotes cannot contain any unescaped newlines, use triple-quotes for multiline strings`,
 				{
@@ -99,14 +99,14 @@ const reLastNonWhitespaceOrNewline =
 	/([^\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000])[\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*$/;
 
 /**
- * @param {ParserCtx} ctx
+ * @param {Error[]} errors
  * @param {string} value
  * @param {Token} token
  * @returns {string}
  */
-export function postProcessMultilineRawStringValue(ctx, value, token) {
+export function postProcessMultilineRawStringValue(errors, value, token) {
 	if (!reNewline.test(value)) {
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(
 				`Raw strings with three quotes must be multiline strings`,
 				{token},
@@ -117,7 +117,7 @@ export function postProcessMultilineRawStringValue(ctx, value, token) {
 	}
 
 	if (!reNewline.test(value[0])) {
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(`Multi-line strings must start with a newline`, {
 				token,
 			}),
@@ -129,7 +129,7 @@ export function postProcessMultilineRawStringValue(ctx, value, token) {
 	const lastLine = reFinalWhitespaceLine.exec(value)?.[1];
 
 	if (lastLine == null) {
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(
 				`The final line in a multiline string may only contain whitespace`,
 				{token},
@@ -155,7 +155,7 @@ export function postProcessMultilineRawStringValue(ctx, value, token) {
 							offset + newline.length,
 						);
 
-						ctx.errors.push(
+						errors.push(
 							new InvalidKdlError(
 								`Every non-blank line of a multi-line string must start with the offset defined by the last line of the string`,
 								{
@@ -189,12 +189,12 @@ const reSingleLineEscape =
 	/\\(?:$|u\{(0[0-9a-fA-F]{0,5}|10[0-9a-fA-F]{4}|[1-9a-fA-F][0-9a-fA-F]{0,4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|([\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|.)/g;
 
 /**
- * @param {ParserCtx} ctx
+ * @param {Error[]} errors
  * @param {string} value
  * @param {Token} token
  * @returns {string}
  */
-export function postProcessStringValue(ctx, value, token) {
+export function postProcessStringValue(errors, value, token) {
 	// mustn't be a multiline string...
 	let unescapedNewlineMatch;
 	while ((unescapedNewlineMatch = reAllUnescapedNewline.exec(value))) {
@@ -204,7 +204,7 @@ export function postProcessStringValue(ctx, value, token) {
 			/** @type {RegExpIndicesArray} */ (unescapedNewlineMatch.indices)[1][0],
 		);
 
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(
 				`Strings with single quotes cannot contain any unescaped newlines, use triple-quotes for multiline strings`,
 				{
@@ -224,7 +224,7 @@ export function postProcessStringValue(ctx, value, token) {
 		reSingleLineEscape,
 		(escape, unicode, invalidUnicode, whitespace, offset) =>
 			replaceEscape(
-				ctx,
+				errors,
 				value,
 				token,
 				escape,
@@ -240,14 +240,14 @@ const reMultiLineNewLineWithWhitespaceOrEscape =
 	/(\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029])([\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]*)|\\(?:$|u\{(0[0-9a-fA-F]{0,5}|10[0-9a-fA-F]{4}|[1-9a-fA-F][0-9a-fA-F]{0,4})\}|u(\{[^}]{1,6}\}?|[0-9a-fA-F]{1,5}|10[0-9a-fA-F]{4})|([\x0A\x0B\x0C\x0D\x85\u2028\u2029\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+)|.)/g;
 
 /**
- * @param {ParserCtx} ctx
+ * @param {Error[]} errors
  * @param {string} value
  * @param {Token} token
  * @returns {string}
  */
-export function postProcessMultilineStringValue(ctx, value, token) {
+export function postProcessMultilineStringValue(errors, value, token) {
 	if (!reUnescapedNewline.test(value)) {
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(
 				`Strings with three quotes must be multiline strings`,
 				{token},
@@ -258,7 +258,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
 	}
 
 	if (!reNewline.test(value[0])) {
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(`Multi-line strings must start with a newline`, {
 				token,
 			}),
@@ -280,7 +280,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
 			message += " after removing escaped whitespace";
 		}
 
-		ctx.errors.push(
+		errors.push(
 			new InvalidKdlError(message, {
 				token,
 				start,
@@ -310,7 +310,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
 				) => {
 					if (!newline) {
 						return replaceEscape(
-							ctx,
+							errors,
 							value,
 							token,
 							match,
@@ -338,7 +338,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
 							offset + newline.length,
 						);
 
-						ctx.errors.push(
+						errors.push(
 							new InvalidKdlError(
 								`Every non-blank line of a multi-line string must start with the offset defined by the last line of the string`,
 								{
@@ -365,7 +365,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
 }
 
 /**
- * @param {ParserCtx} ctx
+ * @param {Error[]} errors
  * @param {string} value
  * @param {Token} token
  * @param {string} escape
@@ -375,7 +375,7 @@ export function postProcessMultilineStringValue(ctx, value, token) {
  * @param {number} offset
  */
 function replaceEscape(
-	ctx,
+	errors,
 	value,
 	token,
 	escape,
@@ -406,14 +406,14 @@ function replaceEscape(
 		};
 
 		if (!invalidUnicode.startsWith("{")) {
-			ctx.errors.push(
+			errors.push(
 				new InvalidKdlError(
 					String.raw`Invalid unicode escape "\u${invalidUnicode}", did you forget to use {}? "\u{${invalidUnicode}}"`,
 					{token, start, end},
 				),
 			);
 		} else {
-			ctx.errors.push(
+			errors.push(
 				new InvalidKdlError(
 					String.raw`Invalid unicode escape "\u${invalidUnicode.endsWith("}") ? invalidUnicode : `${invalidUnicode}...`}"`,
 					{token, start, end},
@@ -427,7 +427,7 @@ function replaceEscape(
 
 		// Non-scalar values
 		if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
-			ctx.errors.push(
+			errors.push(
 				new InvalidKdlError(
 					String.raw`Invalid unicode escape "\u{${unicode}}, only scalar values can be added using an escape`,
 					{token},
@@ -440,7 +440,7 @@ function replaceEscape(
 		const replacement = escapedValues.get(escape);
 
 		if (replacement == null) {
-			ctx.errors.push(
+			errors.push(
 				new InvalidKdlError(
 					escape.length < 2 ?
 						"Invalid whitespace escape at the end of a string"

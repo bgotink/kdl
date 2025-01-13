@@ -217,14 +217,18 @@ function _parseString(ctx) {
 		case T_QUOTED_STRING:
 			pop(ctx);
 			return [
-				postProcessStringValue(ctx, token.text.slice(1, -1), token),
+				postProcessStringValue(ctx.errors, token.text.slice(1, -1), token),
 				token.text,
 				token,
 			];
 		case T_MULTILINE_QUOTED_STRING:
 			pop(ctx);
 			return [
-				postProcessMultilineStringValue(ctx, token.text.slice(3, -3), token),
+				postProcessMultilineStringValue(
+					ctx.errors,
+					token.text.slice(3, -3),
+					token,
+				),
 				token.text,
 				token,
 			];
@@ -236,7 +240,7 @@ function _parseString(ctx) {
 
 			return [
 				postProcessRawStringValue(
-					ctx,
+					ctx.errors,
 					raw.slice(quoteIndex + 1, -(quoteIndex + 1)),
 					token,
 				),
@@ -252,7 +256,7 @@ function _parseString(ctx) {
 
 			return [
 				postProcessMultilineRawStringValue(
-					ctx,
+					ctx.errors,
 					raw.slice(quoteIndex + 3, -(quoteIndex + 3)),
 					token,
 				),
