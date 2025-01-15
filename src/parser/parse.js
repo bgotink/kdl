@@ -158,9 +158,9 @@ export function finalize(ctx, fatalError) {
 
 /**
  * @param {ParserCtx} ctx
- * @returns {[number, string, Token]=}
+ * @returns {Value=}
  */
-function _parseNumber(ctx) {
+function parseNonStringValue(ctx) {
 	const {value: token} = ctx.current;
 	let value;
 
@@ -177,12 +177,104 @@ function _parseNumber(ctx) {
 		case T_NUMBER_HEXADECIMAL:
 			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 16);
 			break;
+		case T_KEYWORD:
+			switch (token.text) {
+				case "#null":
+					value = null;
+					break;
+				case "#true":
+					value = true;
+					break;
+				case "#false":
+					value = false;
+					break;
+				case "#inf":
+					value = Infinity;
+					break;
+				case "#-inf":
+					value = -Infinity;
+					break;
+				case "#nan":
+					value = NaN;
+					break;
+				default:
+					switch (token.text.toLowerCase()) {
+						case "#null":
+						case "#true":
+						case "#false":
+						case "#inf":
+						case "#-inf":
+						case "#nan":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, keywords are case sensitive, write ${token.text.toLowerCase()} instead`,
+								),
+							);
+							break;
+						case "#nul":
+						case "#nill":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, did you mean #null?`,
+								),
+							);
+							break;
+						case "#fals":
+						case "#fasle":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, did you mean #false?`,
+								),
+							);
+							break;
+						case "#ture":
+						case "#treu":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, did you mean #true?`,
+								),
+							);
+							break;
+						case "#ifn":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, did you mean #inf?`,
+								),
+							);
+							break;
+						case "#-ifn":
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, did you mean #-inf?`,
+								),
+							);
+							break;
+						default:
+							ctx.errors.push(
+								mkError(
+									ctx,
+									`Invalid keyword ${token.text}, surround it with quotes to use a string`,
+								),
+							);
+					}
+					value = null;
+			}
+			break;
 		default:
 			return;
 	}
 
 	pop(ctx);
-	return [value, token.text, token];
+	const result = new Value(value);
+	result.representation = token.text;
+	storeLocation(ctx, result, token);
+	return result;
 }
 
 /**
@@ -270,93 +362,6 @@ function _parseString(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function _parseKeyword(ctx) {
-	if (ctx.current.value?.type !== T_KEYWORD) {
-		return;
-	}
-
-	const token = ctx.current.value;
-	const raw = token.text;
-	let value;
-
-	switch (raw) {
-		case "#null":
-			value = null;
-			break;
-		case "#true":
-			value = true;
-			break;
-		case "#false":
-			value = false;
-			break;
-		case "#inf":
-			value = Infinity;
-			break;
-		case "#-inf":
-			value = -Infinity;
-			break;
-		case "#nan":
-			value = NaN;
-			break;
-		default:
-			switch (raw.toLowerCase()) {
-				case "#null":
-				case "#true":
-				case "#false":
-				case "#inf":
-				case "#-inf":
-				case "#nan":
-					ctx.errors.push(
-						mkError(
-							ctx,
-							`Invalid keyword ${raw}, keywords are case sensitive, write ${raw.toLowerCase} instead`,
-						),
-					);
-					break;
-				case "#nul":
-				case "#nill":
-					ctx.errors.push(
-						mkError(ctx, `Invalid keyword ${raw}, did you mean #null?`),
-					);
-					break;
-				case "#fals":
-				case "#fasle":
-					ctx.errors.push(
-						mkError(ctx, `Invalid keyword ${raw}, did you mean #false?`),
-					);
-					break;
-				case "#ture":
-				case "#treu":
-					ctx.errors.push(
-						mkError(ctx, `Invalid keyword ${raw}, did you mean #true?`),
-					);
-					break;
-				case "#ifn":
-					ctx.errors.push(
-						mkError(ctx, `Invalid keyword ${raw}, did you mean #inf?`),
-					);
-					break;
-				case "#-ifn":
-					ctx.errors.push(
-						mkError(ctx, `Invalid keyword ${raw}, did you mean #-inf?`),
-					);
-					break;
-				default:
-					ctx.errors.push(
-						mkError(
-							ctx,
-							`Invalid keyword ${raw}, surround it with quotes to use a string`,
-						),
-					);
-			}
-			value = null;
-	}
-
-	pop(ctx);
-	return /** @type {const} */ ([value, raw, token]);
-}
-
-/** @param {ParserCtx} ctx */
 export function parseIdentifier(ctx) {
 	const name = _parseString(ctx);
 	if (!name) {
@@ -371,14 +376,19 @@ export function parseIdentifier(ctx) {
 
 /** @param {ParserCtx} ctx */
 export function parseValue(ctx) {
-	const value = _parseNumber(ctx) ?? _parseString(ctx) ?? _parseKeyword(ctx);
-	if (!value) {
+	const value = parseNonStringValue(ctx);
+	if (value) {
+		return value;
+	}
+
+	const string = _parseString(ctx);
+	if (!string) {
 		return;
 	}
 
-	const result = new Value(value[0]);
-	result.representation = value[1];
-	storeLocation(ctx, result, value[2], ctx.lastToken);
+	const result = new Value(string[0]);
+	result.representation = string[1];
+	storeLocation(ctx, result, string[2], ctx.lastToken);
 	return result;
 }
 
@@ -490,10 +500,9 @@ function parseTag(ctx) {
 	}
 
 	if (!name) {
-		const value = _parseNumber(ctx) ?? _parseKeyword(ctx);
-		if (value) {
+		if (parseNonStringValue(ctx)) {
 			ctx.errors.push(
-				mkError(value[2], "Invalid tag, did you forget to quote a string?"),
+				mkError(ctx, "Invalid tag, did you forget to quote a string?"),
 			);
 			name = ["error", "error"];
 		}
@@ -609,13 +618,8 @@ export function parseNodePropOrArg(ctx) {
 	}
 
 	{
-		let rawValue = _parseKeyword(ctx) ?? _parseNumber(ctx);
-		if (rawValue) {
-			// non-string -> must be argument
-			const value = new Value(rawValue[0]);
-			value.representation = rawValue[1];
-			storeLocation(ctx, value, rawValue[2]);
-
+		let value = parseNonStringValue(ctx);
+		if (value) {
 			const entry = new Entry(value, null);
 			storeLocation(ctx, entry, start, ctx.lastToken);
 
