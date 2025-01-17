@@ -414,7 +414,7 @@ export function parseMultilineComment(ctx) {
 
 /** @param {ParserCtx} ctx */
 function parseWs(ctx) {
-	return consume(ctx, T_INLINE_WHITESPACE)?.text ?? parseMultilineComment(ctx);
+	return consume(ctx, T_INLINE_WHITESPACE) ?? parseMultilineComment(ctx);
 }
 
 /** @param {ParserCtx} ctx */
