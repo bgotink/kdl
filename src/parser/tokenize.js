@@ -35,33 +35,29 @@ export const T_MULTILINE_QUOTED_STRING = 23;
 export const T_MULTILINE_RAW_STRING = 24;
 
 /** @param {number} codePoint  */
-function isBOM(codePoint) {
-	return codePoint === 0xfeff;
-}
-
-/** @param {number} codePoint  */
 function isUnicodeSpace(codePoint) {
-	return (
-		codePoint === 0x0009 || // Character Tabulation
-		codePoint === 0x0020 || // Space
-		codePoint === 0x00a0 || // No-Break Space
-		codePoint === 0x1680 || // Ogham Space Mark
-		codePoint === 0x2000 || // En Quad
-		codePoint === 0x2001 || // Em Quad
-		codePoint === 0x2002 || // En Space
-		codePoint === 0x2003 || // Em Space
-		codePoint === 0x2004 || // Three-Per-Em Space
-		codePoint === 0x2005 || // Four-Per-Em Space
-		codePoint === 0x2006 || // Six-Per-Em Space
-		codePoint === 0x2007 || // Figure Space
-		codePoint === 0x2008 || // Punctuation Space
-		codePoint === 0x2009 || // Thin Space
-		codePoint === 0x200a || // Hair Space
-		codePoint === 0x202f || // Narrow No-Break Space
-		codePoint === 0x205f || // Medium Mathematical Space
-		codePoint === 0x3000 || // Ideographic Space
-		false
-	);
+	switch (codePoint) {
+		case 0x0009: // Character Tabulation
+		case 0x0020: // Space
+		case 0x00a0: // No-Break Space
+		case 0x1680: // Ogham Space Mark
+		case 0x2000: // En Quad
+		case 0x2001: // Em Quad
+		case 0x2002: // En Space
+		case 0x2003: // Em Space
+		case 0x2004: // Three-Per-Em Space
+		case 0x2005: // Four-Per-Em Space
+		case 0x2006: // Six-Per-Em Space
+		case 0x2007: // Figure Space
+		case 0x2008: // Punctuation Space
+		case 0x2009: // Thin Space
+		case 0x200a: // Hair Space
+		case 0x202f: // Narrow No-Break Space
+		case 0x205f: // Medium Mathematical Space
+		case 0x3000: // Ideographic Space
+			return true;
+	}
+	return false;
 }
 
 /** @param {number} codePoint */
@@ -219,6 +215,413 @@ let graphemeLocations = false;
 /** @type {Error[] | null} */
 let errorsInToken = null;
 
+/** @param {number} type */
+function createSingleCharacterToken(type) {
+	return () => {
+		pop();
+		return mkToken(type);
+	};
+}
+
+function handleWhitespaceCharacter() {
+	while (isUnicodeSpace(current)) {
+		pop();
+	}
+	return mkToken(T_INLINE_WHITESPACE);
+}
+
+function handleNewlineCharacter() {
+	consumeNewline();
+	return mkToken(T_NEWLINE);
+}
+
+function handleQuoteCharacter() {
+	pop();
+
+	let finished = false;
+	let multiline = false;
+	if (consumeCodePoint(0x22)) {
+		// "" -> either empty or multiline string
+		if (!consumeCodePoint(0x22)) {
+			// only two quotes
+			return mkToken(T_QUOTED_STRING);
+		}
+
+		multiline = true;
+
+		if (current === 0x22) {
+			throw mkError("Multiline strings must start with exactly three quotes");
+		}
+
+		while (!finished && offset < length) {
+			if (consumeCodePoint(0x22)) {
+				if (consumeCodePoint(0x22) && consumeCodePoint(0x22)) {
+					finished = true;
+				}
+			} else {
+				consumeCodePoint(0x5c);
+
+				consumeNewline() || pop();
+			}
+		}
+	} else {
+		while (!finished && offset < length) {
+			if (consumeCodePoint(0x22)) {
+				finished = true;
+			} else {
+				consumeCodePoint(0x5c);
+
+				consumeNewline() || pop();
+			}
+		}
+	}
+
+	if (!finished) {
+		throw mkError("Unexpected EOF inside string");
+	}
+
+	return mkToken(multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING);
+}
+
+function handleHashCharacter() {
+	pop();
+
+	if (current === 0x23 || current === 0x22) {
+		// ## or #" -> raw string
+
+		let numberOfOpeningHashes = 1;
+
+		while (consumeCodePoint(0x23)) {
+			numberOfOpeningHashes++;
+		}
+
+		if (!consumeCodePoint(0x22)) {
+			throw mkError(
+				`Expected a quote after ${"#".repeat(numberOfOpeningHashes)}`,
+			);
+		}
+
+		let multiline = false;
+		if (consumeCodePoint(0x22)) {
+			// #"" -> either #""# or multiline string
+			if (consumeCodePoint(0x22)) {
+				// three quotes! yay
+
+				if (current === 0x22) {
+					// That's too many quotes
+					throw mkError(
+						"Multiline strings must start with exactly three quotes",
+					);
+				}
+
+				multiline = true;
+			} else {
+				let numberOfClosingHashes = 0;
+
+				while (consumeCodePoint(0x23)) {
+					numberOfClosingHashes++;
+				}
+
+				if (numberOfClosingHashes === numberOfOpeningHashes) {
+					return mkToken(T_RAW_STRING);
+				}
+			}
+		}
+
+		while (true) {
+			if (offset >= length) {
+				throw mkError("Unexpected EOF while parsing raw string");
+			}
+
+			if (consumeCodePoint(0x22)) {
+				if (multiline) {
+					if (!consumeCodePoint(0x22) || !consumeCodePoint(0x22)) {
+						continue;
+					}
+				}
+
+				let numberOfClosingHashes = 0;
+				while (
+					numberOfClosingHashes < numberOfOpeningHashes &&
+					consumeCodePoint(0x23)
+				) {
+					numberOfClosingHashes++;
+				}
+
+				if (numberOfClosingHashes === numberOfOpeningHashes) {
+					return mkToken(multiline ? T_MULTILINE_RAW_STRING : T_RAW_STRING);
+				}
+			} else {
+				consumeNewline() || pop();
+			}
+		}
+	} else {
+		// #<something>, either a keyword or invalid
+
+		// allow - at the start
+		consumeCodePoint(0x2d);
+
+		zerOrMore(isIdentifierChar);
+
+		return mkToken(T_KEYWORD);
+	}
+}
+
+function handleDotCharacter() {
+	pop();
+
+	if (consume(isDecimalDigit)) {
+		zerOrMore(isIdentifierChar);
+		return mkToken(
+			T_IDENTIFIER_STRING,
+			"Invalid identifier, identifiers that start with a sign and a dot must be quoted if the next character is a digit to prevent confusion with decimal numbers",
+		);
+	}
+
+	zerOrMore(isIdentifierChar);
+
+	return mkToken(T_IDENTIFIER_STRING);
+}
+
+function handleSlashCharacter() {
+	pop();
+
+	if (consumeCodePoint(0x2d)) {
+		// slash-dash
+
+		return mkToken(T_SLASHDASH);
+	} else if (consumeCodePoint(0x2f)) {
+		// --> //
+
+		while (offset < length && !isNewLine(current)) {
+			pop();
+		}
+
+		return mkToken(T_COMMENT_SINGLE);
+	} else if (consumeCodePoint(0x2a)) {
+		// --> /*
+
+		let level = 1;
+
+		while (offset < length) {
+			if (consumeCodePoint(0x2a)) {
+				if (consumeCodePoint(0x2f)) {
+					// --> */
+
+					level--;
+
+					if (level === 0) {
+						return mkToken(T_COMMENT_MULTI);
+					}
+				}
+			} else if (consumeCodePoint(0x2f)) {
+				if (consumeCodePoint(0x2a)) {
+					// --> /*
+					level++;
+				}
+			} else {
+				consumeNewline() || pop();
+			}
+		}
+
+		throw mkError("Unexpected EOF in multiline comment");
+	} else {
+		handleInvalidCharacter();
+	}
+}
+
+function handleSignCharacter() {
+	pop();
+
+	if (isDecimalDigit(current)) {
+		return handleNumberCharacter();
+	} else if (consumeCodePoint(0x2e)) {
+		// .
+
+		if (consume(isDecimalDigit)) {
+			zerOrMore(isIdentifierChar);
+			return mkToken(
+				T_IDENTIFIER_STRING,
+				"Invalid identifier or number, surround with quotes to make it an identifier or add a zero between the sign and the decimal point",
+			);
+		}
+
+		zerOrMore(isIdentifierChar);
+
+		return mkToken(T_IDENTIFIER_STRING);
+	} else {
+		zerOrMore(isIdentifierChar);
+
+		return mkToken(T_IDENTIFIER_STRING);
+	}
+}
+
+function handleNumberCharacter() {
+	if (consumeCodePoint(0x30)) {
+		// 0 -> handle 0x | 0b | 0o
+
+		switch (current) {
+			case 0x62: // b
+				current = pop();
+
+				if (!consume(isBinaryDigit)) {
+					if (current === 0x5f) {
+						// _
+						pushError(
+							"Invalid binary number, the first character after 0b cannot be an underscore",
+						);
+					} else {
+						zerOrMore(isIdentifierChar);
+						return mkToken(T_IDENTIFIER_STRING, "Invalid binary number");
+					}
+				}
+
+				zerOrMore(isBinaryDigitOrUnderscore);
+
+				return mkToken(T_NUMBER_BINARY);
+			case 0x6f: // o
+				current = pop();
+
+				if (!consume(isOctalDigit)) {
+					if (current === 0x5f) {
+						// _
+						pushError(
+							"Invalid octal number, the first character after 0o cannot be an underscore",
+						);
+					} else {
+						zerOrMore(isIdentifierChar);
+						return mkToken(T_IDENTIFIER_STRING, "Invalid octal number");
+					}
+				}
+
+				zerOrMore(isOctalDigitOrUnderscore);
+
+				return mkToken(T_NUMBER_OCTAL);
+			case 0x78: // x
+				current = pop();
+
+				if (!consume(isHexadecimalDigit)) {
+					if (current === 0x5f) {
+						// _
+						pushError(
+							"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
+						);
+					} else {
+						zerOrMore(isIdentifierChar);
+						return mkToken(T_IDENTIFIER_STRING, "Invalid hexadecimal number");
+					}
+				}
+
+				zerOrMore(isHexadecimalDigitOrUnderscore);
+
+				return mkToken(T_NUMBER_HEXADECIMAL);
+		}
+	}
+
+	zerOrMore(isDecimalDigitOrUnderscore);
+
+	if (consumeCodePoint(0x2e)) {
+		// .
+
+		if (!consume(isDecimalDigit)) {
+			if (current === 0x5f) {
+				// _
+				pushError(
+					"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
+				);
+			} else {
+				pushError(
+					"Invalid decimal number, a decimal point must be followed by a digit",
+				);
+			}
+		}
+
+		zerOrMore(isDecimalDigitOrUnderscore);
+	}
+
+	if (consumeCodePoint(0x65) || consumeCodePoint(0x45)) {
+		// e | E
+
+		consume(isNumberSign);
+
+		if (!consume(isDecimalDigit)) {
+			if (current === 0x5f) {
+				// _
+				pushError(
+					"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+				);
+			} else {
+				zerOrMore(isIdentifierChar);
+
+				return mkToken(
+					T_NUMBER_DECIMAL,
+					"Invalid decimal number, missing a number after the exponent",
+				);
+			}
+		}
+
+		zerOrMore(isDecimalDigitOrUnderscore);
+	}
+
+	return mkToken(T_NUMBER_DECIMAL);
+}
+
+function handleIdentifierCharacter() {
+	pop();
+
+	zerOrMore(isIdentifierChar);
+	return mkToken(T_IDENTIFIER_STRING);
+}
+
+/** @returns {never} */
+function handleInvalidCharacter() {
+	throw mkError(
+		`Unexpected character ${JSON.stringify(String.fromCodePoint(current))}, did you forget to quote an identifier?`,
+	);
+}
+
+/** @type {(() => Token)[]} */
+const characterHandlers = Array(0xff);
+characterHandlers.fill(handleIdentifierCharacter);
+
+for (let i = 0; i < 0x20; i++) {
+	characterHandlers[i] = handleInvalidCharacter;
+}
+
+characterHandlers[0x09] = handleWhitespaceCharacter; // Character Tabulation
+characterHandlers[0x0a] = handleNewlineCharacter; // Line Feed
+characterHandlers[0x0b] = handleNewlineCharacter; // Line Tabulation
+characterHandlers[0x0c] = handleNewlineCharacter; // Form Feed
+characterHandlers[0x0d] = handleNewlineCharacter; // Carriage Return
+characterHandlers[0x20] = handleWhitespaceCharacter; // Space
+characterHandlers[0x22] = handleQuoteCharacter; // "
+characterHandlers[0x23] = handleHashCharacter; // #
+characterHandlers[0x28] = createSingleCharacterToken(T_OPEN_PAREN); // (
+characterHandlers[0x29] = createSingleCharacterToken(T_CLOSE_PAREN); // )
+characterHandlers[0x2b] = handleSignCharacter; // +
+characterHandlers[0x2d] = handleSignCharacter; // -
+characterHandlers[0x2e] = handleDotCharacter; // .
+characterHandlers[0x2f] = handleSlashCharacter; // /
+characterHandlers[0x30] = handleNumberCharacter; // 0
+characterHandlers[0x31] = handleNumberCharacter; // 1
+characterHandlers[0x32] = handleNumberCharacter; // 2
+characterHandlers[0x33] = handleNumberCharacter; // 3
+characterHandlers[0x34] = handleNumberCharacter; // 4
+characterHandlers[0x35] = handleNumberCharacter; // 5
+characterHandlers[0x36] = handleNumberCharacter; // 6
+characterHandlers[0x37] = handleNumberCharacter; // 7
+characterHandlers[0x38] = handleNumberCharacter; // 8
+characterHandlers[0x39] = handleNumberCharacter; // 9
+characterHandlers[0x3b] = createSingleCharacterToken(T_SEMICOLON); // ;
+characterHandlers[0x3d] = createSingleCharacterToken(T_EQUALS); // =
+characterHandlers[0x5b] = handleInvalidCharacter; // [
+characterHandlers[0x5c] = createSingleCharacterToken(T_ESCLINE); // \
+characterHandlers[0x5d] = handleInvalidCharacter; // ]
+characterHandlers[0x7b] = createSingleCharacterToken(T_OPEN_BRACE); // {
+characterHandlers[0x7d] = createSingleCharacterToken(T_CLOSE_BRACE); // }
+characterHandlers[0x85] = handleNewlineCharacter; // Next Line
+characterHandlers[0xa0] = handleWhitespaceCharacter; // No-Break Space
+
 /**
  * @param {string} t
  * @param {{graphemeLocations?: boolean}} opts
@@ -257,7 +660,8 @@ export function* tokenize(t, opts) {
 
 	start = {line, column, offset};
 
-	if (consume(isBOM)) {
+	if (consumeCodePoint(0xfeff)) {
+		// Byte-Order Mark
 		// don't let BOM count as column
 		column = 1;
 		yield mkToken(T_BOM);
@@ -267,560 +671,25 @@ export function* tokenize(t, opts) {
 		throw mkError(`Invalid character \\u${current.toString(16)}`);
 	}
 
-	outer: while (!currentIter.done) {
-		if (consumeCodePoint(0x3d)) {
-			yield mkToken(T_EQUALS);
+	while (!currentIter.done) {
+		if (current < 0xff) {
+			const handler = characterHandlers[current];
+			yield handler();
 			continue;
 		}
 
-		if (consume(isUnicodeSpace)) {
-			zerOrMore(isUnicodeSpace);
-			yield mkToken(T_INLINE_WHITESPACE);
+		if (isUnicodeSpace(current)) {
+			yield handleWhitespaceCharacter();
 			continue;
 		}
 
-		if (consumeNewline()) {
-			yield mkToken(T_NEWLINE);
+		if (isNewLine(current)) {
+			yield handleNewlineCharacter();
 			continue;
 		}
 
-		if (consumeCodePoint(0x7b)) {
-			// {
-			yield mkToken(T_OPEN_BRACE);
-			continue;
-		}
-		if (consumeCodePoint(0x7d)) {
-			// }
-			yield mkToken(T_CLOSE_BRACE);
-			continue;
-		}
-		if (consumeCodePoint(0x28)) {
-			// (
-			yield mkToken(T_OPEN_PAREN);
-			continue;
-		}
-		if (consumeCodePoint(0x29)) {
-			// )
-			yield mkToken(T_CLOSE_PAREN);
-			continue;
-		}
-		if (consumeCodePoint(0x3b)) {
-			// ;
-			yield mkToken(T_SEMICOLON);
-			continue;
-		}
-		if (consumeCodePoint(0x5c)) {
-			// backslash
-			yield mkToken(T_ESCLINE);
-			continue;
-		}
-
-		if (consumeCodePoint(0x23)) {
-			// #
-
-			if (current === 0x23 || current === 0x22) {
-				// ## or #" -> raw string
-
-				let numberOfOpeningHashes = 1;
-
-				while (consumeCodePoint(0x23)) {
-					numberOfOpeningHashes++;
-				}
-
-				if (!consumeCodePoint(0x22)) {
-					throw mkError(
-						`Expected a quote after ${"#".repeat(numberOfOpeningHashes)}`,
-					);
-				}
-
-				let multiline = false;
-				if (consumeCodePoint(0x22)) {
-					// #"" -> either #""# or multiline string
-					if (consumeCodePoint(0x22)) {
-						// three quotes! yay
-
-						if (current === 0x22) {
-							// That's too many quotes
-							throw mkError(
-								"Multiline strings must start with exactly three quotes",
-							);
-						}
-
-						multiline = true;
-					} else {
-						let numberOfClosingHashes = 0;
-
-						while (consumeCodePoint(0x23)) {
-							numberOfClosingHashes++;
-						}
-
-						if (numberOfClosingHashes === numberOfOpeningHashes) {
-							yield mkToken(T_RAW_STRING);
-							continue;
-						}
-					}
-				}
-
-				while (true) {
-					if (offset >= length) {
-						throw mkError("Unexpected EOF while parsing raw string");
-					}
-
-					if (consumeCodePoint(0x22)) {
-						if (multiline) {
-							if (!consumeCodePoint(0x22) || !consumeCodePoint(0x22)) {
-								continue;
-							}
-						}
-
-						let numberOfClosingHashes = 0;
-						while (
-							numberOfClosingHashes < numberOfOpeningHashes &&
-							consumeCodePoint(0x23)
-						) {
-							numberOfClosingHashes++;
-						}
-
-						if (numberOfClosingHashes === numberOfOpeningHashes) {
-							yield mkToken(multiline ? T_MULTILINE_RAW_STRING : T_RAW_STRING);
-							continue outer;
-						}
-					} else {
-						consumeNewline() || pop();
-					}
-				}
-			} else {
-				// #<something>, either a keyword or invalid
-
-				// allow - at the start
-				consumeCodePoint(0x2d);
-
-				zerOrMore(isIdentifierChar);
-
-				yield mkToken(T_KEYWORD);
-				continue;
-			}
-		}
-
-		if (consumeCodePoint(0x22)) {
-			// " -> quoted string
-
-			let multiline = false;
-			if (consumeCodePoint(0x22)) {
-				// "" -> either empty or multiline string
-				if (!consumeCodePoint(0x22)) {
-					// only two quotes
-					yield mkToken(T_QUOTED_STRING);
-					continue;
-				}
-
-				if (current === 0x22) {
-					throw mkError(
-						"Multiline strings must start with exactly three quotes",
-					);
-				}
-
-				multiline = true;
-			}
-
-			let finished = false;
-			while (offset < length) {
-				// backslash, skip the next character
-				if (consumeCodePoint(0x5c)) {
-					consumeNewline() || pop();
-				} else {
-					if (
-						consumeCodePoint(0x22) &&
-						(!multiline || (consumeCodePoint(0x22) && consumeCodePoint(0x22)))
-					) {
-						finished = true;
-						break;
-					}
-
-					consumeNewline() || pop();
-				}
-			}
-
-			if (!finished) {
-				throw mkError("Unexpected EOF inside string");
-			}
-
-			yield mkToken(multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING);
-			continue;
-		}
-
-		if (consume(isNumberSign)) {
-			if (isDecimalDigit(current)) {
-				// [0-9]
-
-				if (consumeCodePoint(0x30)) {
-					// 0 -> handle 0x | 0b | 0o
-
-					switch (current) {
-						case 0x62: // b
-							current = pop();
-
-							if (!consume(isBinaryDigit)) {
-								if (current === 0x5f) {
-									// _
-									(errorsInToken ??= []).push(
-										mkError(
-											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
-										),
-									);
-								} else {
-									zerOrMore(isIdentifierChar);
-									yield mkToken(
-										T_IDENTIFIER_STRING,
-										"Invalid hexadecimal number",
-									);
-									continue;
-								}
-							}
-
-							zerOrMore(isBinaryDigitOrUnderscore);
-
-							yield mkToken(T_NUMBER_BINARY);
-							continue;
-						case 0x6f: // o
-							current = pop();
-
-							if (!consume(isOctalDigit)) {
-								if (current === 0x5f) {
-									// _
-									(errorsInToken ??= []).push(
-										mkError(
-											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
-										),
-									);
-								} else {
-									zerOrMore(isIdentifierChar);
-									yield mkToken(
-										T_IDENTIFIER_STRING,
-										"Invalid hexadecimal number",
-									);
-									continue;
-								}
-							}
-
-							zerOrMore(isOctalDigitOrUnderscore);
-
-							yield mkToken(T_NUMBER_OCTAL);
-							continue;
-						case 0x78: // x
-							current = pop();
-
-							if (!consume(isHexadecimalDigit)) {
-								if (current === 0x5f) {
-									// _
-									(errorsInToken ??= []).push(
-										mkError(
-											"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
-										),
-									);
-								} else {
-									zerOrMore(isIdentifierChar);
-									yield mkToken(
-										T_IDENTIFIER_STRING,
-										"Invalid hexadecimal number",
-									);
-									continue;
-								}
-							}
-
-							zerOrMore(isHexadecimalDigitOrUnderscore);
-
-							yield mkToken(T_NUMBER_HEXADECIMAL);
-							continue;
-					}
-				}
-
-				zerOrMore(isDecimalDigitOrUnderscore);
-
-				if (consumeCodePoint(0x2e)) {
-					// .
-
-					if (!consume(isDecimalDigit)) {
-						if (current === 0x5f) {
-							// _
-							(errorsInToken ??= []).push(
-								mkError(
-									"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
-								),
-							);
-						} else {
-							(errorsInToken ??= []).push(
-								mkError(
-									"Invalid decimal number, a decimal point must be followed by a digit",
-								),
-							);
-						}
-					}
-
-					zerOrMore(isDecimalDigitOrUnderscore);
-				}
-
-				if (consumeCodePoint(0x65) || consumeCodePoint(0x45)) {
-					// e | E
-
-					consume(isNumberSign);
-
-					if (!consume(isDecimalDigit)) {
-						if (current === 0x5f) {
-							// _
-							(errorsInToken ??= []).push(
-								mkError(
-									"Invalid decimal number, the number after the exponent mustn't start on an underscore",
-								),
-							);
-						} else {
-							zerOrMore(isIdentifierChar);
-
-							yield mkToken(
-								T_NUMBER_DECIMAL,
-								"Invalid decimal number, missing a number after the exponent",
-							);
-							continue;
-						}
-					}
-
-					zerOrMore(isDecimalDigitOrUnderscore);
-				}
-
-				yield mkToken(T_NUMBER_DECIMAL);
-				continue;
-			} else if (consumeCodePoint(0x2e)) {
-				// .
-
-				if (consume(isDecimalDigit)) {
-					zerOrMore(isIdentifierChar);
-					yield mkToken(
-						T_IDENTIFIER_STRING,
-						"Invalid identifier or number, surround with quotes to make it an identifier or add a zero between the sign and the decimal point",
-					);
-					continue;
-				}
-
-				zerOrMore(isIdentifierChar);
-
-				yield mkToken(T_IDENTIFIER_STRING);
-				continue;
-			} else {
-				zerOrMore(isIdentifierChar);
-
-				yield mkToken(T_IDENTIFIER_STRING);
-				continue;
-			}
-		}
-
-		if (consumeCodePoint(0x2e)) {
-			// .
-
-			if (consume(isDecimalDigit)) {
-				zerOrMore(isIdentifierChar);
-				yield mkToken(
-					T_IDENTIFIER_STRING,
-					"Invalid identifier, identifiers that start with a sign and a dot must be quoted if the next character is a digit to prevent confusion with decimal numbers",
-				);
-				continue;
-			}
-
-			zerOrMore(isIdentifierChar);
-
-			yield mkToken(T_IDENTIFIER_STRING);
-			continue;
-		}
-
-		if (isDecimalDigit(current)) {
-			if (consumeCodePoint(0x30)) {
-				// 0 -> handle 0x | 0b | 0o
-
-				switch (current) {
-					case 0x62: // b
-						current = pop();
-
-						if (!consume(isBinaryDigit)) {
-							if (current === 0x5f) {
-								// _
-								(errorsInToken ??= []).push(
-									mkError(
-										"Invalid binary number, the first character after 0b cannot be an underscore",
-									),
-								);
-							} else {
-								zerOrMore(isIdentifierChar);
-								yield mkToken(T_IDENTIFIER_STRING, "Invalid binary number");
-								continue;
-							}
-						}
-
-						zerOrMore(isBinaryDigitOrUnderscore);
-
-						yield mkToken(T_NUMBER_BINARY);
-						continue;
-					case 0x6f: // o
-						current = pop();
-
-						if (!consume(isOctalDigit)) {
-							if (current === 0x5f) {
-								// _
-								(errorsInToken ??= []).push(
-									mkError(
-										"Invalid octal number, the first character after 0o cannot be an underscore",
-									),
-								);
-							} else {
-								zerOrMore(isIdentifierChar);
-								yield mkToken(T_IDENTIFIER_STRING, "Invalid octal number");
-								continue;
-							}
-						}
-
-						zerOrMore(isOctalDigitOrUnderscore);
-
-						yield mkToken(T_NUMBER_OCTAL);
-						continue;
-					case 0x78: // x
-						current = pop();
-
-						if (!consume(isHexadecimalDigit)) {
-							if (current === 0x5f) {
-								// _
-								(errorsInToken ??= []).push(
-									mkError(
-										"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
-									),
-								);
-							} else {
-								zerOrMore(isIdentifierChar);
-								yield mkToken(
-									T_IDENTIFIER_STRING,
-									"Invalid hexadecimal number",
-								);
-								continue;
-							}
-						}
-
-						zerOrMore(isHexadecimalDigitOrUnderscore);
-
-						yield mkToken(T_NUMBER_HEXADECIMAL);
-						continue;
-				}
-			}
-
-			zerOrMore(isDecimalDigitOrUnderscore);
-
-			if (consumeCodePoint(0x2e)) {
-				// .
-
-				if (!consume(isDecimalDigit)) {
-					if (current === 0x5f) {
-						// _
-						(errorsInToken ??= []).push(
-							mkError(
-								"Invalid decimal number, the part after the decimal point mustn't start on an underscore",
-							),
-						);
-					} else {
-						(errorsInToken ??= []).push(
-							mkError(
-								"Invalid decimal number, a decimal point must be followed by a digit",
-							),
-						);
-					}
-				}
-
-				zerOrMore(isDecimalDigitOrUnderscore);
-			}
-
-			if (consumeCodePoint(0x65) || consumeCodePoint(0x45)) {
-				// e | E
-
-				consume(isNumberSign);
-
-				if (!consume(isDecimalDigit)) {
-					if (current === 0x5f) {
-						// _
-						(errorsInToken ??= []).push(
-							mkError(
-								"Invalid decimal number, the number after the exponent mustn't start on an underscore",
-							),
-						);
-					} else {
-						zerOrMore(isIdentifierChar);
-
-						yield mkToken(
-							T_NUMBER_DECIMAL,
-							"Invalid decimal number, missing a number after the exponent",
-						);
-						continue;
-					}
-				}
-
-				zerOrMore(isDecimalDigitOrUnderscore);
-			}
-
-			yield mkToken(T_NUMBER_DECIMAL);
-			continue;
-		}
-
-		if (consumeCodePoint(0x2f)) {
-			// slash
-
-			if (consumeCodePoint(0x2d)) {
-				// slash-dash
-
-				yield mkToken(T_SLASHDASH);
-				continue;
-			} else if (consumeCodePoint(0x2f)) {
-				// --> //
-
-				while (offset < length && !isNewLine(current)) {
-					pop();
-				}
-
-				yield mkToken(T_COMMENT_SINGLE);
-				continue;
-			} else if (consumeCodePoint(0x2a)) {
-				// --> /*
-
-				let level = 1;
-
-				while (offset < length) {
-					if (consumeCodePoint(0x2a)) {
-						if (consumeCodePoint(0x2f)) {
-							// --> */
-
-							level--;
-
-							if (level === 0) {
-								yield mkToken(T_COMMENT_MULTI);
-								continue outer;
-							}
-						}
-					} else if (consumeCodePoint(0x2f)) {
-						if (consumeCodePoint(0x2a)) {
-							// --> /*
-							level++;
-						}
-					} else {
-						consumeNewline() || pop();
-					}
-				}
-
-				throw mkError("Unexpected EOF in multiline comment");
-			}
-		}
-
-		if (consume(isIdentifierChar)) {
-			zerOrMore(isIdentifierChar);
-			yield mkToken(T_IDENTIFIER_STRING);
-			continue;
-		}
-
-		throw mkError(
-			`Unexpected character ${JSON.stringify(String.fromCodePoint(current))}, did you forget to quote an identifier?`,
-		);
+		// All non-whitespace non-identifier characters are ASCII, which is already filtered out
+		yield handleIdentifierCharacter();
 	}
 
 	cleanup();
@@ -840,11 +709,9 @@ function pop() {
 	if (isInvalidCharacter(current)) {
 		if ((current >= 0xd800 && current <= 0xdfff) || current > 0x10ffff) {
 			// Non-scalar value, cannot be represented whatsoever
-			(errorsInToken ??= []).push(
-				mkError(`Invalid character \\u${current.toString(16)}`),
-			);
+			pushError(mkError(`Invalid character \\u${current.toString(16)}`));
 		} else {
-			(errorsInToken ??= []).push(
+			pushError(
 				mkError(
 					`Invalid character \\u${current.toString(16)}, this character is not allowed but can be included in strings as \\u{${current.toString(16)}}`,
 				),
@@ -917,12 +784,8 @@ function mkToken(type, error) {
 
 	start = end;
 
-	/** @type {Error[] | null} */
-	let errors = null;
-	if (errorsInToken) {
-		errors = errorsInToken;
-		errorsInToken = null;
-	}
+	const errors = errorsInToken;
+	errorsInToken = null;
 
 	/** @type {Token} */
 	const token = {
@@ -934,7 +797,10 @@ function mkToken(type, error) {
 	};
 
 	if (error) {
-		(token.errors ??= []).push(new InvalidKdlError(error, {token}));
+		if (!token.errors) {
+			token.errors = [];
+		}
+		token.errors.push(new InvalidKdlError(error, {token}));
 	}
 
 	return token;
@@ -943,9 +809,13 @@ function mkToken(type, error) {
 /**
  * Create an error based on the current token and location
  *
- * @param {string} message
+ * @param {string | InvalidKdlError} message
  */
 function mkError(message) {
+	if (message instanceof InvalidKdlError) {
+		return message;
+	}
+
 	const start = {line, column, offset};
 	let end;
 
@@ -958,6 +828,15 @@ function mkError(message) {
 	}
 
 	return new InvalidKdlError(`${message}`, {start, end});
+}
+
+/**
+ * Create an error based on the current token and location
+ *
+ * @param {string | InvalidKdlError} message
+ */
+function pushError(message) {
+	(errorsInToken ??= []).push(mkError(message));
 }
 
 /**
