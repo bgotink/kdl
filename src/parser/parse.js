@@ -48,7 +48,7 @@ import {
  */
 
 /** @param {ParserCtx} ctx */
-function pop(ctx) {
+export function pop(ctx) {
 	if (!ctx.current.done) {
 		ctx.lastToken = ctx.current.value;
 	}
@@ -461,7 +461,7 @@ function parseLineSpace(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseNodeSpace(ctx) {
+export function parseNodeSpace(ctx) {
 	const start = ctx.lastToken.end;
 
 	while (parseWs(ctx) ?? parseEscline(ctx)) {}
@@ -474,7 +474,7 @@ function parseNodeSpace(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseTag(ctx) {
+export function parseTag(ctx) {
 	const start = consume(ctx, T_OPEN_PAREN);
 	if (!start) {
 		return;

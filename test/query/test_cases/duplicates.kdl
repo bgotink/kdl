@@ -1,0 +1,46 @@
+source {
+	a {
+		a {
+			b {
+				b {
+					c 1
+				}
+				c 2
+			}
+		}
+	}
+}
+
+query "c" {
+	c 1
+	c 2
+}
+
+query "b > c" {
+	c 1
+	c 2
+}
+
+query "b >> c" {
+	c 1
+	c 2
+}
+
+query "a >> c" {
+	c 1
+	c 2
+}
+
+query "a >> b >> c" {
+	c 1
+	c 2
+}
+
+query "a > b > c" {
+	c 2
+}
+
+query "b >> [name() != b]" {
+	c 1
+	c 2
+}

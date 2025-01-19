@@ -34,8 +34,13 @@ export const T_COMMENT_MULTI = 22;
 export const T_MULTILINE_QUOTED_STRING = 23;
 export const T_MULTILINE_RAW_STRING = 24;
 
+export const T_OPEN_SQUARE = 25;
+export const T_CLOSE_SQUARE = 26;
+
+export const T_QUERY_OPERATOR = 27;
+
 /** @param {number} codePoint  */
-function isUnicodeSpace(codePoint) {
+export function isUnicodeSpace(codePoint) {
 	switch (codePoint) {
 		case 0x0009: // Character Tabulation
 		case 0x0020: // Space
@@ -61,7 +66,7 @@ function isUnicodeSpace(codePoint) {
 }
 
 /** @param {number} codePoint */
-function isNewLine(codePoint) {
+export function isNewLine(codePoint) {
 	return (
 		codePoint === 0x0d || // Carriage Return
 		codePoint === 0x0a || // Line Feed
@@ -433,6 +438,10 @@ function handleSlashCharacter() {
 function handleSignCharacter() {
 	pop();
 
+	return handleSignCharacterAfterPop();
+}
+
+function handleSignCharacterAfterPop() {
 	if (isDecimalDigit(current)) {
 		return handleNumberCharacter();
 	} else if (consumeCodePoint(0x2e)) {
@@ -627,7 +636,7 @@ characterHandlers[0xa0] = handleWhitespaceCharacter; // No-Break Space
  * @param {{graphemeLocations?: boolean}} opts
  * @returns {Generator<Token, void>}
  */
-export function* tokenize(t, opts) {
+function* init(t, opts) {
 	text = t;
 	graphemeLocations = opts.graphemeLocations ?? false;
 
@@ -670,10 +679,119 @@ export function* tokenize(t, opts) {
 	if (isInvalidCharacter(current)) {
 		throw mkError(`Invalid character \\u${current.toString(16)}`);
 	}
+}
+
+function handleQueryOperatorCharacter() {
+	switch (current) {
+		case 0x3d /* = */:
+			pop();
+			return mkToken(T_QUERY_OPERATOR);
+		case 0x3e /* > */:
+			pop();
+			consumeCodePoint(0x3d) || consumeCodePoint(0x3e); // > or >= or >>
+			return mkToken(T_QUERY_OPERATOR);
+		case 0x3c /* < */:
+			pop();
+			consumeCodePoint(0x3d); // < or <=
+			return mkToken(T_QUERY_OPERATOR);
+		case 0x21 /* ! */:
+		case 0x24 /* $ */:
+		case 0x2a /* * */:
+		case 0x5e /* ^ */:
+			pop();
+			if (consumeCodePoint(0x3d)) {
+				return mkToken(T_QUERY_OPERATOR);
+			}
+
+			zerOrMore(isIdentifierChar);
+			return mkToken(T_IDENTIFIER_STRING);
+		case 0x7c /* | */:
+			pop();
+			if (consumeCodePoint(0x7c)) {
+				return mkToken(T_QUERY_OPERATOR);
+			}
+
+			zerOrMore(isIdentifierChar);
+			return mkToken(T_IDENTIFIER_STRING);
+		default:
+			throw new Error("unreachable");
+	}
+}
+
+function handleQueryPlusSignCharacter() {
+	pop();
+
+	if (consumeCodePoint(0x2b)) {
+		return mkToken(T_QUERY_OPERATOR);
+	}
+
+	if (isUnicodeSpace(current)) {
+		return mkToken(T_QUERY_OPERATOR);
+	}
+
+	return handleSignCharacterAfterPop();
+}
+
+const queryCharacterHandlers = [...characterHandlers];
+
+queryCharacterHandlers[0x21 /* ! */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x24 /* $ */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x2a /* * */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x2b /* + */] = handleQueryPlusSignCharacter;
+queryCharacterHandlers[0x3c /* < */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x3d /* = */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x3e /* > */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x5b /* [ */] =
+	createSingleCharacterToken(T_OPEN_SQUARE);
+queryCharacterHandlers[0x5d /* ] */] =
+	createSingleCharacterToken(T_CLOSE_SQUARE);
+queryCharacterHandlers[0x5e /* ^ */] = handleQueryOperatorCharacter;
+queryCharacterHandlers[0x7c /* | */] = handleQueryOperatorCharacter;
+
+/**
+ * @param {string} t
+ * @param {{graphemeLocations?: boolean}} opts
+ * @returns {Generator<Token, void>}
+ */
+export function* tokenize(t, opts) {
+	yield* init(t, opts);
 
 	while (!currentIter.done) {
 		if (current < 0xff) {
 			const handler = characterHandlers[current];
+			yield handler();
+			continue;
+		}
+
+		if (isUnicodeSpace(current)) {
+			yield handleWhitespaceCharacter();
+			continue;
+		}
+
+		if (isNewLine(current)) {
+			yield handleNewlineCharacter();
+			continue;
+		}
+
+		// All non-whitespace non-identifier characters are ASCII, which is already filtered out
+		yield handleIdentifierCharacter();
+	}
+
+	cleanup();
+	yield mkToken(T_EOF);
+}
+
+/**
+ * @param {string} t
+ * @param {{graphemeLocations?: boolean}} opts
+ * @returns {Generator<Token, void>}
+ */
+export function* tokenizeQuery(t, opts) {
+	yield* init(t, opts);
+
+	while (!currentIter.done) {
+		if (current < 0xff) {
+			const handler = queryCharacterHandlers[current];
 			yield handler();
 			continue;
 		}
