@@ -18,6 +18,7 @@ import {
 	T_BOM,
 	T_CLOSE_PAREN,
 	T_CLOSE_SQUARE,
+	T_NUMBER_DECIMAL,
 	T_OPEN_PAREN,
 	T_OPEN_SQUARE,
 	T_QUERY_OPERATOR,
@@ -26,14 +27,15 @@ import {
 /** @import { SelectorOperator } from '../model/query/query.js'; */
 
 /** @import { ParserCtx } from "./parse.js"; */
+/** @import { Token } from "./token.js"; */
 
 /**
- * @param {ParserCtx} ctx
+ * @param {ParserCtx | Token} ctx
  * @param {string} message
  */
 export function mkError(ctx, message) {
 	return new InvalidKdlQueryError(message, {
-		token: ctx.current.value ?? ctx.lastToken,
+		token: "current" in ctx ? (ctx.current.value ?? ctx.lastToken) : ctx,
 	});
 }
 
@@ -71,6 +73,32 @@ function parseIdentifier(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
+function parseInteger(ctx) {
+	const token = consume(ctx, T_NUMBER_DECIMAL);
+	if (!token) {
+		return;
+	}
+
+	const text = token.text;
+	if (text[0] === "-" || text[0] === "+") {
+		throw mkError(token, "Integers cannot have a sign");
+	}
+
+	if (text.includes(".")) {
+		throw mkError(
+			token,
+			"Expected to see an integer but got a decimal instead",
+		);
+	}
+
+	if (text.includes("e") || text.includes("E")) {
+		throw mkError(token, "Integers cannot have an exponent");
+	}
+
+	return Number.parseInt(text.replaceAll("_", ""));
+}
+
+/** @param {ParserCtx} ctx */
 function parseAccessor(ctx) {
 	const name = parseIdentifier(ctx)?.name;
 	if (name == null) {
@@ -93,11 +121,15 @@ function parseAccessor(ctx) {
 			accessor = Accessor.tag();
 			break;
 		case "val": {
-			const arg = parseValue(ctx)?.value;
-			if (arg !== undefined && typeof arg !== "number") {
-				throw mkError(ctx, "The val() accessor only accepts number values");
+			const index = parseInteger(ctx);
+			if (index == null) {
+				throw mkError(
+					ctx.lastToken,
+					"The val() accessor requires an index parameter",
+				);
 			}
-			accessor = Accessor.argument(arg);
+
+			accessor = Accessor.argument();
 			break;
 		}
 		case "prop": {
@@ -129,7 +161,9 @@ function parseComparison(ctx) {
 		return;
 	}
 
-	parseNodeSpace(ctx);
+	if (!parseNodeSpace(ctx)) {
+		throw mkError(ctx, "Missing whitespace after comparison operator");
+	}
 
 	const value = parseValue(ctx) ?? parseTag(ctx);
 
@@ -174,11 +208,19 @@ function parseAccessorMatcher(ctx) {
 		return Matcher.always();
 	}
 
-	parseNodeSpace(ctx);
-	const comparison = parseComparison(ctx);
-	parseNodeSpace(ctx);
+	let comparison;
+	if (parseNodeSpace(ctx)) {
+		comparison = parseComparison(ctx);
+		parseNodeSpace(ctx);
+	} else {
+		comparison = null;
+	}
 
 	if (!consume(ctx, T_CLOSE_SQUARE)) {
+		if (!comparison && ctx.current.value?.type === T_QUERY_OPERATOR) {
+			throw mkError(ctx, "Missing whitespace before comparison operator");
+		}
+
 		throw mkError(ctx, "Expected ]");
 	}
 
