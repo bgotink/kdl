@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {test} from "uvu";
 
 import {clearFormat, parse} from "../src/index.js";
-import {parseWithoutFormatting, parseAndTransform} from "../src/v1-compat.js";
+import {parseAndTransform} from "../src/v1-compat.js";
 
 /** @type {{name: string; v1: string; v2: string}[]} */
 const tests = [
@@ -62,7 +62,6 @@ test
 
 for (const {name, v1, v2} of tests) {
 	test(name, () => {
-		assert.deepEqual(parseWithoutFormatting(v1), clearFormat(parse(v2)));
 		assert.deepEqual(parseAndTransform(v1), parse(v2));
 	});
 }

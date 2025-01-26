@@ -28,9 +28,6 @@
 		"./dessert": "./src/dessert.js",
 		"./package.json": "./package.json"
 	},
-	"imports": {
-		"#v1": "@bgotink/kdl-v1"
-	},
 	"scripts": {
 		"postinstall": "is-ci || husky",
 		"build": "node scripts/build.js",

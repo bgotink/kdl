@@ -26,7 +26,6 @@ execSync("tsc -p tsconfig.compile.json");
 // JavaScript
 
 cpSync("src", "out", {recursive: true});
-copyFileSync(new URL(import.meta.resolve("#v1")), "out/v1.cjs");
 
 // Write metadata
 
@@ -43,9 +42,6 @@ delete packageJson.packageManager;
 // Set exports
 packageJson.main = "./index.js";
 packageJson.types = "./index.d.ts";
-packageJson.imports = {
-	"#v1": "./v1.cjs",
-};
 packageJson.exports = {
 	".": {
 		types: "./index.d.ts",

@@ -89,7 +89,7 @@ export function mkError(ctx, message) {
  * @param {Token} start
  * @param {Token} [end]
  */
-function storeLocation(ctx, value, start, end = start) {
+export function storeLocation(ctx, value, start, end = start) {
 	if (ctx.storeLocations) {
 		_storeLocation(value, start, end);
 	}
