@@ -2,7 +2,7 @@ import {InvalidKdlQueryError} from "./error.js";
 import {Query} from "./model/query/query.js";
 import {parseQuery} from "./parser/parse-query.js";
 import {createParserCtx, finalize} from "./parser/parse.js";
-import {tokenizeQuery} from "./parser/tokenize.js";
+import {tokenizeQuery} from "./parser/tokenize/tokenize-query.js";
 
 export {Accessor} from "./model/query/accessor.js";
 export {Comparison} from "./model/query/comparison.js";
