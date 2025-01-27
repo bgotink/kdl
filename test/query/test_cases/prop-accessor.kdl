@@ -1,0 +1,86 @@
+source {
+	node lorem=#true ipsum=#true
+	node lorem=1 ipsum=1
+	node lorem=0
+	node lorem=2
+
+	node lorem="lorem"
+	node lorem="lorem-ipsum"
+	node lorem="ipsum"
+}
+
+query "[prop(lorem)]" {
+	node lorem=#true ipsum=#true
+	node lorem=1 ipsum=1
+	node lorem=0
+	node lorem=2
+
+	node lorem="lorem"
+	node lorem="lorem-ipsum"
+	node lorem="ipsum"
+}
+
+query "[prop(ipsum)]" {
+	node lorem=#true ipsum=#true
+	node lorem=1 ipsum=1
+}
+
+query "[prop(ipsum) = #true]" {
+	node lorem=#true ipsum=#true
+}
+
+query "[prop(ipsum) != #true]" {
+	node lorem=1 ipsum=1
+}
+
+query "[prop(lorem) > #true]" { }
+query "[prop(lorem) >= #true]" { }
+query "[prop(lorem) < #true]" { }
+query "[prop(lorem) <= #true]" { }
+query "[prop(lorem) ^= #true]" { }
+query "[prop(lorem) $= #true]" { }
+query "[prop(lorem) *= #true]" { }
+
+query "[prop(lorem) > 1]" {
+	node lorem=2
+}
+query "[prop(lorem) >= 1]" {
+	node lorem=1 ipsum=1
+	node lorem=2
+}
+query "[prop(lorem) < 1]" {
+	node lorem=0
+}
+query "[prop(lorem) <= 1]" {
+	node lorem=1 ipsum=1
+	node lorem=0
+}
+query "[prop(lorem) ^= 1]" { }
+query "[prop(lorem) $= 1]" { }
+query "[prop(lorem) *= 1]" { }
+
+query "[prop(lorem) > lorem]" {
+	node lorem="lorem-ipsum"
+}
+query "[prop(lorem) >= lorem]" {
+	node lorem="lorem"
+	node lorem="lorem-ipsum"
+}
+query "[prop(lorem) < lorem]" {
+	node lorem="ipsum"
+}
+query "[prop(lorem) <= lorem]" {
+	node lorem="lorem"
+	node lorem="ipsum"
+}
+query "[prop(lorem) ^= lorem]" {
+	node lorem="lorem"
+	node lorem="lorem-ipsum"
+}
+query "[prop(lorem) $= lorem]" {
+	node lorem="lorem"
+}
+query "[prop(lorem) *= lorem]" {
+	node lorem="lorem"
+	node lorem="lorem-ipsum"
+}

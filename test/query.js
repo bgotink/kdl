@@ -26,6 +26,7 @@ for (const testCase of readdirSync(testCasesFolder)) {
 			assert.deepEqual(
 				[...query.find(sourceDocument)],
 				node.children?.nodes ?? [],
+				`query ${JSON.stringify(queryString)}`,
 			);
 		}
 	});

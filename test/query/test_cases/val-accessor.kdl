@@ -1,0 +1,31 @@
+source {
+	node 1 #null 2
+	node 0 #null
+	node #null
+}
+
+// not supported
+/- query "[val()]" {
+	node 1 #null 2
+	node 0 #null
+	node #null
+}
+
+query "[val(0)]" {
+	node 1 #null 2
+	node 0 #null
+	node #null
+}
+
+query "[val(1)]" {
+	node 1 #null 2
+	node 0 #null
+}
+
+query "[val(2)]" {
+	node 1 #null 2
+}
+
+query "[val(0) > 0.5]" {
+	node 1 #null 2
+}

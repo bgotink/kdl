@@ -1,0 +1,90 @@
+source {
+	lorem
+	lorem-ipsum
+	ipsum
+}
+
+query "[name() = lorem]" {
+	lorem
+}
+
+query "[name(\t ) = lorem]" {
+	lorem
+}
+
+query "[name() = ipsum]" {
+	ipsum
+}
+
+query "[name() ^= lorem]" {
+	lorem
+	lorem-ipsum
+}
+
+query "[name() ^= ipsum]" {
+	ipsum
+}
+
+query "[name() $= lorem]" {
+	lorem
+}
+
+query "[name() $= ipsum]" {
+	lorem-ipsum
+	ipsum
+}
+
+query "[name() *= lorem]" {
+	lorem
+	lorem-ipsum
+}
+
+query "[name() *= ipsum]" {
+	lorem-ipsum
+	ipsum
+}
+
+query "[name() != lorem]" {
+	lorem-ipsum
+	ipsum
+}
+
+query "[name() != ipsum]" {
+	lorem
+	lorem-ipsum
+}
+
+query "[name() > lorem]" {
+	lorem-ipsum
+}
+
+query "[name() > ipsum]" {
+	lorem
+	lorem-ipsum
+}
+
+query "[name() >= lorem]" {
+	lorem
+	lorem-ipsum
+}
+
+query "[name() >= ipsum]" {
+	lorem
+	lorem-ipsum
+	ipsum
+}
+
+query "[name() < lorem]" {
+	ipsum
+}
+
+query "[name() < ipsum]" { }
+
+query "[name() <= lorem]" {
+	lorem
+	ipsum
+}
+
+query "[name() <= ipsum]" {
+	ipsum
+}

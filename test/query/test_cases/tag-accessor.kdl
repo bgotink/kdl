@@ -1,0 +1,98 @@
+source {
+	(lorem)node
+	(lorem-ipsum)node
+	(ipsum)node
+
+	node
+}
+
+query "[tag()]" {
+	(lorem)node
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "[tag( \t) = lorem]" {
+	(lorem)node
+}
+
+query "[tag() = lorem]" {
+	(lorem)node
+}
+
+query "[tag() = ipsum]" {
+	(ipsum)node
+}
+
+query "[tag() ^= lorem]" {
+	(lorem)node
+	(lorem-ipsum)node
+}
+
+query "[tag() ^= ipsum]" {
+	(ipsum)node
+}
+
+query "[tag() $= lorem]" {
+	(lorem)node
+}
+
+query "[tag() $= ipsum]" {
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "[tag() *= lorem]" {
+	(lorem)node
+	(lorem-ipsum)node
+}
+
+query "[tag() *= ipsum]" {
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "[tag() != lorem]" {
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "[tag() != ipsum]" {
+	(lorem)node
+	(lorem-ipsum)node
+}
+
+query "[tag() > lorem]" {
+	(lorem-ipsum)node
+}
+
+query "[tag() > ipsum]" {
+	(lorem)node
+	(lorem-ipsum)node
+}
+
+query "[tag() >= lorem]" {
+	(lorem)node
+	(lorem-ipsum)node
+}
+
+query "[tag() >= ipsum]" {
+	(lorem)node
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "[tag() < lorem]" {
+	(ipsum)node
+}
+
+query "[tag() < ipsum]" { }
+
+query "[tag() <= lorem]" {
+	(lorem)node
+	(ipsum)node
+}
+
+query "[tag() <= ipsum]" {
+	(ipsum)node
+}

@@ -1,0 +1,25 @@
+source {
+	(lorem)node
+	(lorem-ipsum)node
+	(ipsum)node
+
+	node
+}
+
+query "()" {
+	(lorem)node
+	(lorem-ipsum)node
+	(ipsum)node
+}
+
+query "(lorem)" {
+	(lorem)node
+}
+
+query "(lorem-ipsum)" {
+	(lorem-ipsum)node
+}
+
+query "(ipsum)" {
+	(ipsum)node
+}

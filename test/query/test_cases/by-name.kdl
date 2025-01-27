@@ -1,0 +1,17 @@
+source {
+	lorem
+	lorem-ipsum
+	ipsum
+}
+
+query "lorem" {
+	lorem
+}
+
+query "lorem-ipsum" {
+	lorem-ipsum
+}
+
+query "ipsum" {
+	ipsum
+}

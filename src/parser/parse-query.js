@@ -129,7 +129,7 @@ function parseAccessor(ctx) {
 				);
 			}
 
-			accessor = Accessor.argument();
+			accessor = Accessor.argument(index);
 			break;
 		}
 		case "prop": {
