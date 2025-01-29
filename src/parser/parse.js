@@ -772,13 +772,13 @@ export function parseBaseNode(ctx) {
 	}
 
 	let space = parseNodeSpace(ctx);
+	let endsOnWhitespace = space != null;
 	/** @type {string=} */
-	let slashdash;
+	let slashdash = parseSlashdash(ctx);
 	/** @type {Entry[]} */
 	const entries = [];
 
-	while (space) {
-		slashdash = parseSlashdash(ctx);
+	while (space || slashdash) {
 		const start = ctx.lastToken.end;
 
 		const _entry = parseNodePropOrArg(ctx);
@@ -787,20 +787,22 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			parseNodeSpace(ctx);
+			endsOnWhitespace = parseNodeSpace(ctx) != null;
 			space = concatenate(
 				space,
 				slashdash,
 				ctx.text.slice(start.offset, ctx.lastToken.end.offset),
 			);
 
-			slashdash = undefined;
+			slashdash = parseSlashdash(ctx);
 		} else {
 			const entry = _entry[0];
 			entry.leading = space;
 			entries.push(entry);
 
 			space = _entry[1] || parseNodeSpace(ctx);
+			endsOnWhitespace = space != null;
+			slashdash = parseSlashdash(ctx);
 		}
 	}
 
@@ -809,7 +811,7 @@ export function parseBaseNode(ctx) {
 	/** @type {string=} */
 	let spaceBeforeChildren;
 
-	while (space) {
+	while (true) {
 		slashdash ??= parseSlashdash(ctx);
 		const start = ctx.lastToken.end;
 
@@ -837,16 +839,11 @@ export function parseBaseNode(ctx) {
 			}
 
 			possibleChildren = parsedChildren;
-			spaceBeforeChildren = space;
+			spaceBeforeChildren = space ?? "";
 			space = undefined;
 		}
 
-		const spaceAfter = parseNodeSpace(ctx);
-		if (!spaceAfter) {
-			break;
-		}
-
-		space = concatenate(space, spaceAfter);
+		space = concatenate(space, parseNodeSpace(ctx));
 	}
 
 	const node = new Node(name, entries, possibleChildren);

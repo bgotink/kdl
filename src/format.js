@@ -102,7 +102,7 @@ function formatNode(node, indentation) {
 		.map((entry) => formatEntry(entry))
 		.join("")}${
 		node.children ?
-			`${ensureStartsWithWhitespace(node.beforeChildren)}{${formatDocument(
+			`${node.beforeChildren ?? " "}{${formatDocument(
 				node.children,
 				indentation + 1,
 			)}}`
