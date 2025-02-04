@@ -1,5 +1,4 @@
 import {Identifier, Node, parse as parseDocument} from "../../index.js";
-import {InvalidJsonInKdlError, nodePartsToJsonValue} from "../../json-impl.js";
 import {deserializeJson} from "../json.js";
 import {storeNodeForContext} from "../shared.js";
 
@@ -58,82 +57,193 @@ function hasValidJsonType(types, value) {
 function makeArgument(node) {
 	const unusedArguments = node.getArgumentEntries();
 
-	const argument = /** @type {t.Argument} */ (
-		/** @param {...t.PrimitiveType} types */
-		(...types) => {
+	/**
+	 * @template {boolean} Required
+	 * @template {boolean} IgnoreInvalid
+	 * @param {Required} required
+	 * @param {IgnoreInvalid} ignoreInvalid
+	 * @returns {t.Argument<Required, false, IgnoreInvalid>}
+	 */
+	function mkArgument(required, ignoreInvalid) {
+		const getArgument =
+			/** @type {t.Argument<Required, false, IgnoreInvalid>} */ (
+				/** @type {unknown} */ (
+					/** @param {...t.PrimitiveType} types */
+					(...types) => {
+						const arg = unusedArguments[0];
+						if (arg === undefined) {
+							if (!required) {
+								return undefined;
+							}
+
+							throw new KdlDeserializeError(`Missing argument`, {
+								location: node,
+							});
+						}
+						const value = arg.getValue();
+
+						if (types.length && !hasValidType(types, value)) {
+							if (ignoreInvalid) {
+								return undefined;
+							}
+
+							throw new KdlDeserializeError(
+								`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+								{location: arg},
+							);
+						}
+
+						unusedArguments.shift();
+						return value;
+					}
+				)
+			);
+
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getArgument.enum = (...enumValues) => {
 			const arg = unusedArguments[0];
 			if (arg === undefined) {
-				return undefined;
-			}
-			const value = arg.getValue();
-
-			if (types.length && !hasValidType(types, value)) {
-				throw new KdlDeserializeError(
-					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-					{location: arg},
-				);
-			}
-
-			unusedArguments.shift();
-			return value;
-		}
-	);
-
-	argument.if = (...types) => {
-		const arg = unusedArguments[0];
-		if (arg === undefined) {
-			return undefined;
-		}
-		const value = arg.getValue();
-
-		if (!hasValidType(types, value)) {
-			return undefined;
-		}
-
-		unusedArguments.shift();
-		return value;
-	};
-
-	argument.required = /** @type {t.Argument['required'] } */ (
-		/** @param {...t.PrimitiveType} types */
-		(...types) => {
-			const arg = unusedArguments[0];
-			if (arg === undefined) {
-				throw new KdlDeserializeError(`Missing argument`, {location: node});
-			}
-			const value = arg.getValue();
-
-			if (types.length && !hasValidType(types, value)) {
-				throw new KdlDeserializeError(
-					`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-					{location: arg},
-				);
-			}
-
-			unusedArguments.shift();
-			return value;
-		}
-	);
-
-	argument.rest = /** @type {t.Argument["rest"]} */ (
-		/** @param {...t.PrimitiveType} types */ (...types) => {
-			return unusedArguments.splice(0, unusedArguments.length).map((arg) => {
-				const value = arg.getValue();
-
-				if (types.length && !hasValidType(types, value)) {
-					throw new KdlDeserializeError(
-						`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-						{location: arg},
-					);
+				if (!required) {
+					return undefined;
 				}
 
-				return value;
+				throw new KdlDeserializeError(`Missing argument`, {
+					location: node,
+				});
+			}
+			const value = arg.getValue();
+
+			if (!enumValues.includes(value)) {
+				if (ignoreInvalid) {
+					return undefined;
+				}
+
+				throw new KdlDeserializeError(
+					`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+					{location: arg},
+				);
+			}
+
+			unusedArguments.shift();
+			return value;
+		};
+
+		let restBuilder;
+		Object.defineProperty(getArgument, "rest", {
+			get() {
+				return (restBuilder ??= mkRestArgument(required, ignoreInvalid));
+			},
+		});
+
+		if (!required) {
+			let requiredBuilder;
+			Object.defineProperty(getArgument, "required", {
+				get() {
+					return (requiredBuilder ??= mkArgument(true, ignoreInvalid));
+				},
 			});
 		}
-	);
+
+		if (!ignoreInvalid) {
+			let ifBuilder;
+			Object.defineProperty(getArgument, "if", {
+				get() {
+					return (ifBuilder ??= mkArgument(required, true));
+				},
+			});
+		}
+
+		return getArgument;
+	}
+
+	/**
+	 * @template {boolean} Required
+	 * @template {boolean} IgnoreInvalid
+	 * @param {Required} required
+	 * @param {IgnoreInvalid} ignoreInvalid
+	 * @returns {t.Argument<Required, true, IgnoreInvalid>}
+	 */
+	function mkRestArgument(required, ignoreInvalid) {
+		const getArgument =
+			/** @type {t.Argument<Required, true, IgnoreInvalid>} */ (
+				/** @param {...t.PrimitiveType} types */
+				(...types) => {
+					if (required) {
+						throw new KdlDeserializeError(`Missing argument`, {location: node});
+					}
+
+					return unusedArguments
+						.splice(0, unusedArguments.length)
+						.flatMap((arg) => {
+							const value = arg.getValue();
+
+							if (types.length && !hasValidType(types, value)) {
+								if (ignoreInvalid) {
+									unusedArguments.push(arg);
+									return [];
+								}
+
+								throw new KdlDeserializeError(
+									`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+									{location: arg},
+								);
+							}
+
+							return [value];
+						});
+				}
+			);
+
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getArgument.enum = (...enumValues) => {
+			if (required && unusedArguments.length === 0) {
+				throw new KdlDeserializeError(`Missing argument`, {location: node});
+			}
+
+			return unusedArguments
+				.splice(0, unusedArguments.length)
+				.flatMap((arg) => {
+					const value = arg.getValue();
+
+					if (!enumValues.includes(value)) {
+						if (ignoreInvalid) {
+							unusedArguments.push(arg);
+							return [];
+						}
+
+						throw new KdlDeserializeError(
+							`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+							{location: arg},
+						);
+					}
+
+					return [value];
+				});
+		};
+
+		if (!required) {
+			let requiredBuilder;
+			Object.defineProperty(getArgument, "required", {
+				get() {
+					return (requiredBuilder ??= mkRestArgument(true, ignoreInvalid));
+				},
+			});
+		}
+
+		if (!ignoreInvalid) {
+			let ifBuilder;
+			Object.defineProperty(getArgument, "if", {
+				get() {
+					return (ifBuilder ??= mkRestArgument(required, true));
+				},
+			});
+		}
+
+		return getArgument;
+	}
 
 	return [
-		argument,
+		mkArgument(false, false),
 		() => {
 			if (unusedArguments.length) {
 				throw new KdlDeserializeError(
@@ -157,81 +267,205 @@ function makeProperty(node) {
 			.map((entry) => [/** @type {string} */ (entry.getName()), entry]),
 	);
 
-	const property = /** @type {t.Property} */ (
-		/**
-		 * @param {string} name
-		 * @param {...t.PrimitiveType} types
-		 */
-		(name, ...types) => {
+	/**
+	 * @template {boolean} Required
+	 * @template {boolean} IgnoreInvalid
+	 * @param {Required} required
+	 * @param {IgnoreInvalid} ignoreInvalid
+	 * @returns {t.Property<Required, IgnoreInvalid>}
+	 */
+	function mkProperty(required, ignoreInvalid) {
+		const getProperty = /** @type {t.Property<Required, IgnoreInvalid>} */ (
+			/** @type {unknown} */ (
+				/**
+				 * @param {string} name
+				 * @param {...t.PrimitiveType} types
+				 */
+				(name, ...types) => {
+					const prop = unusedProperties.get(name);
+					if (prop === undefined) {
+						if (!required) {
+							return prop;
+						}
+
+						throw new KdlDeserializeError(`Missing property ${name}`, {
+							location: node,
+						});
+					}
+					const value = prop.getValue();
+
+					if (types.length && !hasValidType(types, value)) {
+						if (ignoreInvalid) {
+							return undefined;
+						}
+
+						throw new KdlDeserializeError(
+							`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+							{location: prop},
+						);
+					}
+
+					unusedProperties.delete(name);
+					return value;
+				}
+			)
+		);
+
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getProperty.enum = (name, ...enumValues) => {
 			const prop = unusedProperties.get(name);
 			if (prop === undefined) {
-				return prop;
-			}
-			const value = prop.getValue();
+				if (!required) {
+					return prop;
+				}
 
-			if (types.length && !hasValidType(types, value)) {
-				throw new KdlDeserializeError(
-					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-					{location: prop},
-				);
-			}
-
-			unusedProperties.delete(name);
-			return value;
-		}
-	);
-
-	property.if = (name, ...types) => {
-		const prop = unusedProperties.get(name);
-		if (prop === undefined) {
-			return prop;
-		}
-		const value = prop.getValue();
-
-		if (!hasValidType(types, value)) {
-			return undefined;
-		}
-
-		unusedProperties.delete(name);
-		return value;
-	};
-
-	property.required = /** @type {t.Property['required'] } */ (
-		/**
-		 * @param {string} name
-		 * @param {...t.PrimitiveType} types
-		 */
-		(name, ...types) => {
-			const prop = unusedProperties.get(name);
-			if (prop === undefined) {
 				throw new KdlDeserializeError(`Missing property ${name}`, {
 					location: node,
 				});
 			}
 			const value = prop.getValue();
 
-			if (types.length && !hasValidType(types, value)) {
+			if (!enumValues.includes(value)) {
+				if (ignoreInvalid) {
+					return undefined;
+				}
+
 				throw new KdlDeserializeError(
-					`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+					`Expected property ${name} to be onf of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
 					{location: prop},
 				);
 			}
 
 			unusedProperties.delete(name);
 			return value;
-		}
-	);
+		};
 
-	property.rest = () => {
-		const result = new Map(
-			Array.from(unusedProperties, ([name, prop]) => [name, prop.getValue()]),
+		let restBuilder;
+		Object.defineProperty(getProperty, "rest", {
+			get() {
+				return (restBuilder ??= mkRestProperties(required, ignoreInvalid));
+			},
+		});
+
+		if (!required) {
+			let requiredBuilder;
+			Object.defineProperty(getProperty, "required", {
+				get() {
+					return (requiredBuilder ??= mkProperty(true, ignoreInvalid));
+				},
+			});
+		}
+
+		if (!ignoreInvalid) {
+			let ifBuilder;
+			Object.defineProperty(getProperty, "if", {
+				get() {
+					return (ifBuilder ??= mkProperty(required, true));
+				},
+			});
+		}
+
+		return getProperty;
+	}
+
+	/**
+	 * @template {boolean} Required
+	 * @template {boolean} IgnoreInvalid
+	 * @param {Required} required
+	 * @param {IgnoreInvalid} ignoreInvalid
+	 * @returns {t.RestProperty<Required, IgnoreInvalid>}
+	 */
+	function mkRestProperties(required, ignoreInvalid) {
+		const getProperty = /** @type {t.RestProperty<Required, IgnoreInvalid>} */ (
+			/** @type {unknown} */ (
+				/** @param {...t.PrimitiveType} types */
+				(...types) => {
+					if (required && unusedProperties.size === 0) {
+						throw new KdlDeserializeError(`Missing properties`, {
+							location: node,
+						});
+					}
+
+					const result = [...unusedProperties];
+					unusedProperties.clear();
+
+					return new Map(
+						result.flatMap(([name, prop]) => {
+							const value = prop.getValue();
+
+							if (types.length && !hasValidType(types, value)) {
+								if (ignoreInvalid) {
+									unusedProperties.set(name, prop);
+									return [];
+								}
+
+								throw new KdlDeserializeError(
+									`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+									{location: prop},
+								);
+							}
+
+							return [[name, value]];
+						}),
+					);
+				}
+			)
 		);
-		unusedProperties.clear();
-		return result;
-	};
+
+		getProperty.enum = (...enumValues) => {
+			if (required && unusedProperties.size === 0) {
+				throw new KdlDeserializeError(`Missing properties`, {
+					location: node,
+				});
+			}
+
+			const result = [...unusedProperties];
+			unusedProperties.clear();
+
+			return new Map(
+				result.flatMap(([name, prop]) => {
+					const value = prop.getValue();
+
+					if (!enumValues.includes(value)) {
+						if (ignoreInvalid) {
+							unusedProperties.set(name, prop);
+							return [];
+						}
+
+						throw new KdlDeserializeError(
+							`Expected property ${name} to be one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+							{location: prop},
+						);
+					}
+
+					return [[name, value]];
+				}),
+			);
+		};
+
+		if (!required) {
+			let requiredBuilder;
+			Object.defineProperty(getProperty, "required", {
+				get() {
+					return (requiredBuilder ??= mkProperty(true, ignoreInvalid));
+				},
+			});
+		}
+
+		if (!ignoreInvalid) {
+			let ifBuilder;
+			Object.defineProperty(getProperty, "if", {
+				get() {
+					return (ifBuilder ??= mkProperty(required, true));
+				},
+			});
+		}
+
+		return getProperty;
+	}
 
 	return [
-		property,
+		mkProperty(false, false),
 		() => {
 			if (unusedProperties.size) {
 				throw new KdlDeserializeError(
@@ -255,99 +489,72 @@ function makeProperty(node) {
 function makeChildren(node) {
 	const unusedChildren = new Set(node.children?.nodes);
 
-	const child = /** @type {t.Child} */ (
-		(name, deserializer, ...parameters) => {
-			for (const child of unusedChildren) {
-				if (child.getName() !== name) {
-					continue;
+	/**
+	 * @template {boolean} Required
+	 * @template {boolean} Single
+	 * @param {Required} required
+	 * @param {Single} single
+	 * @returns {t.Child<Required, Single>}
+	 */
+	function mkChild(required, single) {
+		const getChild = /** @type {t.Child<Required, Single>} */ (
+			(name, deserializer, ...parameters) => {
+				let result;
+				let foundMatch = false;
+
+				for (const child of unusedChildren) {
+					if (child.getName() !== name) {
+						continue;
+					}
+
+					if (foundMatch) {
+						throw new KdlDeserializeError(
+							`Expected a single child called ${JSON.stringify(name)} but found multiple`,
+							{location: child},
+						);
+					}
+
+					foundMatch = true;
+					result = deserialize(child, deserializer, ...parameters);
+					unusedChildren.delete(child);
+
+					if (!single) {
+						// we can stop here, no need to continue looking for other children with the same name
+						return result;
+					}
 				}
 
-				unusedChildren.delete(child);
-				return deserialize(child, deserializer, ...parameters);
-			}
-
-			return undefined;
-		}
-	);
-
-	child.single = /** @type {t.Child['single']} */ (
-		(name, deserializer, ...parameters) => {
-			let result;
-			let foundMatch = false;
-
-			for (const child of unusedChildren) {
-				if (child.getName() !== name) {
-					continue;
-				}
-
-				if (foundMatch) {
+				if (required && !foundMatch) {
 					throw new KdlDeserializeError(
-						`Expected a single child called ${JSON.stringify(name)} but found multiple`,
-						{location: child},
+						`Expected a child called ${JSON.stringify(name)} but found none`,
+						{location: node},
 					);
 				}
 
-				foundMatch = true;
-				result = deserialize(child, deserializer, ...parameters);
-				unusedChildren.delete(child);
+				return result;
 			}
+		);
 
-			return result;
-		}
-	);
-
-	child.required = /** @type {t.Child['required']} */ (
-		(name, deserializer, ...parameters) => {
-			for (const child of unusedChildren) {
-				if (child.getName() !== name) {
-					continue;
-				}
-
-				unusedChildren.delete(child);
-				return deserialize(child, deserializer, ...parameters);
-			}
-
-			throw new KdlDeserializeError(
-				`Expected a child called ${JSON.stringify(name)} but found none`,
-				{location: node},
-			);
-		}
-	);
-
-	child.single.required = child.required.single = (
-		name,
-		deserializer,
-		...parameters
-	) => {
-		let result;
-		let foundMatch = false;
-
-		for (const child of unusedChildren) {
-			if (child.getName() !== name) {
-				continue;
-			}
-
-			if (foundMatch) {
-				throw new KdlDeserializeError(
-					`Expected a single child called ${JSON.stringify(name)} but found multiple`,
-					{location: child},
-				);
-			}
-
-			foundMatch = true;
-			result = deserialize(child, deserializer, ...parameters);
-			unusedChildren.delete(child);
+		if (!required) {
+			let requiredChild;
+			Object.defineProperty(getChild, "required", {
+				get() {
+					return (requiredChild ??= mkChild(true, single));
+				},
+			});
 		}
 
-		if (!foundMatch) {
-			throw new KdlDeserializeError(
-				`Expected a child called ${JSON.stringify(name)} but found none`,
-				{location: node},
-			);
+		if (!single) {
+			let singleChild;
+			Object.defineProperty(getChild, "single", {
+				get() {
+					return (singleChild ??= mkChild(required, true));
+				},
+			});
 		}
 
-		return /** @type {any} */ (result);
-	};
+		return getChild;
+	}
 
 	const children = /** @type {t.Children} */ (
 		(name, deserializer, ...parameters) => {
@@ -473,7 +680,7 @@ function makeChildren(node) {
 	};
 
 	return [
-		child,
+		mkChild(false, false),
 		children,
 		() => {
 			if (unusedChildren.size) {

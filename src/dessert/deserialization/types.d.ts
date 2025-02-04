@@ -54,11 +54,38 @@ export type Deserializer<T, P extends unknown[] = []> =
 export type Deserialized<T extends Deserializer<unknown, any[]>> =
 	T extends Deserializer<infer V, any[]> ? V : never;
 
-export interface Argument {
+/**
+ * Return type of the {@link DeserializationContext}'s argument
+ *
+ * The actual type depends on whether you're using `ctx.argument()`
+ * with or without `.if`, `.required`, and/or `.rest`.
+ */
+export type ArgumentReturnType<
+	T,
+	Required extends boolean,
+	ReturnMultiple extends boolean,
+	IgnoreInvalid extends boolean = false,
+> =
+	ReturnMultiple extends false ?
+		| T
+		| (Required extends false ? undefined : never)
+		| (IgnoreInvalid extends true ? undefined : never)
+	: Required extends true ?
+		IgnoreInvalid extends false ?
+			[T, ...T[]]
+		:	T[]
+	:	T[];
+
+export interface Argument<
+	Required extends boolean = false,
+	ReturnMultiple extends boolean = false,
+	IgnoreInvalid extends boolean = false,
+> {
 	/**
 	 * Return the next argument, if there is a next argument
 	 */
-	(): Primitive | undefined;
+	(): ArgumentReturnType<Primitive, Required, ReturnMultiple>;
+
 	/**
 	 * Return the next argument, if there is a next argument, requiring the argument to be of the given type
 	 *
@@ -66,47 +93,64 @@ export interface Argument {
 	 */
 	<T extends [PrimitiveType, ...PrimitiveType[]]>(
 		...types: T
-	): TypeOf<T> | undefined;
+	): ArgumentReturnType<TypeOf<T>, Required, ReturnMultiple, IgnoreInvalid>;
 
 	/**
-	 * Return the next argument, if there is a next argument and it has a valid type
-	 */
-	if<T extends [PrimitiveType, ...PrimitiveType[]]>(
-		...types: T
-	): TypeOf<T> | undefined;
-
-	/**
-	 * Return the next argument
+	 * Return the next argument, if there is a next argument, requiring the argument to be one of the given enum values
 	 *
-	 * @throws If there is no next argument
+	 * @throws If the next argument does not equal any of the given values
 	 */
-	required(): Primitive;
-	/**
-	 * Return the next argument
-	 *
-	 * @throws If there is no next argument
-	 * @throws If the next argument does not match any of the given types
-	 */
-	required<T extends [PrimitiveType, ...PrimitiveType[]]>(
-		...types: T
-	): TypeOf<T>;
+	enum<T extends Primitive[]>(
+		...values: T
+	): ArgumentReturnType<T[number], Required, ReturnMultiple, IgnoreInvalid>;
 
 	/**
-	 * Return all remaining arguments
+	 * Throw if there is no next argument, rather than return undefined
 	 */
-	rest(): Primitive[];
+	required: Required extends false ?
+		Argument<true, ReturnMultiple, IgnoreInvalid>
+	:	never;
 
 	/**
-	 * Return all remaining arguments
+	 * Return all remaining arguments rather than only the next argument
 	 */
-	rest<T extends [PrimitiveType, ...PrimitiveType[]]>(...types: T): TypeOf<T>[];
+	rest: ReturnMultiple extends false ? Argument<Required, true, IgnoreInvalid>
+	:	never;
+
+	/**
+	 * Return undefined instead of throwing if the next argument doesn't match the given types or enum values
+	 */
+	if: IgnoreInvalid extends false ? Argument<Required, ReturnMultiple, true>
+	:	never;
 }
 
-export interface Property {
+/**
+ * Return type of the {@link DeserializationContext}'s property
+ *
+ * The actual type depends on whether you're using `ctx.property`
+ * with or without `.if`, `.required`, and/or `.rest`.
+ */
+type PropertyReturnType<
+	T,
+	Required extends boolean,
+	ReturnMultiple extends boolean,
+	IgnoreInvalid extends boolean = false,
+> =
+	ReturnMultiple extends false ?
+		| T
+		| (Required extends false ? undefined : never)
+		| (IgnoreInvalid extends true ? undefined : never)
+	:	Map<string, T>;
+
+export interface Property<
+	Required extends boolean = false,
+	IgnoreInvalid extends boolean = false,
+> {
 	/**
 	 * Return the property with the given name if it exists and it hasn't been returned yet
 	 */
-	(name: string): Primitive | undefined;
+	(name: string): PropertyReturnType<Primitive, Required, false>;
+
 	/**
 	 * Return the property with the given name if it exists and it hasn't been returned yet
 	 *
@@ -115,40 +159,76 @@ export interface Property {
 	<T extends [PrimitiveType, ...PrimitiveType[]]>(
 		name: string,
 		...types: T
-	): TypeOf<T> | undefined;
+	): PropertyReturnType<TypeOf<T>, Required, false, IgnoreInvalid>;
 
 	/**
-	 * Return the property with the given name if it exists and it hasn't been returned yet and its value has the correct type
-	 */
-	if<T extends [PrimitiveType, ...PrimitiveType[]]>(
-		name: string,
-		...types: T
-	): TypeOf<T> | undefined;
-
-	/**
-	 * Return the property with the given name
+	 * Return the property with the given name if it exists and it hasn't been returned yet
 	 *
-	 * @throws If the property doesn't exist or it has already been returned
+	 * @throws If the property value does not equal any of the given values
 	 */
-	required(name: string): Primitive;
-	/**
-	 * Return the property with the given name
-	 *
-	 * @throws If the property doesn't exist or it has already been returned
-	 * @throws If the property value does not match any of the given types
-	 */
-	required<T extends [PrimitiveType, ...PrimitiveType[]]>(
+	enum<T extends Primitive[]>(
 		name: string,
-		...types: T
-	): TypeOf<T>;
+		...values: T
+	): PropertyReturnType<T[number], Required, false, IgnoreInvalid>;
 
+	/**
+	 * Throw if there is no property with the given name, rather than return undefined
+	 */
+	required: Required extends false ? Property<true, IgnoreInvalid> : never;
+
+	/**
+	 * Return all remaining properties rather than only a single named property
+	 */
+	rest: RestProperty<Required, IgnoreInvalid>;
+
+	/**
+	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
+	 */
+	if: IgnoreInvalid extends false ? Property<Required, true> : never;
+}
+
+export interface RestProperty<
+	Required extends boolean = false,
+	IgnoreInvalid extends boolean = false,
+> {
 	/**
 	 * Return all remaining properties
 	 */
-	rest(): Map<string, Primitive>;
+	(): PropertyReturnType<Primitive, Required, true>;
+
+	/**
+	 * Return all remaining properties
+	 *
+	 * @throws If any remaining property value does not match any of the given types
+	 */
+	<T extends [PrimitiveType, ...PrimitiveType[]]>(
+		...types: T
+	): PropertyReturnType<TypeOf<T>, Required, true, IgnoreInvalid>;
+
+	/**
+	 * Return all remaining properties
+	 *
+	 * @throws If any remaining property value does not equal any of the given values
+	 */
+	enum<T extends Primitive[]>(
+		...values: T
+	): PropertyReturnType<T[number], Required, true, IgnoreInvalid>;
+
+	/**
+	 * Throw if there is no property with the given name, rather than return undefined
+	 */
+	required: Required extends false ? RestProperty<true, IgnoreInvalid> : never;
+
+	/**
+	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
+	 */
+	if: IgnoreInvalid extends false ? RestProperty<Required, true> : never;
 }
 
-export interface Child {
+export interface Child<
+	Required extends boolean = false,
+	Single extends boolean = false,
+> {
 	/**
 	 * Returns the next child with the given name, if there is any
 	 *
@@ -158,59 +238,17 @@ export interface Child {
 		name: string,
 		deserializer: Deserializer<T, P>,
 		...parameters: P
-	): T | undefined;
+	): T | (Required extends false ? undefined : never);
 
-	required: {
-		/**
-		 * Returns the next child with the given name
-		 *
-		 * @throws If there is no next child with the given name
-		 * @throws If the deserializer fails
-		 */
-		<T, P extends unknown[]>(
-			name: string,
-			deserializer: Deserializer<T, P>,
-			...parameters: P
-		): T;
-		/**
-		 * Returns the next child with the given name and validate that there are no others
-		 *
-		 * @throws If there is no next child with the given name
-		 * @throws If the deserializer fails
-		 * @throws If there are other children left with the given name
-		 */
-		single<T, P extends unknown[]>(
-			name: string,
-			deserializer: Deserializer<T, P>,
-			...parameters: P
-		): T;
-	};
+	/**
+	 * Throw if there is no next child with the given name, instead of returning undefined
+	 */
+	required: Required extends false ? Child<true, Single> : never;
 
-	single: {
-		/**
-		 * Returns the next child with the given name if there is any and validate that there are no others
-		 *
-		 * @throws If the deserializer fails
-		 * @throws If there are other children left with the given name
-		 */
-		<T, P extends unknown[]>(
-			name: string,
-			deserializer: Deserializer<T, P>,
-			...parameters: P
-		): T | undefined;
-		/**
-		 * Returns the next child with the given name and validate that there are no others
-		 *
-		 * @throws If there is no next child with the given name
-		 * @throws If the deserializer fails
-		 * @throws If there are other children left with the given name
-		 */
-		required<T, P extends unknown[]>(
-			name: string,
-			deserializer: Deserializer<T, P>,
-			...parameters: P
-		): T;
-	};
+	/**
+	 * Throw if there are multiple nodes left with the given name
+	 */
+	single: Single extends false ? Child<Required, true> : never;
 }
 
 export interface Children {
