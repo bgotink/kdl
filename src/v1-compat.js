@@ -9,6 +9,8 @@ import {
 import {tokenize as tokenizeV2} from "./parser/tokenize.js";
 import {tokenize as tokenizeV1} from "./parser/tokenize/tokenize-v1.js";
 
+/** @import {format} from './index.js' */
+
 /**
  * Alias for `parse`
  *
