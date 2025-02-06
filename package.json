@@ -20,7 +20,7 @@
 	"type": "module",
 	"private": true,
 	"sideEffects": false,
-	"packageManager": "yarn@4.0.2",
+	"packageManager": "yarn@4.6.0",
 	"exports": {
 		".": "./src/index.js",
 		"./json": "./src/json.js",
@@ -43,13 +43,12 @@
 		"esbuild": "^0.24.2",
 		"express-check-in": "^0.2.0",
 		"husky": "npm:@dot-config/husky@9.1.7-dotconfig.0.1.0",
-		"is-ci": "^3.0.1",
-		"kdljs": "^0.2.0",
-		"marked": "^14.1.2",
+		"is-ci": "^4.1.0",
+		"marked": "^15.0.6",
 		"prettier": "npm:@dot-config/prettier@3.4.2-dotconfig.0.1.0",
 		"typedoc": "^0.27.6",
-		"typedoc-plugin-markdown": "^4.3.3",
-		"typescript": "~5.6.2",
+		"typedoc-plugin-markdown": "^4.4.1",
+		"typescript": "~5.7.3",
 		"uvu": "^0.5.6"
 	}
 }

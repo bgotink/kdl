@@ -1,5 +1,4 @@
 import bench from "benchmark";
-import * as kdljs from "kdljs";
 import * as v1 from "@bgotink/kdl-v1";
 
 import * as self from "../src/index.js";
@@ -38,13 +37,7 @@ node \
 const documentV1 = document.replace(/(\s)(#+")/g, "$1r$2");
 
 // sanity check: assert document parses
-if (kdljs.parse(documentV1).errors?.length)
-	throw new Error("kdljs failed to parse");
 self.parse(document);
-
-suite.add("kdljs #parse", () => {
-	kdljs.parse(documentV1);
-});
 
 suite.add("v1 #parse", () => {
 	v1.parse(documentV1);
