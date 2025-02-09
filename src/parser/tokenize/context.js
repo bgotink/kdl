@@ -39,7 +39,7 @@ function iterateCodePoints(text) {
  * @prop {number} current
  * @prop {Location} start
  * @prop {boolean} graphemeLocations
- * @prop {Error[] | null} errorsInToken
+ * @prop {InvalidKdlError[] | null} errorsInToken
  */
 
 /**
