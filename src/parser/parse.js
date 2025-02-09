@@ -795,7 +795,7 @@ export function parseBaseNode(ctx) {
 	/** @type {Entry[]} */
 	const entries = [];
 
-	while (space || slashdash) {
+	while (endsOnWhitespace || slashdash) {
 		const start = ctx.lastToken.end;
 
 		const _entry = parseNodePropOrArg(ctx);
@@ -804,7 +804,7 @@ export function parseBaseNode(ctx) {
 		}
 
 		if (slashdash) {
-			endsOnWhitespace = parseNodeSpace(ctx) != null;
+			endsOnWhitespace = (_entry[1] || parseNodeSpace(ctx)) != null;
 			space = concatenate(
 				space,
 				slashdash,

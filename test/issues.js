@@ -81,4 +81,8 @@ test("issue #9: unicode escapes", () => {
 	);
 });
 
+test("issue: accept missing whitespace", () => {
+	assert.throws(() => parse('node /- "arg"2'));
+});
+
 test.run();
