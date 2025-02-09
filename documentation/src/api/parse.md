@@ -25,6 +25,16 @@ assert(
 );
 ```
 
+## Errors
+
+The `parse` function throws [`InvalidKdlError`s](./reference/index/classes/InvalidKdlError.md) when an error occurs.
+The parser tries to recover from many errors so it can provide as much feedback as possible in a single run.
+This greatly helps when using the parser to provide feedback to the human author of a KDL document, as you can provide them with multiple mistakes in a single go instaed of showing only the first error every single time.
+
+A single `InvalidKdlError` object might describe multiple actual errors in the document.
+The `getDetails()` method returns an iterator that yields every KDL error contained within the error.
+If the error doesn't have any more details, the `getDetails()` iterator only yields the error itself..
+
 ## Locations
 
 Setting the `storeLocations` option to `true` makes location information available in the [`getLocation`][getLocation] function.

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import {test} from "uvu";
 
-import {clearFormat, Entry, Node, parse} from "../src/index.js";
+import {
+	clearFormat,
+	Entry,
+	InvalidKdlError,
+	Node,
+	parse,
+} from "../src/index.js";
 
 test("issue #1: leading/trailing whitespace", () => {
 	assert.deepEqual(
@@ -53,8 +59,8 @@ test("issue #8: escaped surrogates", () => {
 			);
 		},
 		(err) => {
-			assert(err instanceof AggregateError);
-			assert.equal(err.errors.length, 7);
+			assert(err instanceof InvalidKdlError);
+			assert.equal(err.errors?.length, 7);
 
 			for (let i = 0; i < 7; i++) {
 				assert.match(

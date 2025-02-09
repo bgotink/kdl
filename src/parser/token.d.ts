@@ -1,3 +1,5 @@
+import {InvalidKdlError} from "../error.js";
+
 /**
  * A location in the source text
  */
@@ -62,5 +64,5 @@ export interface Token {
 	 *
 	 * @hidden
 	 */
-	errors: Error[] | null;
+	errors: InvalidKdlError[] | null;
 }

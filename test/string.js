@@ -5,6 +5,7 @@ import {
 	Document,
 	Entry,
 	Identifier,
+	InvalidKdlError,
 	Node,
 	clearFormat,
 	parse,
@@ -124,8 +125,8 @@ test("multiple errors", () => {
 				this """
 			`),
 		(error) => {
-			assert(error instanceof AggregateError);
-			assert.equal(error.errors.length, 4);
+			assert(error instanceof InvalidKdlError);
+			assert.equal(error.errors?.length, 4);
 			// Include line numbers so a failure shows which error is missing,
 			// don't include columns so reformatting this file doesn't make this test fail.
 			assert.match(

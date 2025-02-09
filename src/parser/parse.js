@@ -44,7 +44,7 @@ import {
  * @prop {Iterator<Token, void>} tokens
  * @prop {Token} lastToken
  * @prop {boolean} storeLocations
- * @prop {Error[]} errors
+ * @prop {InvalidKdlError[]} errors
  */
 
 /** @param {ParserCtx} ctx */
@@ -145,13 +145,30 @@ export function finalize(ctx, fatalError) {
 		);
 	}
 
-	if (fatalError != null || ctx.errors.length) {
-		const errors = fatalError ? [...ctx.errors, fatalError] : ctx.errors;
+	const errors = ctx.errors ?? [];
 
+	if (fatalError != null) {
+		if (fatalError instanceof InvalidKdlError) {
+			if (fatalError.errors) {
+				errors.push(...fatalError.errors);
+			} else {
+				errors.push(fatalError);
+			}
+		} else {
+			errors.push(
+				new InvalidKdlError(
+					`An unexpected error occurred, ${String(fatalError)}, this is likely a bug in the KDL parser`,
+					{cause: fatalError},
+				),
+			);
+		}
+	}
+
+	if (errors.length) {
 		if (errors.length === 1) {
 			throw errors[0];
 		} else {
-			throw new AggregateError(errors);
+			throw new InvalidKdlError("Encountered multiple errors", {errors});
 		}
 	}
 }

@@ -36,13 +36,24 @@ export class InvalidKdlError extends Error {
 	token;
 
 	/**
-	 * @param {string} message
-	 * @param {ErrorOptions & {token?: Token; start?: Location; end?: Location}} [options]
+	 * Collection of more specific errors
+	 *
+	 * If this property is present, then the message of this error will be something generic and
+	 * the errors in this property will contain more useful information.
+	 *
+	 * @readonly
+	 * @type {InvalidKdlError[]=}
 	 */
-	constructor(message, options) {
-		const token = options?.token;
-		const start = options?.start ?? token?.start;
+	errors;
 
+	/**
+	 * @param {string} message
+	 * @param {ErrorOptions & {token?: Token; start?: Location; end?: Location; errors?: InvalidKdlError[]}} [options]
+	 */
+	constructor(
+		message,
+		{token, start = token?.start, end = token?.end, errors, ...options} = {},
+	) {
 		if (token?.type === T_EOF) {
 			message = `${message} at end of input`;
 		} else if (start) {
@@ -53,7 +64,27 @@ export class InvalidKdlError extends Error {
 
 		this.token = token;
 		this.start = start;
-		this.end = options?.end ?? token?.end;
+		this.end = end;
+		this.errors = errors;
+	}
+
+	/**
+	 * Returns an iterable for the details of this error
+	 *
+	 * If this error contains more detailed errors, this iterable yields those detailed errors.
+	 * If this error doesn't have more detailed errors, this iterable yields this error itself.
+	 *
+	 * @returns {Generator<InvalidKdlError, void, void>}
+	 */
+	*getDetails() {
+		if (this.errors == null) {
+			yield this;
+			return;
+		}
+
+		for (const error of this.errors) {
+			yield* error.getDetails();
+		}
 	}
 }
 
@@ -91,10 +122,10 @@ export class InvalidKdlQueryError extends Error {
 	 * @param {string} message
 	 * @param {ErrorOptions & {token?: Token; start?: Location; end?: Location}} [options]
 	 */
-	constructor(message, options) {
-		const token = options?.token;
-		const start = options?.start ?? token?.start;
-
+	constructor(
+		message,
+		{token, start = token?.start, end = token?.end, ...options} = {},
+	) {
 		if (token?.type === T_EOF) {
 			message = `${message} at end of input`;
 		} else if (start) {
@@ -105,6 +136,6 @@ export class InvalidKdlQueryError extends Error {
 
 		this.token = token;
 		this.start = start;
-		this.end = options?.end ?? token?.end;
+		this.end = end;
 	}
 }
