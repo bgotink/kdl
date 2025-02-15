@@ -2,16 +2,25 @@
 	"compilerOptions": {
 		"allowJs": true,
 		"checkJs": true,
-		"noEmit": true,
+
+		"target": "es2022",
 		"lib": ["es2022"],
 		"module": "Node16",
 		"moduleResolution": "Node16",
-		"target": "es2022",
+
 		"strict": true,
-		"paths": {
-			"@bgotink/kdl": ["./src/index.js"]
-		},
-		"types": ["node"]
+
+		"declaration": true,
+		"emitDeclarationOnly": true,
+		"rootDir": "src",
+		"outDir": "out"
 	},
-	"include": ["src/**/*.js", "src/**/*.d.ts", "test/*.js", "test/dessert/*.js"]
+	"files": [
+		"src/index.js",
+		"src/json.js",
+		"src/v1-compat.js",
+		"src/dessert.js"
+	],
+	"include": ["src/**/*"],
+	"exclude": ["test/**/*"]
 }

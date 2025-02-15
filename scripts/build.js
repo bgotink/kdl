@@ -21,7 +21,7 @@ mkdirSync("out");
 
 // TypeScript
 
-execSync("tsc -p tsconfig.compile.json");
+execSync("tsc -p tsconfig.json");
 
 // JavaScript
 

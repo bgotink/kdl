@@ -1,4 +1,4 @@
-import {Document, Entry, Node} from "@bgotink/kdl";
+import {Document, Entry, Node} from "./index.js";
 
 /**
  * Error thrown when encountering invalid JSON-in-KDL

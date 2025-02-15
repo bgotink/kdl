@@ -737,10 +737,10 @@ export function deserialize(node, deserializer, ...parameters) {
 			if (e instanceof KdlDeserializeError) {
 				throw e;
 			} else {
-				throw new KdlDeserializeError(
-					`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
-					{location: node, cause: e},
-				);
+				throw new KdlDeserializeError(`Deserializer failed: ${String(e)}`, {
+					location: node,
+					cause: e,
+				});
 			}
 		}
 	}
@@ -809,10 +809,10 @@ export function deserialize(node, deserializer, ...parameters) {
 			if (e instanceof KdlDeserializeError) {
 				throw e;
 			} else {
-				throw new KdlDeserializeError(
-					`Deserializer failed: ${e instanceof Error ? e.message : String(e)}`,
-					{location: node, cause: e},
-				);
+				throw new KdlDeserializeError(`Deserializer failed: ${String(e)}`, {
+					location: node,
+					cause: e,
+				});
 			}
 		}
 	};

@@ -10,7 +10,7 @@ export class InvalidJsonInKdlError extends Error {
  * @typedef {object} ToJsonOptions
  * @prop {boolean} [ignoreValues]
  * @prop {string} [type]
- * @prop {(value: unknown, key: string | number, data: {location: Node | import('@bgotink/kdl').Entry}) => unknown} [reviver]
+ * @prop {(value: unknown, key: string | number, data: {location: Node | import('./index.js').Entry}) => unknown} [reviver]
  */
 
 /**
