@@ -4,9 +4,11 @@ import {test} from "uvu";
 import {
 	clearFormat,
 	Entry,
+	format,
 	InvalidKdlError,
 	Node,
 	parse,
+	Value,
 } from "../src/index.js";
 
 test("issue #1: leading/trailing whitespace", () => {
@@ -83,6 +85,13 @@ test("issue #9: unicode escapes", () => {
 
 test("issue: accept missing whitespace", () => {
 	assert.throws(() => parse('node /- "arg"2'));
+});
+
+test("issue kdl-org/kdl#502: formatting outputs invalid raw unicode data", () => {
+	assert.equal(
+		format(new Value("\u0002, \u200e, and \u200f")),
+		String.raw`"\u{02}, \u{200e}, and \u{200f}"`,
+	);
 });
 
 test.run();

@@ -1,6 +1,6 @@
 import {InvalidKdlError} from "./index.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
-import {isValidBareIdentifier} from "./string-utils.js";
+import {stringifyString} from "./string-utils.js";
 
 const reStartsWithInlineWhitespace =
 	/^[\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/;
@@ -42,9 +42,7 @@ function formatValue(value) {
 		if (typeof value.value === "boolean" || value.value === null) {
 			representation = `#${value.value}`;
 		} else if (typeof value.value === "string") {
-			if (isValidBareIdentifier(value.value)) {
-				representation = value.value;
-			}
+			representation = stringifyString(value.value);
 		} else if (typeof value.value === "number") {
 			if (Number.isNaN(value.value)) {
 				representation = "#nan";
@@ -73,11 +71,7 @@ function formatIdentifier(identifier) {
 		return identifier.representation;
 	}
 
-	if (isValidBareIdentifier(identifier.name)) {
-		return identifier.name;
-	}
-
-	return JSON.stringify(identifier.name);
+	return stringifyString(identifier.name);
 }
 
 /**

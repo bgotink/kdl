@@ -10,33 +10,88 @@ import {
 /** @import {ParserCtx} from "./parser/parse.js" */
 /** @import {Location, Token} from "./parser/token.js" */
 
-/** @param {string} identifier */
-export function isValidBareIdentifier(identifier) {
-	// no values that can be confused with keywords
-	if (
-		identifier === "true" ||
-		identifier === "false" ||
-		identifier === "null" ||
-		identifier === "inf" ||
-		identifier === "-inf" ||
-		identifier === "nan"
-	) {
-		return false;
-	}
+const escapedCodePointsInStringify = new Map([
+	// Unicode that is not allowed in KDL documents:
+	...Array.from(
+		{length: 0x20},
+		(_, codePoint) =>
+			/** @type {[number, string]} */ ([
+				codePoint,
+				`\\u{${codePoint.toString(16).padStart(2, "0")}}`,
+			]),
+	),
+	[0x7f, "\\u{7f}"],
+	[0x200e, "\\u{200e}"],
+	[0x200f, "\\u{200f}"],
+	[0x202a, "\\u{202a}"],
+	[0x202b, "\\u{202b}"],
+	[0x202c, "\\u{202c}"],
+	[0x202d, "\\u{202d}"],
+	[0x202e, "\\u{202e}"],
+	[0x2066, "\\u{2066}"],
+	[0x2067, "\\u{2067}"],
+	[0x2068, "\\u{2068}"],
+	[0x2069, "\\u{2069}"],
+	[0xfeff, "\\u{feff}"], // BOM
 
-	// no empty strings
-	if (identifier === "") {
-		return false;
-	}
+	[0x22, '\\"'],
+	[0x5c, "\\\\"],
 
-	for (const part of identifier) {
-		const c = /** @type {number} */ (part.codePointAt(0));
-		if (isInvalidCharacter(c) || !isIdentifierChar(c)) {
-			return false;
+	// Newlines have to be escaped...
+	[0x0a, "\\n"],
+	[0x0b, "\\u{0b}"],
+	[0x0c, "\\f"],
+	[0x0d, "\\r"],
+	[0x85, "\\u{85}"],
+	[0x2028, "\\u{2028}"],
+	[0x2029, "\\u{2029}"],
+
+	// Other named escapes
+	[0x08, "\\b"],
+	[0x09, "\\t"],
+]);
+
+/**
+ * @param {string} string
+ */
+export function stringifyString(string) {
+	let isValidBareIdentifier = !(
+		string === "" ||
+		string === "true" ||
+		string === "false" ||
+		string === "null" ||
+		string === "inf" ||
+		string === "-inf" ||
+		string === "nan" ||
+		/^[+-]?\.?[0-9]/.test(string)
+	);
+
+	let stringified = '"';
+
+	for (const part of string) {
+		const codePoint = /** @type {number} */ (part.codePointAt(0));
+
+		const escape = escapedCodePointsInStringify.get(codePoint);
+		if (escape) {
+			isValidBareIdentifier = false;
+			stringified += escape;
+		} else if (isInvalidCharacter(codePoint)) {
+			throw new InvalidKdlError(
+				`Codepoint \\u{${codePoint.toString(16)}} cannot be present in a KDL string, even escaped in its \\u{} form`,
+			);
+		} else {
+			if (!isIdentifierChar(codePoint)) {
+				isValidBareIdentifier = false;
+			}
+			stringified += part;
 		}
 	}
 
-	return !/^[+-]?\.?[0-9]/.test(identifier);
+	if (isValidBareIdentifier) {
+		return string;
+	}
+
+	return stringified + '"';
 }
 
 const escapedValues = new Map([

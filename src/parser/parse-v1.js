@@ -1,7 +1,7 @@
 import {format} from "../format.js";
 import {storeLocation as _storeLocation} from "../locations.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "../model.js";
-import {isValidBareIdentifier, reNewline} from "../string-utils.js";
+import {reNewline, stringifyString} from "../string-utils.js";
 
 /** @import {ParserCtx} from "./parse.js"; */
 /** @import {Token} from "./token.js" */
@@ -168,11 +168,7 @@ function parseIdentifier(ctx) {
 
 	let token = consume(ctx, T_IDENTIFIER_STRING);
 	if (token) {
-		name = [
-			token.text,
-			isValidBareIdentifier(token.text) ? token.text : `"${token.text}"`,
-			token,
-		];
+		name = [token.text, stringifyString(token.text), token];
 	} else {
 		name = _parseString(ctx);
 	}
