@@ -14,7 +14,55 @@ function formatTag(tag) {
 		return "";
 	}
 
-	return `(${tag.leading ?? ""}${formatIdentifier(tag)}${tag.trailing ?? ""})`;
+	let representation;
+	if (tag.representation?.[0] === "#") {
+		// This was a suffix tag but is now used where a suffix is not allowed,
+		// so force reformat
+		representation = stringifyString(tag.name);
+	} else {
+		representation = formatIdentifier(tag);
+	}
+
+	return `(${tag.leading ?? ""}${representation}${tag.trailing ?? ""})`;
+}
+
+/**
+ * @param {string} valueRepresentation
+ * @param {Tag} tag
+ * @returns {string?}
+ */
+function formatTagAsSuffix(valueRepresentation, tag) {
+	let representation = tag.representation;
+	if (!representation) {
+		representation = stringifyString(tag.name);
+	}
+
+	if (
+		representation[0] === '"' ||
+		(representation.startsWith("#") && representation.endsWith("#"))
+	) {
+		// only bare identifiers are allowed as suffix
+		return null;
+	}
+
+	let useHash = false;
+
+	if (representation?.[0] === "#") {
+		useHash = true;
+		representation = representation.slice(1);
+	}
+
+	if (!useHash) {
+		useHash =
+			valueRepresentation.startsWith("0b") ||
+			valueRepresentation.startsWith("0o") ||
+			valueRepresentation.startsWith("0x") ||
+			/^[,._]|^[a-zA-Z][0-9_]|^[eE][+-][0-9_]|[xX][a-fA-F]/.test(
+				representation,
+			);
+	}
+
+	return useHash ? "#" + representation : representation;
 }
 
 /**
@@ -54,6 +102,18 @@ function formatValue(value) {
 
 	if (representation == null) {
 		representation = JSON.stringify(value.value);
+	}
+
+	if (
+		value.tag?.suffix &&
+		typeof value.value === "number" &&
+		representation[0] !== "#"
+	) {
+		// A tag can be shown as suffix on numbers (but not on the few keyword numbers)
+		const tagRepresentation = formatTagAsSuffix(representation, value.tag);
+		if (tagRepresentation) {
+			return representation + tagRepresentation;
+		}
 	}
 
 	return (

@@ -18,7 +18,7 @@ import {
 	T_ESCLINE,
 	T_IDENTIFIER_STRING,
 	T_INLINE_WHITESPACE,
-	T_KEYWORD,
+	T_KEYWORD_OR_HASHED_IDENT,
 	T_NEWLINE,
 	T_NUMBER_BINARY,
 	T_NUMBER_DECIMAL,
@@ -54,7 +54,7 @@ function parseNonStringValue(ctx) {
 		case T_NUMBER_HEXADECIMAL:
 			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 16);
 			break;
-		case T_KEYWORD:
+		case T_KEYWORD_OR_HASHED_IDENT:
 			text = "#" + text;
 			switch (token.text) {
 				case "null":

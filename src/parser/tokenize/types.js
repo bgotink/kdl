@@ -13,7 +13,7 @@ export const T_RAW_STRING = 10;
 export const T_IDENTIFIER_STRING = 11;
 
 export const T_EQUALS = 12;
-export const T_KEYWORD = 13;
+export const T_KEYWORD_OR_HASHED_IDENT = 13;
 
 export const T_NUMBER_HEXADECIMAL = 14;
 export const T_NUMBER_DECIMAL = 15;
@@ -34,6 +34,8 @@ export const T_OPEN_SQUARE = 25;
 export const T_CLOSE_SQUARE = 26;
 
 export const T_QUERY_OPERATOR = 27;
+
+export const T_NUMBER_WITH_SUFFIX = 28;
 
 /** @param {number} codePoint  */
 export function isUnicodeSpace(codePoint) {
@@ -120,6 +122,15 @@ export function isIdentifierChar(codePoint) {
 		codePoint !== 0x22 && // "
 		codePoint !== 0x23 && // #
 		true
+	);
+}
+
+/** @param {number} codePoint */
+export function isAlpha(codePoint) {
+	return (
+		(codePoint >= 0x41 && codePoint < 0x5b) || // A-Z
+		(codePoint >= 0x61 && codePoint < 0x7b) || // a-Z
+		false
 	);
 }
 

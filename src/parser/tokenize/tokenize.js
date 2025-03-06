@@ -9,6 +9,7 @@ import {
 	pop,
 	pushError,
 	zerOrMore,
+	zerOrMoreCodePoint,
 } from "./context.js";
 import {
 	T_CLOSE_BRACE,
@@ -20,7 +21,7 @@ import {
 	T_ESCLINE,
 	T_IDENTIFIER_STRING,
 	T_INLINE_WHITESPACE,
-	T_KEYWORD,
+	T_KEYWORD_OR_HASHED_IDENT,
 	T_MULTILINE_QUOTED_STRING,
 	T_MULTILINE_RAW_STRING,
 	T_NEWLINE,
@@ -28,12 +29,14 @@ import {
 	T_NUMBER_DECIMAL,
 	T_NUMBER_HEXADECIMAL,
 	T_NUMBER_OCTAL,
+	T_NUMBER_WITH_SUFFIX,
 	T_OPEN_BRACE,
 	T_OPEN_PAREN,
 	T_QUOTED_STRING,
 	T_RAW_STRING,
 	T_SEMICOLON,
 	T_SLASHDASH,
+	isAlpha,
 	isBinaryDigit,
 	isBinaryDigitOrUnderscore,
 	isDecimalDigit,
@@ -206,12 +209,9 @@ export function handleHashCharacter(ctx) {
 	} else {
 		// #<something>, either a keyword or invalid
 
-		// allow - at the start
-		consumeCodePoint(ctx, 0x2d);
-
 		zerOrMore(ctx, isIdentifierChar);
 
-		return mkToken(ctx, T_KEYWORD);
+		return mkToken(ctx, T_KEYWORD_OR_HASHED_IDENT);
 	}
 }
 
@@ -314,73 +314,93 @@ export function handleSignCharacterAfterPop(ctx) {
 	}
 }
 
+/**
+ * @param {string} type
+ * @param {number} tokenType
+ * @param {(codePoint: number) => boolean} isDigit
+ * @param {(codePoint: number) => boolean} isDigitOrUnderscore
+ * @returns {(ctx: TokenizeContext) => Token}
+ */
+function createBaseNumberHandler(
+	type,
+	tokenType,
+	isDigit,
+	isDigitOrUnderscore,
+) {
+	return (ctx) => {
+		const prefixCodePoint = pop(ctx);
+
+		if (consume(ctx, isDigit)) {
+			zerOrMore(ctx, isDigitOrUnderscore);
+
+			return mkToken(ctx, tokenType);
+		} else if (consumeCodePoint(ctx, 0x5f)) {
+			// _
+			// --> unsure if invalid base number or invalid suffixed number, let's guess
+
+			zerOrMoreCodePoint(ctx, 0x5f);
+
+			if (isDigit(ctx.current)) {
+				zerOrMore(ctx, isDigitOrUnderscore);
+
+				if (!isIdentifierChar(ctx.current)) {
+					return mkToken(
+						ctx,
+						tokenType,
+						`Invalid ${type} number, the first character after 0${String.fromCodePoint(prefixCodePoint)} cannot be an underscore`,
+					);
+				}
+			}
+
+			zerOrMore(ctx, isIdentifierChar);
+
+			return mkToken(
+				ctx,
+				T_IDENTIFIER_STRING,
+				"Invalid number with suffix, a suffix cannot start with a letter followed by an underscore",
+			);
+		} else if (isDecimalDigit(ctx.current)) {
+			return mkToken(
+				ctx,
+				T_IDENTIFIER_STRING,
+				"Invalid number with suffix, a suffix cannot start with a letter followed by a number",
+			);
+		} else {
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+		}
+	};
+}
+
+/** @type {(((ctx: TokenizeContext) => Token) | null)[]} */
+const baseNumberHandlers = Array(256).fill(null);
+baseNumberHandlers[0x62 /* b */] = createBaseNumberHandler(
+	"binary",
+	T_NUMBER_BINARY,
+	isBinaryDigit,
+	isBinaryDigitOrUnderscore,
+);
+baseNumberHandlers[0x6f /* o */] = createBaseNumberHandler(
+	"octal",
+	T_NUMBER_OCTAL,
+	isOctalDigit,
+	isOctalDigitOrUnderscore,
+);
+baseNumberHandlers[0x78 /* x */] = createBaseNumberHandler(
+	"hexadecimal",
+	T_NUMBER_HEXADECIMAL,
+	isHexadecimalDigit,
+	isHexadecimalDigitOrUnderscore,
+);
+
 /** @param {TokenizeContext} ctx */
 export function handleNumberCharacter(ctx) {
 	if (consumeCodePoint(ctx, 0x30)) {
-		// 0 -> handle 0x | 0b | 0o
+		// 0 -> could be a number with a base prefix
 
-		switch (ctx.current) {
-			case 0x62: // b
-				ctx.current = pop(ctx);
-
-				if (!consume(ctx, isBinaryDigit)) {
-					if (ctx.current === 0x5f) {
-						// _
-						pushError(
-							ctx,
-							"Invalid binary number, the first character after 0b cannot be an underscore",
-						);
-					} else {
-						zerOrMore(ctx, isIdentifierChar);
-						return mkToken(ctx, T_IDENTIFIER_STRING, "Invalid binary number");
-					}
-				}
-
-				zerOrMore(ctx, isBinaryDigitOrUnderscore);
-
-				return mkToken(ctx, T_NUMBER_BINARY);
-			case 0x6f: // o
-				ctx.current = pop(ctx);
-
-				if (!consume(ctx, isOctalDigit)) {
-					if (ctx.current === 0x5f) {
-						// _
-						pushError(
-							ctx,
-							"Invalid octal number, the first character after 0o cannot be an underscore",
-						);
-					} else {
-						zerOrMore(ctx, isIdentifierChar);
-						return mkToken(ctx, T_IDENTIFIER_STRING, "Invalid octal number");
-					}
-				}
-
-				zerOrMore(ctx, isOctalDigitOrUnderscore);
-
-				return mkToken(ctx, T_NUMBER_OCTAL);
-			case 0x78: // x
-				ctx.current = pop(ctx);
-
-				if (!consume(ctx, isHexadecimalDigit)) {
-					if (ctx.current === 0x5f) {
-						// _
-						pushError(
-							ctx,
-							"Invalid hexadecimal number, the first character after 0x cannot be an underscore",
-						);
-					} else {
-						zerOrMore(ctx, isIdentifierChar);
-						return mkToken(
-							ctx,
-							T_IDENTIFIER_STRING,
-							"Invalid hexadecimal number",
-						);
-					}
-				}
-
-				zerOrMore(ctx, isHexadecimalDigitOrUnderscore);
-
-				return mkToken(ctx, T_NUMBER_HEXADECIMAL);
+		const baseNumberHandler = baseNumberHandlers[ctx.current];
+		if (baseNumberHandler) {
+			return baseNumberHandler(ctx);
 		}
 	}
 
@@ -412,28 +432,91 @@ export function handleNumberCharacter(ctx) {
 
 		consume(ctx, isNumberSign);
 
-		if (!consume(ctx, isDecimalDigit)) {
-			if (ctx.current === 0x5f) {
-				// _
-				pushError(
-					ctx,
-					"Invalid decimal number, the number after the exponent mustn't start on an underscore",
-				);
-			} else {
+		if (consume(ctx, isDecimalDigit)) {
+			zerOrMore(ctx, isDecimalDigitOrUnderscore);
+
+			if (isIdentifierChar(ctx.current)) {
 				zerOrMore(ctx, isIdentifierChar);
 
 				return mkToken(
 					ctx,
-					T_NUMBER_DECIMAL,
-					"Invalid decimal number, missing a number after the exponent",
+					T_IDENTIFIER_STRING,
+					"Invalid number with suffix, a number with an exponent cannot have a suffix",
 				);
 			}
+
+			return mkToken(ctx, T_NUMBER_DECIMAL);
+		} else if (consumeCodePoint(ctx, 0x5f)) {
+			// _
+			// --> unsure if invalid number with exponent or invalid suffixed number, let's guess
+			zerOrMoreCodePoint(ctx, 0x5f);
+
+			if (isDecimalDigit(ctx.current)) {
+				zerOrMore(ctx, isDecimalDigitOrUnderscore);
+
+				if (!isIdentifierChar(ctx.current)) {
+					return mkToken(
+						ctx,
+						T_NUMBER_DECIMAL,
+						"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+					);
+				}
+			}
+
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(
+				ctx,
+				T_IDENTIFIER_STRING,
+				"Invalid number with suffix, a suffix cannot start with a letter followed by an underscore",
+			);
+		} else {
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+		}
+	} else if (ctx.current === 0x58 || ctx.current === 0x78) {
+		// x or X
+		pop(ctx);
+		let error = null;
+
+		if (consume(ctx, isHexadecimalDigitOrUnderscore)) {
+			error =
+				"Invalid number with suffix, a suffix cannot start with an x followed by a hexidecimal number";
 		}
 
-		zerOrMore(ctx, isDecimalDigitOrUnderscore);
-	}
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
+	} else if (consume(ctx, isAlpha)) {
+		let error = null;
 
-	return mkToken(ctx, T_NUMBER_DECIMAL);
+		if (consume(ctx, isDecimalDigitOrUnderscore)) {
+			error =
+				"Invalid number with suffix, a suffix cannot start with a letter followed by a digit";
+		}
+
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
+	} else if (consumeCodePoint(ctx, 0x2c)) {
+		// ,
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(
+			ctx,
+			T_NUMBER_WITH_SUFFIX,
+			"Invalid number with suffix, a suffix cannot start with a comma",
+		);
+	} else if (consumeCodePoint(ctx, 0x2e)) {
+		// .
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(
+			ctx,
+			T_NUMBER_WITH_SUFFIX,
+			"Invalid number with suffix, a suffix cannot start with a dot",
+		);
+	} else if (consume(ctx, isIdentifierChar)) {
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+	} else {
+		return mkToken(ctx, T_NUMBER_DECIMAL);
+	}
 }
 
 /** @param {TokenizeContext} ctx */

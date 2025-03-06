@@ -39,6 +39,13 @@ export class Tag {
 	trailing;
 
 	/**
+	 * Whether the tag is shown as suffix or not
+	 * @type {boolean=}
+	 * @hidden
+	 */
+	suffix;
+
+	/**
 	 * @param {string} name
 	 */
 	constructor(name) {
@@ -91,6 +98,7 @@ export class Tag {
 
 		clone.leading = this.leading;
 		clone.trailing = this.trailing;
+		clone.suffix = this.suffix;
 
 		return clone;
 	}

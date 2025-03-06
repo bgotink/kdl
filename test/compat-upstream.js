@@ -22,6 +22,11 @@ const knownBrokenTests = new Set([
 	// javascript engine doesn't provide (yet?)
 	"sci_notation_large.kdl",
 	"sci_notation_small.kdl",
+
+	// These tests have become valid with the introduction of number suffixes
+	"illegal_char_in_binary.kdl",
+	"multiple_x_in_hex.kdl",
+	"no_digits_in_hex.kdl",
 ]);
 
 const testsWithInvalidKdlV1ButValidKdlV2 = new Set([

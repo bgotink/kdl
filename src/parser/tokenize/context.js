@@ -187,6 +187,16 @@ export function consumeNewline(ctx) {
 
 /**
  * @param {TokenizeContext} ctx
+ * @param {number} codePoint
+ */
+export function zerOrMoreCodePoint(ctx, codePoint) {
+	while (ctx.current === codePoint) {
+		pop(ctx);
+	}
+}
+
+/**
+ * @param {TokenizeContext} ctx
  * @param {(codePoint: number) => boolean} test
  */
 export function zerOrMore(ctx, test) {

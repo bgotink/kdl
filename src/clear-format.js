@@ -30,6 +30,7 @@ function clearFormatTag(tag) {
 	tag.trailing = undefined;
 
 	tag.representation = undefined;
+	tag.suffix = undefined;
 }
 
 /**

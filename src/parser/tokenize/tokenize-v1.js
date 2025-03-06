@@ -26,7 +26,7 @@ import {
 	T_EQUALS,
 	T_ESCLINE,
 	T_IDENTIFIER_STRING,
-	T_KEYWORD,
+	T_KEYWORD_OR_HASHED_IDENT,
 	T_MULTILINE_QUOTED_STRING,
 	T_OPEN_BRACE,
 	T_OPEN_PAREN,
@@ -216,7 +216,7 @@ function handleV1KeywordOrIdentifier(keyword) {
 		}
 
 		if (matchesKeyword && !isV1IdentifierChar(ctx.current)) {
-			return mkToken(ctx, T_KEYWORD);
+			return mkToken(ctx, T_KEYWORD_OR_HASHED_IDENT);
 		}
 
 		zerOrMore(ctx, isV1IdentifierChar);

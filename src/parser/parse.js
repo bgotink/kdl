@@ -21,7 +21,7 @@ import {
 	T_ESCLINE,
 	T_IDENTIFIER_STRING,
 	T_INLINE_WHITESPACE,
-	T_KEYWORD,
+	T_KEYWORD_OR_HASHED_IDENT,
 	T_MULTILINE_QUOTED_STRING,
 	T_MULTILINE_RAW_STRING,
 	T_NEWLINE,
@@ -29,6 +29,7 @@ import {
 	T_NUMBER_DECIMAL,
 	T_NUMBER_HEXADECIMAL,
 	T_NUMBER_OCTAL,
+	T_NUMBER_WITH_SUFFIX,
 	T_OPEN_BRACE,
 	T_OPEN_PAREN,
 	T_QUOTED_STRING,
@@ -173,6 +174,37 @@ export function finalize(ctx, fatalError) {
 	}
 }
 
+/** @param {string} keyword */
+function getKeywordValue(keyword) {
+	switch (keyword) {
+		case "#null":
+			return null;
+		case "#true":
+			return true;
+		case "#false":
+			return false;
+		case "#inf":
+			return Infinity;
+		case "#-inf":
+			return -Infinity;
+		case "#nan":
+			return NaN;
+	}
+}
+
+/** @param {string} ident */
+function isKeywordlikeIdent(ident) {
+	return (
+		ident === "inf" ||
+		ident === "-inf" ||
+		ident === "nan" ||
+		ident === "true" ||
+		ident === "false" ||
+		ident === "null" ||
+		false
+	);
+}
+
 /**
  * @param {ParserCtx} ctx
  * @returns {Value=}
@@ -180,55 +212,61 @@ export function finalize(ctx, fatalError) {
 function parseNonStringValue(ctx) {
 	const {value: token} = ctx.current;
 	let value;
+	let representation;
+	let suffixTag;
+	let suffixTagRepresentation;
+	let checkSeparatedSuffix = false;
 
 	switch (token?.type) {
+		case T_NUMBER_WITH_SUFFIX:
+			{
+				const startOfSuffix = token.text.search(/[^0-9._]/);
+
+				representation = token.text.slice(0, startOfSuffix);
+				value = Number.parseFloat(representation.replaceAll("_", ""));
+				suffixTagRepresentation = suffixTag = token.text.slice(startOfSuffix);
+
+				if (isKeywordlikeIdent(suffixTag)) {
+					ctx.errors.push(
+						mkError(
+							ctx,
+							`Invalid suffix ${suffixTag}, values that look like keywords cannot be used as suffix`,
+						),
+					);
+				}
+			}
+			break;
 		case T_NUMBER_BINARY:
+			checkSeparatedSuffix = true;
 			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 2);
 			break;
 		case T_NUMBER_OCTAL:
+			checkSeparatedSuffix = true;
 			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 8);
 			break;
 		case T_NUMBER_DECIMAL:
+			checkSeparatedSuffix = true;
 			value = Number.parseFloat(token.text.replaceAll("_", ""));
 			break;
 		case T_NUMBER_HEXADECIMAL:
+			checkSeparatedSuffix = true;
 			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 16);
 			break;
-		case T_KEYWORD:
-			switch (token.text) {
-				case "#null":
-					value = null;
-					break;
-				case "#true":
-					value = true;
-					break;
-				case "#false":
-					value = false;
-					break;
-				case "#inf":
-					value = Infinity;
-					break;
-				case "#-inf":
-					value = -Infinity;
-					break;
-				case "#nan":
-					value = NaN;
-					break;
-				default:
+		case T_KEYWORD_OR_HASHED_IDENT:
+			value = getKeywordValue(token.text);
+
+			if (value === undefined) {
+				value = null;
+
+				if (getKeywordValue(token.text.toLowerCase()) !== undefined) {
+					ctx.errors.push(
+						mkError(
+							ctx,
+							`Invalid keyword ${token.text}, keywords are case sensitive, write ${token.text.toLowerCase()} instead`,
+						),
+					);
+				} else {
 					switch (token.text.toLowerCase()) {
-						case "#null":
-						case "#true":
-						case "#false":
-						case "#inf":
-						case "#-inf":
-						case "#nan":
-							ctx.errors.push(
-								mkError(
-									ctx,
-									`Invalid keyword ${token.text}, keywords are case sensitive, write ${token.text.toLowerCase()} instead`,
-								),
-							);
-							break;
 						case "#nul":
 						case "#nill":
 							ctx.errors.push(
@@ -280,7 +318,7 @@ function parseNonStringValue(ctx) {
 								),
 							);
 					}
-					value = null;
+				}
 			}
 			break;
 		default:
@@ -288,9 +326,57 @@ function parseNonStringValue(ctx) {
 	}
 
 	pop(ctx);
+
+	const tagToken = consume(ctx, T_KEYWORD_OR_HASHED_IDENT);
+	if (tagToken) {
+		if (checkSeparatedSuffix) {
+			suffixTagRepresentation = tagToken.text;
+			if (getKeywordValue(suffixTagRepresentation) !== undefined) {
+				ctx.errors.push(
+					mkError(
+						tagToken,
+						`Invalid number suffix ${suffixTagRepresentation}, did you forget a space between the number and the keyword?`,
+					),
+				);
+			}
+			suffixTag = suffixTagRepresentation.slice(1);
+		} else if (suffixTag) {
+			ctx.errors.push(
+				mkError(
+					tagToken,
+					`Unexpected hashed suffix, a number can only have one suffix`,
+				),
+			);
+		} else if (typeof value === "number") {
+			ctx.errors.push(
+				mkError(
+					tagToken,
+					`Unexpected hashed suffix, you cannot place suffixes on number keywords`,
+				),
+			);
+		} else {
+			ctx.errors.push(
+				mkError(
+					tagToken,
+					`Unexpected hashed suffix, you can only place suffixes on numbers`,
+				),
+			);
+		}
+	}
+
 	const result = new Value(value);
-	result.representation = token.text;
+	result.representation = representation ?? token.text;
 	storeLocation(ctx, result, token);
+
+	if (suffixTag) {
+		const resultTag = new Tag(suffixTag);
+		resultTag.representation = suffixTagRepresentation;
+		resultTag.suffix = true;
+		storeLocation(ctx, resultTag, ctx.lastToken);
+
+		result.tag = resultTag;
+	}
+
 	return result;
 }
 
@@ -304,17 +390,12 @@ function _parseString(ctx) {
 	}
 
 	const {value: token} = ctx.current;
+	/** @type {[string, string, Token]=} */
+	let result;
 	switch (token.type) {
 		case T_IDENTIFIER_STRING:
 			pop(ctx);
-			if (
-				token.text === "inf" ||
-				token.text === "-inf" ||
-				token.text === "nan" ||
-				token.text === "true" ||
-				token.text === "false" ||
-				token.text === "null"
-			) {
+			if (isKeywordlikeIdent(token.text)) {
 				ctx.errors.push(
 					mkError(
 						ctx,
@@ -322,17 +403,19 @@ function _parseString(ctx) {
 					),
 				);
 			}
-			return [token.text, token.text, token];
+			result = [token.text, token.text, token];
+			break;
 		case T_QUOTED_STRING:
 			pop(ctx);
-			return [
+			result = [
 				postProcessStringValue(ctx.errors, token.text.slice(1, -1), token),
 				token.text,
 				token,
 			];
+			break;
 		case T_MULTILINE_QUOTED_STRING:
 			pop(ctx);
-			return [
+			result = [
 				postProcessMultilineStringValue(
 					ctx.errors,
 					token.text.slice(3, -3),
@@ -341,13 +424,14 @@ function _parseString(ctx) {
 				token.text,
 				token,
 			];
+			break;
 		case T_RAW_STRING: {
 			pop(ctx);
 
 			const raw = token.text;
 			const quoteIndex = raw.indexOf('"');
 
-			return [
+			result = [
 				postProcessRawStringValue(
 					ctx.errors,
 					raw.slice(quoteIndex + 1, -(quoteIndex + 1)),
@@ -356,6 +440,7 @@ function _parseString(ctx) {
 				raw,
 				token,
 			];
+			break;
 		}
 		case T_MULTILINE_RAW_STRING: {
 			pop(ctx);
@@ -363,7 +448,7 @@ function _parseString(ctx) {
 			const raw = token.text;
 			const quoteIndex = raw.indexOf('"');
 
-			return [
+			result = [
 				postProcessMultilineRawStringValue(
 					ctx.errors,
 					raw.slice(quoteIndex + 3, -(quoteIndex + 3)),
@@ -372,10 +457,24 @@ function _parseString(ctx) {
 				raw,
 				token,
 			];
+			break;
 		}
+		default:
+			return;
 	}
 
-	return;
+	if (consume(ctx, T_KEYWORD_OR_HASHED_IDENT)) {
+		ctx.errors.push(
+			mkError(
+				ctx.lastToken,
+				getKeywordValue(ctx.lastToken.text) === undefined ?
+					"Unexpected hashed suffix on a string, you can only place suffixes on numbers"
+				:	"Unexpected keyword, did you forget to add whitespace?",
+			),
+		);
+	}
+
+	return result;
 }
 
 /** @param {ParserCtx} ctx */
@@ -603,6 +702,15 @@ export function parseNodePropOrArg(ctx) {
 				throw mkError(ctx, `Invalid argument`);
 			}
 
+			if (value.tag) {
+				ctx.errors.push(
+					mkError(
+						ctx.lastToken,
+						"A number suffix cannot be combined with a regular tag",
+					),
+				);
+			}
+
 			value.tag = tag;
 			value.betweenTagAndValue = betweenTagAndValue;
 
@@ -696,6 +804,15 @@ export function parseNodePropOrArg(ctx) {
 	}
 
 	if (tag) {
+		if (value.tag) {
+			ctx.errors.push(
+				mkError(
+					ctx.lastToken,
+					"A number suffix cannot be combined with a regular tag",
+				),
+			);
+		}
+
 		value.tag = tag;
 		value.betweenTagAndValue = afterTag;
 	}
