@@ -76,14 +76,14 @@ export class InvalidKdlError extends Error {
 	 *
 	 * @returns {Generator<InvalidKdlError, void, void>}
 	 */
-	*getDetails() {
+	*flat() {
 		if (this.errors == null) {
 			yield this;
 			return;
 		}
 
 		for (const error of this.errors) {
-			yield* error.getDetails();
+			yield* error.flat();
 		}
 	}
 }

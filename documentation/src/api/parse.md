@@ -32,8 +32,8 @@ The parser tries to recover from many errors so it can provide as much feedback 
 This greatly helps when using the parser to provide feedback to the human author of a KDL document, as you can provide them with multiple mistakes in a single go instaed of showing only the first error every single time.
 
 A single `InvalidKdlError` object might describe multiple actual errors in the document.
-The `getDetails()` method returns an iterator that yields every KDL error contained within the error.
-If the error doesn't have any more details, the `getDetails()` iterator only yields the error itself..
+The `flat()` method returns an iterator that yields every KDL error contained within the error.
+If the error doesn't have any more details, the `flat()` iterator only yields the error itself..
 
 ## Locations
 
