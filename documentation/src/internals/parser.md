@@ -37,8 +37,8 @@ Token types are stored as integer, rather than a human readable string because o
 Firstly, "human readable" doesn't mean "the person running the parser understands it", so the usefulness of string types is questionable.
 Secondly, string comparison is slower than number comparison.
 
-That speed bump granted by number comparison is also why the tokenizer looks at the code point's integer value to assign split the text in to tokens rather than compare string values.
-Regular expressions are avoided entirely.
+That speed bump granted by number comparison is also why the tokenizer looks at the code point's integer value to split the text into tokens rather than compare string values.
+Regular expressions are avoided entirely in the tokenizer.
 
 ## Parser
 

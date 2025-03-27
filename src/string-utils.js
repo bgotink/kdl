@@ -106,11 +106,11 @@ const escapedValues = new Map([
 ]);
 
 export const reNewline = /\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029]/;
-export const reAllNewline = /\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029]/g;
+const reAllNewline = /\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029]/g;
 // Something that isn't a backslash followed by an even number of backslashes followed by inline whitespace followed by a newline
-export const reUnescapedNewline =
+const reUnescapedNewline =
 	/(?:^|[^\\\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029])(?:\\\\)*[\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029]*(\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029])/s;
-export const reAllUnescapedNewline =
+const reAllUnescapedNewline =
 	/(?:^|[^\\\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029])(?:\\\\)*[\uFEFF\u0009\u0020\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\x0A\x0B\x0C\x0D\x85\u2028\u2029]*(\x0D\x0A|[\x0A\x0B\x0C\x0D\x85\u2028\u2029])/dgs;
 
 /**

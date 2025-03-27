@@ -29,3 +29,5 @@
 # Internals
 
 - [LL(1) Parser](./internals/parser.md)
+- [Tokenizer Optimization](./internals/tokenizer.md)
+- [String Value Processing](./internals/string-values.md)
