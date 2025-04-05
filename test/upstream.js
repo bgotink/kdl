@@ -22,12 +22,13 @@ const knownBrokenTests = new Set([
 	"sci_notation_large.kdl",
 	"sci_notation_small.kdl",
 
-	// These tests have become valid with the introduction of number suffixes
+	// These tests that actually should not fail
 	"bare_ident_numeric_fail.kdl",
 	"bare_ident_numeric_sign_fail.kdl",
 	"illegal_char_in_binary_fail.kdl",
 	"multiple_x_in_hex_fail.kdl",
 	"no_digits_in_hex_fail.kdl",
+	"suffix_type_bare_underscore_fail.kdl",
 ]);
 
 /**

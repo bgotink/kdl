@@ -1,3 +1,4 @@
+import {InvalidKdlError} from "../../error.js";
 import {
 	consume,
 	consumeCodePoint,
@@ -207,11 +208,31 @@ export function handleHashCharacter(ctx) {
 			}
 		}
 	} else {
-		// #<something>, either a keyword or invalid
+		// #<something>, either a keyword or # + an ident for a number suffix
 
-		zerOrMore(ctx, isIdentifierChar);
+		let token;
+		if (ctx.current < 0xff) {
+			const handler = characterHandlers[ctx.current];
+			token = handler(ctx);
+		} else {
+			if (isUnicodeSpace(ctx.current)) {
+				token = handleWhitespaceCharacter(ctx);
+			} else if (isNewLine(ctx.current)) {
+				token = handleNewlineCharacter(ctx);
+			} else {
+				// All non-whitespace non-identifier characters are ASCII, which is already filtered out
+				token = handleIdentifierCharacter(ctx);
+			}
+		}
 
-		return mkToken(ctx, T_KEYWORD_OR_HASHED_IDENT);
+		if (token.type !== T_IDENTIFIER_STRING) {
+			(token.errors ??= []).push(
+				new InvalidKdlError("Expected a valid identifier", {token}),
+			);
+		}
+
+		token.type = T_KEYWORD_OR_HASHED_IDENT;
+		return token;
 	}
 }
 
