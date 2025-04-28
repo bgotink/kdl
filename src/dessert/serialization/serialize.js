@@ -60,6 +60,11 @@ export function serialize(name, serializer, ...parameters) {
 	let source;
 
 	/** @type {Entry[]} */
+	let entries = [];
+	/** @type {Set<Entry>} */
+	let entriesToRemove = new Set();
+
+	/** @type {Entry[]} */
 	let existingArguments = [];
 	/** @type {Map<string, Entry>} */
 	let existingProperties = new Map();
@@ -76,7 +81,7 @@ export function serialize(name, serializer, ...parameters) {
 				throw new Error("The source function can only be called once");
 			}
 
-			if (node.entries.length || node.hasChildren()) {
+			if (entries.length || node.hasChildren()) {
 				throw new Error(
 					"The source function can only be called at the start of a serialize function",
 				);
@@ -91,8 +96,14 @@ export function serialize(name, serializer, ...parameters) {
 			node = sourceNode.clone({shallow: true});
 			node.setName(typeof name === "string" ? name : "-");
 
-			existingArguments = sourceNode.getArgumentEntries();
-			existingProperties = sourceNode.getPropertyEntryMap();
+			entries = sourceNode.entries.map((entry) => entry.clone());
+			entriesToRemove = new Set(entries);
+			existingArguments = entries.filter((entry) => entry.name == null);
+			existingProperties = new Map(
+				entries.flatMap((entry) =>
+					entry.name ? [[entry.name.name, entry]] : [],
+				),
+			);
 		},
 
 		argument: tagged((tag, value) => {
@@ -102,16 +113,17 @@ export function serialize(name, serializer, ...parameters) {
 				);
 			}
 
-			let argument = existingArguments.shift()?.clone();
+			let argument = existingArguments.shift();
 
 			if (argument) {
+				entriesToRemove.delete(argument);
 				argument.setValue(value);
 			} else {
 				argument = Entry.createArgument(value);
+				entries.push(argument);
 			}
 
 			argument.setTag(tag);
-			node.entries.push(argument);
 		}),
 
 		property: tagged((tag, key, value) => {
@@ -121,16 +133,17 @@ export function serialize(name, serializer, ...parameters) {
 				);
 			}
 
-			let property = existingProperties.get(key)?.clone();
+			let property = existingProperties.get(key);
 
 			if (property) {
+				entriesToRemove.delete(property);
 				property.setValue(value);
 			} else {
 				property = Entry.createProperty(key, value);
+				entries.push(property);
 			}
 
 			property.setTag(tag);
-			node.entries.push(property);
 		}),
 
 		child: /** @type {t.SerializationContext["child"]} */ (
@@ -150,6 +163,12 @@ export function serialize(name, serializer, ...parameters) {
 		),
 
 		json(value) {
+			// We don't properly keep track of property / argument order yet in serializeJson
+			entries = node.entries = entries.filter(
+				(entry) => !entriesToRemove.has(entry),
+			);
+			entriesToRemove = new Set();
+
 			serializeJson(
 				!isSerializingDocument,
 				value,
@@ -166,6 +185,8 @@ export function serialize(name, serializer, ...parameters) {
 
 	// @ts-expect-error If only typescript supported @overload with rest parameters
 	run(serializer, ...parameters);
+
+	node.entries = entries.filter((entry) => !entriesToRemove.has(entry));
 
 	return typeof name !== "string" ? (node.children ?? new Document()) : node;
 }
