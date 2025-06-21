@@ -60,7 +60,7 @@ node type=json 0 1 2
 
 test("order of properties", () => {
 	class Test {
-		/** @type {DeserializationContext} */
+		/** @type {DeserializationContext=} */
 		#ctx;
 
 		first;

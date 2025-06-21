@@ -4,7 +4,7 @@ import {test} from "uvu";
 import {deserialize, firstMatchingDeserializer} from "../../src/dessert.js";
 import {parse} from "../../src/index.js";
 
-/** @import {Deserializer, DeserializationContext} from "../../src/dessert.js" */
+/** @import {Deserializer, DeserializerFromContext, DeserializationContext} from "../../src/dessert.js" */
 
 test("simple", () => {
 	const node = parse("node 0 1 2", {as: "node"});
@@ -132,6 +132,9 @@ test("fallback", () => {
 		}
 	}
 
+	// type annotation is there to verify the return type,
+	// typescript is more than capable of inferring it without our help
+	/** @type {DeserializerFromContext<number | Node>} */
 	const tree = firstMatchingDeserializer(leaf, Node);
 
 	const node = parse(

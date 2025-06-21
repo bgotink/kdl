@@ -31,6 +31,14 @@ export type DeserializerFromContext<T, P extends unknown[] = []> =
 	  };
 
 /**
+ * Object capable of deserializing objects of type `T` from a {@link Node}
+ */
+export interface DeserializerFromNode<T, P extends unknown[] = []> {
+	/** Function that is given a {@link Node} */
+	deserializeFromNode(node: Node, ...parameters: P): T;
+}
+
+/**
  * Function or object capable of deserializing objects of type `T`
  *
  * There are three types of deserializers:
@@ -43,10 +51,7 @@ export type DeserializerFromContext<T, P extends unknown[] = []> =
  */
 export type Deserializer<T, P extends unknown[] = []> =
 	| DeserializerFromContext<T, P>
-	| {
-			/** Function that is given a {@link Node} */
-			deserializeFromNode(node: Node, ...parameters: P): T;
-	  };
+	| DeserializerFromNode<T, P>;
 
 /**
  * Helper type to extract the type a deserializer supports

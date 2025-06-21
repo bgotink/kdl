@@ -1,9 +1,14 @@
-import {deserialize} from "./deserialize.js";
+import {
+	deserialize,
+	deserializeFromState,
+	getState,
+	isDeserializerFromContext,
+} from "./deserialize.js";
 import {KdlDeserializeError} from "./error.js";
 
 /** @import {Node} from "../../index.js" */
 
-/** @import {Deserialized, Deserializer} from "./types.js" */
+/** @import {Deserialized, Deserializer, DeserializerFromContext} from "./types.js" */
 
 /**
  * Call the given function with the given arguments until it returns undefined
@@ -50,15 +55,67 @@ repeat.times = (times, fn, ...args) => {
 /**
  * Create a deserializer that tries all of the given deserializers until it finds one that doesn't throw an error.
  *
- * The returned deserializer throws an `AggregateError` if all of the given deserializers throw on a certain node.
+ * The returned deserializer throws an `AggregateError` if all of the given deserializers throw.
+ *
+ * @template {DeserializerFromContext<unknown>[]} T
+ * @overload
+ * @param {...T} deserializers
+ * @returns {DeserializerFromContext<Deserialized<T[number]>>}
+ */
+
+/**
+ * Create a deserializer that tries all of the given deserializers until it finds one that doesn't throw an error.
+ *
+ * The returned deserializer throws an `AggregateError` if all of the given deserializers throw.
  *
  * @template {Deserializer<unknown>[]} T
- * @param {T} deserializers
+ * @overload
+ * @param {...T} deserializers
  * @returns {Deserializer<Deserialized<T[number]>>}
+ */
+
+/**
+ * @param {Deserializer<unknown>[]} deserializers
+ * @returns {Deserializer<unknown>}
  */
 export function firstMatchingDeserializer(...deserializers) {
 	/** @type {Set<Node>} */
 	const runningNodes = new Set();
+
+	if (deserializers.every(isDeserializerFromContext)) {
+		return {
+			deserialize(ctx) {
+				const state = getState(ctx);
+
+				const errors = [];
+
+				for (const deserializer of deserializers) {
+					const stateClone = state.clone();
+					let result;
+
+					try {
+						result = deserializeFromState(
+							stateClone,
+							/** @type {DeserializerFromContext<Deserialized<T[number]>>} */ (
+								deserializer
+							),
+						);
+					} catch (e) {
+						errors.push(e);
+						continue;
+					}
+
+					state.apply(stateClone);
+					return result;
+				}
+
+				throw new AggregateError(
+					errors,
+					"Failed to deserialize using any of the provided deserialiers",
+				);
+			},
+		};
+	}
 
 	return {
 		deserializeFromNode(node) {

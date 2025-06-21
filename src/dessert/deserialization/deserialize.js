@@ -50,13 +50,101 @@ function hasValidJsonType(types, value) {
 	return types.includes(jsonTypeOf(value));
 }
 
-/**
- * @param {Node} node
- * @returns {[argument: t.Argument, finalize: () => void, getRest: () => Entry[]]}
- */
-function makeArgument(node) {
-	const unusedArguments = node.getArgumentEntries();
+class ContextState {
+	node;
 
+	arguments;
+	properties;
+	children;
+
+	/** @param {Node} node */
+	constructor(
+		node,
+		args = node.getArgumentEntries(),
+		properties = new Map(
+			node
+				.getPropertyEntries()
+				.map((entry) => [/** @type {string} */ (entry.getName()), entry]),
+		),
+		children = new Set(node.children?.nodes),
+	) {
+		this.node = node;
+
+		this.arguments = args;
+		this.properties = properties;
+		this.children = children;
+	}
+
+	clone() {
+		return new ContextState(
+			this.node,
+			Array.from(this.arguments),
+			new Map(this.properties),
+			new Set(this.children),
+		);
+	}
+
+	/** @param {ContextState} other */
+	apply(other) {
+		// assert(other.#node === this.#node);
+
+		this.arguments = Array.from(other.arguments);
+		this.properties = new Map(other.properties);
+		this.children = new Set(other.children);
+	}
+
+	clear() {
+		const {arguments: args, properties: props, children} = this;
+		this.arguments = [];
+		this.properties = new Map();
+		this.children = new Set();
+		return {args, props, children};
+	}
+
+	finalize() {
+		if (this.arguments.length) {
+			throw new KdlDeserializeError(
+				`Found ${this.arguments.length} superfluous arguments`,
+				{location: this.node},
+			);
+		}
+
+		if (this.properties.size) {
+			throw new KdlDeserializeError(
+				`Found superfluous properties ${joinWithAnd(Array.from(this.properties.keys(), (name) => JSON.stringify(name)))}`,
+				{location: this.node},
+			);
+		}
+
+		if (this.children.size) {
+			// Replace with Object.groupBy once targeting node ≥ 22
+			const counts = Array.from(this.children, (child) =>
+				child.getName(),
+			).reduce((obj, name) => {
+				obj[name] = (Object.hasOwn(obj, name) ? obj[name] : 0) + 1;
+
+				return obj;
+			}, /** @type {Record<string, number>} */ ({}));
+
+			throw new KdlDeserializeError(
+				`Found ${this.children.size} superfluous children (${joinWithAnd(
+					Object.entries(counts).map(([name, count]) =>
+						count > 1 ?
+							`${count} ${JSON.stringify(name)}`
+						:	JSON.stringify(name),
+					),
+				)})`,
+				{location: this.node},
+			);
+		}
+	}
+}
+
+/**
+ * @param {ContextState} state
+ * @returns {t.Argument}
+ */
+function makeArgument(state) {
 	/**
 	 * @template {boolean} Required
 	 * @template {boolean} IgnoreInvalid
@@ -70,14 +158,14 @@ function makeArgument(node) {
 				/** @type {unknown} */ (
 					/** @param {...t.PrimitiveType} types */
 					(...types) => {
-						const arg = unusedArguments[0];
+						const arg = state.arguments[0];
 						if (arg === undefined) {
 							if (!required) {
 								return undefined;
 							}
 
 							throw new KdlDeserializeError(`Missing argument`, {
-								location: node,
+								location: state.node,
 							});
 						}
 						const value = arg.getValue();
@@ -93,7 +181,7 @@ function makeArgument(node) {
 							);
 						}
 
-						unusedArguments.shift();
+						state.arguments.shift();
 						return value;
 					}
 				)
@@ -101,14 +189,14 @@ function makeArgument(node) {
 
 		// @ts-expect-error Mapped return types + type inference run into limitations
 		getArgument.enum = (...enumValues) => {
-			const arg = unusedArguments[0];
+			const arg = state.arguments[0];
 			if (arg === undefined) {
 				if (!required) {
 					return undefined;
 				}
 
 				throw new KdlDeserializeError(`Missing argument`, {
-					location: node,
+					location: state.node,
 				});
 			}
 			const value = arg.getValue();
@@ -124,7 +212,7 @@ function makeArgument(node) {
 				);
 			}
 
-			unusedArguments.shift();
+			state.arguments.shift();
 			return value;
 		};
 
@@ -169,17 +257,19 @@ function makeArgument(node) {
 				/** @param {...t.PrimitiveType} types */
 				(...types) => {
 					if (required) {
-						throw new KdlDeserializeError(`Missing argument`, {location: node});
+						throw new KdlDeserializeError(`Missing argument`, {
+							location: state.node,
+						});
 					}
 
-					return unusedArguments
-						.splice(0, unusedArguments.length)
+					return state.arguments
+						.splice(0, state.arguments.length)
 						.flatMap((arg) => {
 							const value = arg.getValue();
 
 							if (types.length && !hasValidType(types, value)) {
 								if (ignoreInvalid) {
-									unusedArguments.push(arg);
+									state.arguments.push(arg);
 									return [];
 								}
 
@@ -196,18 +286,20 @@ function makeArgument(node) {
 
 		// @ts-expect-error Mapped return types + type inference run into limitations
 		getArgument.enum = (...enumValues) => {
-			if (required && unusedArguments.length === 0) {
-				throw new KdlDeserializeError(`Missing argument`, {location: node});
+			if (required && state.arguments.length === 0) {
+				throw new KdlDeserializeError(`Missing argument`, {
+					location: state.node,
+				});
 			}
 
-			return unusedArguments
-				.splice(0, unusedArguments.length)
+			return state.arguments
+				.splice(0, state.arguments.length)
 				.flatMap((arg) => {
 					const value = arg.getValue();
 
 					if (!enumValues.includes(value)) {
 						if (ignoreInvalid) {
-							unusedArguments.push(arg);
+							state.arguments.push(arg);
 							return [];
 						}
 
@@ -242,31 +334,14 @@ function makeArgument(node) {
 		return getArgument;
 	}
 
-	return [
-		mkArgument(false, false),
-		() => {
-			if (unusedArguments.length) {
-				throw new KdlDeserializeError(
-					`Found ${unusedArguments.length} superfluous arguments`,
-					{location: node},
-				);
-			}
-		},
-		() => unusedArguments.splice(0, unusedArguments.length),
-	];
+	return mkArgument(false, false);
 }
 
 /**
- * @param {Node} node
- * @returns {[property: t.Property, finalize: () => void, getRest: () => Map<string, Entry>]}
+ * @param {ContextState} state
+ * @returns {t.Property}
  */
-function makeProperty(node) {
-	const unusedProperties = new Map(
-		node
-			.getPropertyEntries()
-			.map((entry) => [/** @type {string} */ (entry.getName()), entry]),
-	);
-
+function makeProperty(state) {
 	/**
 	 * @template {boolean} Required
 	 * @template {boolean} IgnoreInvalid
@@ -282,14 +357,14 @@ function makeProperty(node) {
 				 * @param {...t.PrimitiveType} types
 				 */
 				(name, ...types) => {
-					const prop = unusedProperties.get(name);
+					const prop = state.properties.get(name);
 					if (prop === undefined) {
 						if (!required) {
 							return prop;
 						}
 
 						throw new KdlDeserializeError(`Missing property ${name}`, {
-							location: node,
+							location: state.node,
 						});
 					}
 					const value = prop.getValue();
@@ -305,7 +380,7 @@ function makeProperty(node) {
 						);
 					}
 
-					unusedProperties.delete(name);
+					state.properties.delete(name);
 					return value;
 				}
 			)
@@ -313,14 +388,14 @@ function makeProperty(node) {
 
 		// @ts-expect-error Mapped return types + type inference run into limitations
 		getProperty.enum = (name, ...enumValues) => {
-			const prop = unusedProperties.get(name);
+			const prop = state.properties.get(name);
 			if (prop === undefined) {
 				if (!required) {
 					return prop;
 				}
 
 				throw new KdlDeserializeError(`Missing property ${name}`, {
-					location: node,
+					location: state.node,
 				});
 			}
 			const value = prop.getValue();
@@ -336,7 +411,7 @@ function makeProperty(node) {
 				);
 			}
 
-			unusedProperties.delete(name);
+			state.properties.delete(name);
 			return value;
 		};
 
@@ -380,14 +455,14 @@ function makeProperty(node) {
 			/** @type {unknown} */ (
 				/** @param {...t.PrimitiveType} types */
 				(...types) => {
-					if (required && unusedProperties.size === 0) {
+					if (required && state.properties.size === 0) {
 						throw new KdlDeserializeError(`Missing properties`, {
-							location: node,
+							location: state.node,
 						});
 					}
 
-					const result = [...unusedProperties];
-					unusedProperties.clear();
+					const result = [...state.properties];
+					state.properties.clear();
 
 					return new Map(
 						result.flatMap(([name, prop]) => {
@@ -395,7 +470,7 @@ function makeProperty(node) {
 
 							if (types.length && !hasValidType(types, value)) {
 								if (ignoreInvalid) {
-									unusedProperties.set(name, prop);
+									state.properties.set(name, prop);
 									return [];
 								}
 
@@ -413,14 +488,14 @@ function makeProperty(node) {
 		);
 
 		getProperty.enum = (...enumValues) => {
-			if (required && unusedProperties.size === 0) {
+			if (required && state.properties.size === 0) {
 				throw new KdlDeserializeError(`Missing properties`, {
-					location: node,
+					location: state.node,
 				});
 			}
 
-			const result = [...unusedProperties];
-			unusedProperties.clear();
+			const result = [...state.properties];
+			state.properties.clear();
 
 			return new Map(
 				result.flatMap(([name, prop]) => {
@@ -428,7 +503,7 @@ function makeProperty(node) {
 
 					if (!enumValues.includes(value)) {
 						if (ignoreInvalid) {
-							unusedProperties.set(name, prop);
+							state.properties.set(name, prop);
 							return [];
 						}
 
@@ -464,31 +539,14 @@ function makeProperty(node) {
 		return getProperty;
 	}
 
-	return [
-		mkProperty(false, false),
-		() => {
-			if (unusedProperties.size) {
-				throw new KdlDeserializeError(
-					`Found superfluous properties ${joinWithAnd(Array.from(unusedProperties.keys(), (name) => JSON.stringify(name)))}`,
-					{location: node},
-				);
-			}
-		},
-		() => {
-			const result = new Map(unusedProperties);
-			unusedProperties.clear();
-			return result;
-		},
-	];
+	return mkProperty(false, false);
 }
 
 /**
- * @param {Node} node
- * @return {[child: t.Child, children: t.Children, finalize: () => void, getRest: () => Node[]]}
+ * @param {ContextState} state
+ * @return {[child: t.Child, children: t.Children]}
  */
-function makeChildren(node) {
-	const unusedChildren = new Set(node.children?.nodes);
-
+function makeChildren(state) {
 	/**
 	 * @template {boolean} Required
 	 * @template {boolean} Single
@@ -502,7 +560,7 @@ function makeChildren(node) {
 				let result;
 				let foundMatch = false;
 
-				for (const child of unusedChildren) {
+				for (const child of state.children) {
 					if (child.getName() !== name) {
 						continue;
 					}
@@ -516,7 +574,7 @@ function makeChildren(node) {
 
 					foundMatch = true;
 					result = deserialize(child, deserializer, ...parameters);
-					unusedChildren.delete(child);
+					state.children.delete(child);
 
 					if (!single) {
 						// we can stop here, no need to continue looking for other children with the same name
@@ -527,7 +585,7 @@ function makeChildren(node) {
 				if (required && !foundMatch) {
 					throw new KdlDeserializeError(
 						`Expected a child called ${JSON.stringify(name)} but found none`,
-						{location: node},
+						{location: state.node},
 					);
 				}
 
@@ -560,12 +618,12 @@ function makeChildren(node) {
 		(name, deserializer, ...parameters) => {
 			const result = [];
 
-			for (const child of unusedChildren) {
+			for (const child of state.children) {
 				if (child.getName() !== name) {
 					continue;
 				}
 
-				unusedChildren.delete(child);
+				state.children.delete(child);
 				result.push(deserialize(child, deserializer, ...parameters));
 			}
 
@@ -577,19 +635,19 @@ function makeChildren(node) {
 		(name, deserializer, ...parameters) => {
 			const result = [];
 
-			for (const child of unusedChildren) {
+			for (const child of state.children) {
 				if (child.getName() !== name) {
 					continue;
 				}
 
-				unusedChildren.delete(child);
+				state.children.delete(child);
 				result.push(deserialize(child, deserializer, ...parameters));
 			}
 
 			if (result.length === 0) {
 				throw new KdlDeserializeError(
 					`Expected at least one child called ${JSON.stringify(name)} but found none`,
-					{location: node},
+					{location: state.node},
 				);
 			}
 
@@ -600,11 +658,11 @@ function makeChildren(node) {
 	children.entries = /** @type {t.Children['entries']} */ (
 		(deserializer, ...parameters) => {
 			/** @type {[string, t.Deserialized<typeof deserializer>][]} */
-			const result = Array.from(unusedChildren, (child) => [
+			const result = Array.from(state.children, (child) => [
 				child.getName(),
 				deserialize(child, deserializer, ...parameters),
 			]);
-			unusedChildren.clear();
+			state.children.clear();
 			return result;
 		}
 	);
@@ -614,13 +672,13 @@ function makeChildren(node) {
 			/** @type {[string, t.Deserialized<typeof deserializer>][]} */
 			const result = [];
 
-			for (const child of unusedChildren) {
+			for (const child of state.children) {
 				const name = child.getName();
 				if (!filter.test(name)) {
 					continue;
 				}
 
-				unusedChildren.delete(child);
+				state.children.delete(child);
 				result.push([name, deserialize(child, deserializer, ...parameters)]);
 			}
 
@@ -633,7 +691,7 @@ function makeChildren(node) {
 			/** @type {Map<string, t.Deserialized<typeof deserializer>>} */
 			const result = new Map();
 
-			for (const child of unusedChildren) {
+			for (const child of state.children) {
 				const name = child.getName();
 
 				if (result.has(name)) {
@@ -643,7 +701,7 @@ function makeChildren(node) {
 					);
 				}
 
-				unusedChildren.delete(child);
+				state.children.delete(child);
 				result.set(name, deserialize(child, deserializer, ...parameters));
 			}
 
@@ -659,7 +717,7 @@ function makeChildren(node) {
 		/** @type {Map<string, t.Deserialized<typeof deserializer>>} */
 		const result = new Map();
 
-		for (const child of unusedChildren) {
+		for (const child of state.children) {
 			const name = child.getName();
 			if (!filter.test(name)) {
 				continue;
@@ -672,45 +730,33 @@ function makeChildren(node) {
 				);
 			}
 
-			unusedChildren.delete(child);
+			state.children.delete(child);
 			result.set(name, deserialize(child, deserializer, ...parameters));
 		}
 
 		return Array.from(result);
 	};
 
-	return [
-		mkChild(false, false),
-		children,
-		() => {
-			if (unusedChildren.size) {
-				// Replace with Object.groupBy once targeting node ≥ 22
-				const counts = Array.from(unusedChildren, (child) =>
-					child.getName(),
-				).reduce((obj, name) => {
-					obj[name] = (Object.hasOwn(obj, name) ? obj[name] : 0) + 1;
+	return [mkChild(false, false), children];
+}
 
-					return obj;
-				}, /** @type {Record<string, number>} */ ({}));
+const kState = Symbol.for("@bgotink/kdl:deserialization-state");
 
-				throw new KdlDeserializeError(
-					`Found ${unusedChildren.size} superfluous children (${joinWithAnd(
-						Object.entries(counts).map(([name, count]) =>
-							count > 1 ?
-								`${count} ${JSON.stringify(name)}`
-							:	JSON.stringify(name),
-						),
-					)})`,
-					{location: node},
-				);
-			}
-		},
-		() => {
-			const result = Array.from(unusedChildren);
-			unusedChildren.clear();
-			return result;
-		},
-	];
+/** @param {t.DeserializationContext} context */
+export function getState(context) {
+	return /** @type {t.DeserializationContext & {[kState]: ContextState}} */ (
+		context
+	)[kState];
+}
+
+/**
+ * @template T
+ * @template {unknown[]} [P=[]]
+ * @param {t.Deserializer<T, P>} deserializer
+ * @returns {deserializer is t.DeserializerFromContext<T, P>}
+ */
+export function isDeserializerFromContext(deserializer) {
+	return !("deserializeFromNode" in deserializer);
 }
 
 /**
@@ -730,7 +776,7 @@ export function deserialize(node, deserializer, ...parameters) {
 		node = new Node(new Identifier("-"), undefined, node);
 	}
 
-	if ("deserializeFromNode" in deserializer) {
+	if (!isDeserializerFromContext(deserializer)) {
 		try {
 			return deserializer.deserializeFromNode(node, ...parameters);
 		} catch (e) {
@@ -745,33 +791,52 @@ export function deserialize(node, deserializer, ...parameters) {
 		}
 	}
 
-	const [argument, finalizeArguments, getRemainingArguments] =
-		makeArgument(node);
-	const [property, finalizeProperties, getRemainingProperties] =
-		makeProperty(node);
-	const [child, children, finalizeChildren, getRemainingChildren] =
-		makeChildren(node);
+	return deserializeFromState(
+		new ContextState(node),
+		deserializer,
+		...parameters,
+	);
+}
+
+/**
+ * Deserialize the given {@link ContextState} using the given {@link t.DeserializationContext<T, P> deserializer}.
+ *
+ * @template T
+ * @template {unknown[]} [P=[]]
+ * @param {ContextState} state
+ * @param {t.DeserializerFromContext<T, P>} deserializer
+ * @param {P} parameters
+ * @returns {T}
+ */
+export function deserializeFromState(state, deserializer, ...parameters) {
+	const argument = makeArgument(state);
+	const property = makeProperty(state);
+	const [child, children] = makeChildren(state);
 
 	const json = /** @type {t.Json} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
-			const args = getRemainingArguments();
-			const props = getRemainingProperties();
-			const children = getRemainingChildren();
+			const {args, props, children} = state.clear();
 
-			if (!args.length && !props.size && !children.length) {
-				const tag = node.getTag();
+			if (!args.length && !props.size && !children.size) {
+				const tag = state.node.getTag();
 				if (tag !== "object" && tag !== "array") {
 					return undefined;
 				}
 			}
 
-			const value = deserializeJson(types, node, args, props, children);
+			const value = deserializeJson(
+				types,
+				state.node,
+				args,
+				props,
+				Array.from(children),
+			);
 
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected a ${joinWithOr(types)} but got a ${jsonTypeOf(value)}`,
-					{location: node},
+					{location: state.node},
 				);
 			}
 
@@ -782,16 +847,20 @@ export function deserialize(node, deserializer, ...parameters) {
 	json.required = /** @type {t.Json["required"]} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
-			const args = getRemainingArguments();
-			const props = getRemainingProperties();
-			const children = getRemainingChildren();
+			const {args, props, children} = state.clear();
 
-			const value = deserializeJson(types, node, args, props, children);
+			const value = deserializeJson(
+				types,
+				state.node,
+				args,
+				props,
+				Array.from(children),
+			);
 
 			if (types.length && !hasValidJsonType(types, value)) {
 				throw new KdlDeserializeError(
 					`Expected a ${joinWithOr(types)} but got a ${jsonTypeOf(value)}`,
-					{location: node},
+					{location: state.node},
 				);
 			}
 
@@ -801,6 +870,12 @@ export function deserialize(node, deserializer, ...parameters) {
 
 	/** @type {t.DeserializationContext["run"]} */
 	const run = (deserializer, ...params) => {
+		if (!isDeserializerFromContext(deserializer)) {
+			throw new TypeError(
+				"Expected a DeserializerFromContext, got a DeserializerFromNode",
+			);
+		}
+
 		try {
 			return "deserialize" in deserializer ?
 					deserializer.deserialize(context, ...params)
@@ -810,17 +885,17 @@ export function deserialize(node, deserializer, ...parameters) {
 				throw e;
 			} else {
 				throw new KdlDeserializeError(`Deserializer failed: ${String(e)}`, {
-					location: node,
+					location: state.node,
 					cause: e,
 				});
 			}
 		}
 	};
 
-	/** @type {t.DeserializationContext} */
+	/** @type {t.DeserializationContext & {[kState]: ContextState}} */
 	const context = {
-		name: node.getName(),
-		tag: node.getTag(),
+		name: state.node.getName(),
+		tag: state.node.getTag(),
 
 		argument,
 		property,
@@ -829,15 +904,15 @@ export function deserialize(node, deserializer, ...parameters) {
 		json,
 
 		run,
+
+		[kState]: state,
 	};
 
-	storeNodeForContext(context, node);
+	storeNodeForContext(context, state.node);
 
 	const result = run(deserializer, ...parameters);
 
-	finalizeArguments();
-	finalizeProperties();
-	finalizeChildren();
+	state.finalize();
 
 	return result;
 }

@@ -21,7 +21,16 @@ mkdirSync("out");
 
 // TypeScript
 
-execSync("tsc -p tsconfig.json");
+try {
+	execSync("tsc -p tsconfig.json");
+} catch (e) {
+	if ("stdout" in e) {
+		console.error(`${e.name}: ${e.message}`);
+		console.error("output:");
+		console.error(e.stdout.toString());
+		process.exit(1);
+	}
+}
 
 // JavaScript
 
