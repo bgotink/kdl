@@ -1,6 +1,8 @@
 import {JsonObject, JsonValue} from "../../json.js";
 import {Node, Primitive} from "../../index.js";
 
+import {KdlDeserializeError} from "./error.js";
+
 /**
  * String representation of the {@link Primitive} types
  */
@@ -408,6 +410,30 @@ export interface Json {
 	required<T extends [JsonType, ...JsonType[]]>(...types: T): JsonTypeOf<T>;
 }
 
+export interface Run {
+	/**
+	 * Run the given deserializer
+	 *
+	 * The deserializer is run atomically, i.e. if the deserializer fails
+	 * then the context is reset to before the deserializer ran.
+	 */
+	<T, P extends unknown[]>(
+		deserializer: DeserializerFromContext<T, P>,
+		...parameters: P
+	): T;
+
+	/**
+	 * Run the given deserializer, returning null if the deserializer fails with a {@link KdlDeserializeError}
+	 *
+	 * The deserializer is run atomically, i.e. if the deserializer fails
+	 * then the context is reset to before the deserializer ran.
+	 */
+	try<T, P extends unknown[]>(
+		deserializer: DeserializerFromContext<T, P>,
+		...parameters: P
+	): T | null;
+}
+
 /**
  * Wrapper around a {@link Node} to help deserializing a single {@link Node} into a value
  */
@@ -446,10 +472,7 @@ export interface DeserializationContext {
 	readonly json: Json;
 
 	/**
-	 * Run the given deserializer
+	 * Helper for running other deserializers.
 	 */
-	readonly run: <T, P extends unknown[]>(
-		deserializer: DeserializerFromContext<T, P>,
-		...parameters: P
-	) => T;
+	readonly run: Run;
 }

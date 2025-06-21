@@ -868,27 +868,43 @@ export function deserializeFromState(state, deserializer, ...parameters) {
 		}
 	);
 
-	/** @type {t.DeserializationContext["run"]} */
-	const run = (deserializer, ...params) => {
-		if (!isDeserializerFromContext(deserializer)) {
-			throw new TypeError(
-				"Expected a DeserializerFromContext, got a DeserializerFromNode",
-			);
-		}
+	const run = /** @type {t.Run} */ (
+		(deserializer, ...params) => {
+			if (!isDeserializerFromContext(deserializer)) {
+				throw new TypeError(
+					"Expected a DeserializerFromContext, got a DeserializerFromNode",
+				);
+			}
 
+			const stateBefore = state.clone();
+			try {
+				return "deserialize" in deserializer ?
+						deserializer.deserialize(context, ...params)
+					:	deserializer(context, ...params);
+			} catch (e) {
+				state.apply(stateBefore);
+
+				if (e instanceof KdlDeserializeError) {
+					throw e;
+				} else {
+					throw new KdlDeserializeError(`Deserializer failed: ${String(e)}`, {
+						location: state.node,
+						cause: e,
+					});
+				}
+			}
+		}
+	);
+
+	run.try = (deserializer, ...params) => {
 		try {
-			return "deserialize" in deserializer ?
-					deserializer.deserialize(context, ...params)
-				:	deserializer(context, ...params);
+			return run(deserializer, ...params);
 		} catch (e) {
 			if (e instanceof KdlDeserializeError) {
-				throw e;
-			} else {
-				throw new KdlDeserializeError(`Deserializer failed: ${String(e)}`, {
-					location: state.node,
-					cause: e,
-				});
+				return null;
 			}
+
+			throw e;
 		}
 	};
 
