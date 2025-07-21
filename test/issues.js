@@ -94,4 +94,8 @@ test("issue kdl-org/kdl#502: formatting outputs invalid raw unicode data", () =>
 	);
 });
 
+test("issue #11: v1 style raw strings", () => {
+	assert.throws(() => parse('/-node {a x=r#"123"#}'), /Invalid raw string/);
+});
+
 test.run();

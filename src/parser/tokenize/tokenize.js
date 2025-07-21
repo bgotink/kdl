@@ -541,6 +541,34 @@ export function handleNumberCharacter(ctx) {
 }
 
 /** @param {TokenizeContext} ctx */
+function handleR(ctx) {
+	pop(ctx);
+
+	if (ctx.current != 0x23 /* # */) {
+		zerOrMore(ctx, isIdentifierChar);
+		return mkToken(ctx, T_IDENTIFIER_STRING);
+	}
+
+	const token = handleHashCharacter(ctx);
+	token.start.offset--;
+	token.start.column--;
+
+	let message;
+	switch (token.type) {
+		case T_RAW_STRING:
+		case T_MULTILINE_RAW_STRING:
+			message = 'Invalid raw string, the correct syntax is #" "#, not r#" "#';
+			break;
+
+		default:
+			message = "Invalid token, did you forget a whitespace after this r?";
+	}
+
+	(token.errors ??= []).push(new InvalidKdlError(message, {token}));
+	return token;
+}
+
+/** @param {TokenizeContext} ctx */
 export function handleIdentifierCharacter(ctx) {
 	pop(ctx);
 
@@ -596,6 +624,7 @@ characterHandlers[0x3d] = createSingleCharacterToken(T_EQUALS); // =
 characterHandlers[0x5b] = handleInvalidCharacter; // [
 characterHandlers[0x5c] = createSingleCharacterToken(T_ESCLINE); // \
 characterHandlers[0x5d] = handleInvalidCharacter; // ]
+characterHandlers[0x72] = handleR;
 characterHandlers[0x7b] = createSingleCharacterToken(T_OPEN_BRACE); // {
 characterHandlers[0x7d] = createSingleCharacterToken(T_CLOSE_BRACE); // }
 characterHandlers[0x85] = handleNewlineCharacter; // Next Line
