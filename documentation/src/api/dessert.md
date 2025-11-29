@@ -148,7 +148,7 @@ The `@bgotink/kdl/dessert` API supports this by allowing programs to link an obj
 This process takes two steps:
 
 1. Store the `DeserializationContext` somewhere
-2. Pass call `source` on the `SerializationContext` at the beginning of the `serialize` function and pass it the stored `DeserializationContext`
+2. Call `source` on the `SerializationContext` at the beginning of the `serialize` function and pass it the stored `DeserializationContext`
 
 It is important this call to `source` happens before you make any other calls to any function on the `SerializationContext`.
 Calling it later in the serializer will cause an error.
@@ -195,7 +195,7 @@ and run
 
 ```ts
 function modify(node: Node): Node {
-	const tree = readTree(node); // see deserialization example for this functino
+	const tree = readTree(node); // see deserialization example for this function
 
 	tree.right.left.value++;
 	tree.right.value++;
@@ -228,4 +228,4 @@ root 11 {
 }
 ```
 
-Deserializers and serializers that implement the `deserializeFromNode` and `serializeToNode` respectively are responsible for copying any comments and formatting from the original node being deserialized to the final serialized node.
+Deserializers and serializers that implement the `deserializeFromNode` and `serializeToNode` functions respectively are responsible for copying any comments and formatting from the original node being deserialized to the final serialized node.

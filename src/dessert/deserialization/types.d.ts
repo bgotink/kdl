@@ -83,7 +83,14 @@ export type ArgumentReturnType<
 		:	T[]
 	:	T[];
 
+/**
+ * Helper type to differentiate between a return type with or without tag.
+ */
+export type Tagged<T, IncludeTag extends boolean> =
+	IncludeTag extends true ? [T, string | null] : T;
+
 export interface Argument<
+	IncludeTag extends boolean,
 	Required extends boolean = false,
 	ReturnMultiple extends boolean = false,
 	IgnoreInvalid extends boolean = false,
@@ -91,7 +98,11 @@ export interface Argument<
 	/**
 	 * Return the next argument, if there is a next argument
 	 */
-	(): ArgumentReturnType<Primitive, Required, ReturnMultiple>;
+	(): ArgumentReturnType<
+		Tagged<Primitive, IncludeTag>,
+		Required,
+		ReturnMultiple
+	>;
 
 	/**
 	 * Return the next argument, if there is a next argument, requiring the argument to be of the given type
@@ -100,7 +111,12 @@ export interface Argument<
 	 */
 	<T extends [PrimitiveType, ...PrimitiveType[]]>(
 		...types: T
-	): ArgumentReturnType<TypeOf<T>, Required, ReturnMultiple, IgnoreInvalid>;
+	): ArgumentReturnType<
+		Tagged<TypeOf<T>, IncludeTag>,
+		Required,
+		ReturnMultiple,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Return the next argument, if there is a next argument, requiring the argument to be one of the given enum values
@@ -109,25 +125,32 @@ export interface Argument<
 	 */
 	enum<T extends Primitive[]>(
 		...values: T
-	): ArgumentReturnType<T[number], Required, ReturnMultiple, IgnoreInvalid>;
+	): ArgumentReturnType<
+		Tagged<T[number], IncludeTag>,
+		Required,
+		ReturnMultiple,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Throw if there is no next argument, rather than return undefined
 	 */
 	required: Required extends false ?
-		Argument<true, ReturnMultiple, IgnoreInvalid>
+		Argument<IncludeTag, true, ReturnMultiple, IgnoreInvalid>
 	:	never;
 
 	/**
 	 * Return all remaining arguments rather than only the next argument
 	 */
-	rest: ReturnMultiple extends false ? Argument<Required, true, IgnoreInvalid>
+	rest: ReturnMultiple extends false ?
+		Argument<IncludeTag, Required, true, IgnoreInvalid>
 	:	never;
 
 	/**
 	 * Return undefined instead of throwing if the next argument doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ? Argument<Required, ReturnMultiple, true>
+	if: IgnoreInvalid extends false ?
+		Argument<IncludeTag, Required, ReturnMultiple, true>
 	:	never;
 }
 
@@ -150,13 +173,16 @@ type PropertyReturnType<
 	:	Map<string, T>;
 
 export interface Property<
+	IncludeTag extends boolean,
 	Required extends boolean = false,
 	IgnoreInvalid extends boolean = false,
 > {
 	/**
 	 * Return the property with the given name if it exists and it hasn't been returned yet
 	 */
-	(name: string): PropertyReturnType<Primitive, Required, false>;
+	(
+		name: string,
+	): PropertyReturnType<Tagged<Primitive, IncludeTag>, Required, false>;
 
 	/**
 	 * Return the property with the given name if it exists and it hasn't been returned yet
@@ -166,7 +192,12 @@ export interface Property<
 	<T extends [PrimitiveType, ...PrimitiveType[]]>(
 		name: string,
 		...types: T
-	): PropertyReturnType<TypeOf<T>, Required, false, IgnoreInvalid>;
+	): PropertyReturnType<
+		Tagged<TypeOf<T>, IncludeTag>,
+		Required,
+		false,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Return the property with the given name if it exists and it hasn't been returned yet
@@ -176,32 +207,40 @@ export interface Property<
 	enum<T extends Primitive[]>(
 		name: string,
 		...values: T
-	): PropertyReturnType<T[number], Required, false, IgnoreInvalid>;
+	): PropertyReturnType<
+		Tagged<T[number], IncludeTag>,
+		Required,
+		false,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Throw if there is no property with the given name, rather than return undefined
 	 */
-	required: Required extends false ? Property<true, IgnoreInvalid> : never;
+	required: Required extends false ? Property<IncludeTag, true, IgnoreInvalid>
+	:	never;
 
 	/**
 	 * Return all remaining properties rather than only a single named property
 	 */
-	rest: RestProperty<Required, IgnoreInvalid>;
+	rest: RestProperty<IncludeTag, Required, IgnoreInvalid>;
 
 	/**
 	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ? Property<Required, true> : never;
+	if: IgnoreInvalid extends false ? Property<IncludeTag, Required, true>
+	:	never;
 }
 
 export interface RestProperty<
-	Required extends boolean = false,
-	IgnoreInvalid extends boolean = false,
+	IncludeTag extends boolean,
+	Required extends boolean,
+	IgnoreInvalid extends boolean,
 > {
 	/**
 	 * Return all remaining properties
 	 */
-	(): PropertyReturnType<Primitive, Required, true>;
+	(): PropertyReturnType<Tagged<Primitive, IncludeTag>, Required, true>;
 
 	/**
 	 * Return all remaining properties
@@ -210,7 +249,12 @@ export interface RestProperty<
 	 */
 	<T extends [PrimitiveType, ...PrimitiveType[]]>(
 		...types: T
-	): PropertyReturnType<TypeOf<T>, Required, true, IgnoreInvalid>;
+	): PropertyReturnType<
+		Tagged<TypeOf<T>, IncludeTag>,
+		Required,
+		true,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Return all remaining properties
@@ -219,17 +263,25 @@ export interface RestProperty<
 	 */
 	enum<T extends Primitive[]>(
 		...values: T
-	): PropertyReturnType<T[number], Required, true, IgnoreInvalid>;
+	): PropertyReturnType<
+		Tagged<T[number], IncludeTag>,
+		Required,
+		true,
+		IgnoreInvalid
+	>;
 
 	/**
 	 * Throw if there is no property with the given name, rather than return undefined
 	 */
-	required: Required extends false ? RestProperty<true, IgnoreInvalid> : never;
+	required: Required extends false ?
+		RestProperty<IncludeTag, true, IgnoreInvalid>
+	:	never;
 
 	/**
 	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ? RestProperty<Required, true> : never;
+	if: IgnoreInvalid extends false ? RestProperty<IncludeTag, Required, true>
+	:	never;
 }
 
 export interface Child<
@@ -451,11 +503,11 @@ export interface DeserializationContext {
 	/**
 	 * Helper to access the node's arguments
 	 */
-	readonly argument: Argument;
+	readonly argument: Argument<false>;
 	/**
 	 * Helper to access the node's properties
 	 */
-	readonly property: Property;
+	readonly property: Property<false>;
 
 	/**
 	 * Helper to access the node's children
@@ -465,6 +517,20 @@ export interface DeserializationContext {
 	 * Helper to access the node's children
 	 */
 	readonly children: Children;
+
+	/**
+	 * Helpers that expose not just the value but also the tags of arguments and properties
+	 */
+	readonly tagged: {
+		/**
+		 * Helper to access the node's arguments
+		 */
+		readonly argument: Argument<true>;
+		/**
+		 * Helper to access the node's properties
+		 */
+		readonly property: Property<true>;
+	};
 
 	/**
 	 * Helper for processing the node as JSON

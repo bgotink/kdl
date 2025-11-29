@@ -5,6 +5,7 @@ import {deserialize, firstMatchingDeserializer} from "../../src/dessert.js";
 import {parse} from "../../src/index.js";
 
 /** @import {Deserializer, DeserializerFromContext, DeserializationContext} from "../../src/dessert.js" */
+/** @import {JsonValue} from "../../src/json.js" */
 
 test("simple", () => {
 	const node = parse("node 0 1 2", {as: "node"});
@@ -45,6 +46,13 @@ test("types", () => {
 			ctx.argument.required("number"),
 			ctx.argument.required("number"),
 		]);
+
+		assert.deepEqual(actual, [0, 1, 2]);
+	}
+
+	{
+		/** @type {number[]} */
+		const actual = deserialize(node, (ctx) => ctx.argument.rest("number"));
 
 		assert.deepEqual(actual, [0, 1, 2]);
 	}
@@ -193,6 +201,55 @@ test("json", () => {
 		),
 		[{prop: "value"}, {prop: "value"}, {prop: "value"}, 0, [0, 1, 2]],
 	);
+});
+
+test("tagged", () => {
+	const node = parse(
+		`node (u8)0 (u16)1 2 lorem=(bool)#true ipsum=(date)"2025-11-28" dolor=#false`,
+		{as: "node"},
+	);
+
+	{
+		const [args, props] = deserialize(node, (ctx) => [
+			ctx.argument.rest(),
+			ctx.property.rest(),
+		]);
+
+		assert.deepEqual(args, [0, 1, 2]);
+		assert.deepEqual(
+			props,
+			new Map(
+				/** @type {[string, JsonValue][]} */ ([
+					["lorem", true],
+					["ipsum", "2025-11-28"],
+					["dolor", false],
+				]),
+			),
+		);
+	}
+
+	{
+		const [args, props] = deserialize(node, (ctx) => [
+			ctx.tagged.argument.rest("number"),
+			ctx.tagged.property.rest(),
+		]);
+
+		assert.deepEqual(args, [
+			[0, "u8"],
+			[1, "u16"],
+			[2, null],
+		]);
+		assert.deepEqual(
+			props,
+			new Map(
+				/** @type {[string, [JsonValue, string | null]][]} */ ([
+					["lorem", [true, "bool"]],
+					["ipsum", ["2025-11-28", "date"]],
+					["dolor", [false, null]],
+				]),
+			),
+		);
+	}
 });
 
 test.run();

@@ -141,20 +141,51 @@ class ContextState {
 }
 
 /**
- * @param {ContextState} state
- * @returns {t.Argument}
+ * @param {Entry} entry
+ * @returns {t.Tagged<Primitive, true>}
  */
-function makeArgument(state) {
+function extractValueWithTag(entry) {
+	return [entry.getValue(), entry.getTag()];
+}
+
+/**
+ * @param {Entry} entry
+ * @returns {t.Tagged<Primitive, false>}
+ */
+function extractValue(entry) {
+	return entry.getValue();
+}
+
+/**
+ * @template {boolean} IncludeTag
+ * @param {IncludeTag} includeTag
+ * @returns {(entry: Entry) => t.Tagged<Primitive, IncludeTag>}
+ */
+function getExtractor(includeTag) {
+	return /** @type {(entry: Entry) => t.Tagged<Primitive, IncludeTag>} */ (
+		includeTag ? extractValueWithTag : extractValue
+	);
+}
+
+/**
+ * @template {boolean} IncludeTag
+ * @param {ContextState} state
+ * @param {IncludeTag} includeTag
+ * @returns {t.Argument<IncludeTag>}
+ */
+function makeArgument(state, includeTag) {
+	const extractor = getExtractor(includeTag);
+
 	/**
 	 * @template {boolean} Required
 	 * @template {boolean} IgnoreInvalid
 	 * @param {Required} required
 	 * @param {IgnoreInvalid} ignoreInvalid
-	 * @returns {t.Argument<Required, false, IgnoreInvalid>}
+	 * @returns {t.Argument<IncludeTag, Required, false, IgnoreInvalid>}
 	 */
 	function mkArgument(required, ignoreInvalid) {
 		const getArgument =
-			/** @type {t.Argument<Required, false, IgnoreInvalid>} */ (
+			/** @type {t.Argument<IncludeTag, Required, false, IgnoreInvalid>} */ (
 				/** @type {unknown} */ (
 					/** @param {...t.PrimitiveType} types */
 					(...types) => {
@@ -168,21 +199,20 @@ function makeArgument(state) {
 								location: state.node,
 							});
 						}
-						const value = arg.getValue();
 
-						if (types.length && !hasValidType(types, value)) {
+						if (types.length && !hasValidType(types, arg.getValue())) {
 							if (ignoreInvalid) {
 								return undefined;
 							}
 
 							throw new KdlDeserializeError(
-								`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+								`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(arg.getValue())}`,
 								{location: arg},
 							);
 						}
 
 						state.arguments.shift();
-						return value;
+						return extractor(arg);
 					}
 				)
 			);
@@ -199,21 +229,20 @@ function makeArgument(state) {
 					location: state.node,
 				});
 			}
-			const value = arg.getValue();
 
-			if (!enumValues.includes(value)) {
+			if (!enumValues.includes(arg.getValue())) {
 				if (ignoreInvalid) {
 					return undefined;
 				}
 
 				throw new KdlDeserializeError(
-					`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+					`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(arg.getValue())}`,
 					{location: arg},
 				);
 			}
 
 			state.arguments.shift();
-			return value;
+			return extractor(arg);
 		};
 
 		let restBuilder;
@@ -249,14 +278,14 @@ function makeArgument(state) {
 	 * @template {boolean} IgnoreInvalid
 	 * @param {Required} required
 	 * @param {IgnoreInvalid} ignoreInvalid
-	 * @returns {t.Argument<Required, true, IgnoreInvalid>}
+	 * @returns {t.Argument<IncludeTag, Required, true, IgnoreInvalid>}
 	 */
 	function mkRestArgument(required, ignoreInvalid) {
 		const getArgument =
-			/** @type {t.Argument<Required, true, IgnoreInvalid>} */ (
+			/** @type {t.Argument<IncludeTag, Required, true, IgnoreInvalid>} */ (
 				/** @param {...t.PrimitiveType} types */
 				(...types) => {
-					if (required) {
+					if (required && state.arguments.length === 0) {
 						throw new KdlDeserializeError(`Missing argument`, {
 							location: state.node,
 						});
@@ -265,21 +294,19 @@ function makeArgument(state) {
 					return state.arguments
 						.splice(0, state.arguments.length)
 						.flatMap((arg) => {
-							const value = arg.getValue();
-
-							if (types.length && !hasValidType(types, value)) {
+							if (types.length && !hasValidType(types, arg.getValue())) {
 								if (ignoreInvalid) {
 									state.arguments.push(arg);
 									return [];
 								}
 
 								throw new KdlDeserializeError(
-									`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
+									`Expected a ${joinWithOr(types)} but got ${primitiveTypeOf(arg.getValue())}`,
 									{location: arg},
 								);
 							}
 
-							return [value];
+							return [extractor(arg)];
 						});
 				}
 			);
@@ -295,21 +322,19 @@ function makeArgument(state) {
 			return state.arguments
 				.splice(0, state.arguments.length)
 				.flatMap((arg) => {
-					const value = arg.getValue();
-
-					if (!enumValues.includes(value)) {
+					if (!enumValues.includes(arg.getValue())) {
 						if (ignoreInvalid) {
 							state.arguments.push(arg);
 							return [];
 						}
 
 						throw new KdlDeserializeError(
-							`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+							`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(arg.getValue())}`,
 							{location: arg},
 						);
 					}
 
-					return [value];
+					return [extractor(arg)];
 				});
 		};
 
@@ -338,53 +363,57 @@ function makeArgument(state) {
 }
 
 /**
+ * @template {boolean} IncludeTag
  * @param {ContextState} state
- * @returns {t.Property}
+ * @param {IncludeTag} includeTag
+ * @returns {t.Property<IncludeTag>}
  */
-function makeProperty(state) {
+function makeProperty(state, includeTag) {
+	const extractor = getExtractor(includeTag);
+
 	/**
 	 * @template {boolean} Required
 	 * @template {boolean} IgnoreInvalid
 	 * @param {Required} required
 	 * @param {IgnoreInvalid} ignoreInvalid
-	 * @returns {t.Property<Required, IgnoreInvalid>}
+	 * @returns {t.Property<IncludeTag, Required, IgnoreInvalid>}
 	 */
 	function mkProperty(required, ignoreInvalid) {
-		const getProperty = /** @type {t.Property<Required, IgnoreInvalid>} */ (
-			/** @type {unknown} */ (
-				/**
-				 * @param {string} name
-				 * @param {...t.PrimitiveType} types
-				 */
-				(name, ...types) => {
-					const prop = state.properties.get(name);
-					if (prop === undefined) {
-						if (!required) {
-							return prop;
+		const getProperty =
+			/** @type {t.Property<IncludeTag, Required, IgnoreInvalid>} */ (
+				/** @type {unknown} */ (
+					/**
+					 * @param {string} name
+					 * @param {...t.PrimitiveType} types
+					 */
+					(name, ...types) => {
+						const prop = state.properties.get(name);
+						if (prop === undefined) {
+							if (!required) {
+								return prop;
+							}
+
+							throw new KdlDeserializeError(`Missing property ${name}`, {
+								location: state.node,
+							});
 						}
 
-						throw new KdlDeserializeError(`Missing property ${name}`, {
-							location: state.node,
-						});
-					}
-					const value = prop.getValue();
+						if (types.length && !hasValidType(types, prop.getValue())) {
+							if (ignoreInvalid) {
+								return undefined;
+							}
 
-					if (types.length && !hasValidType(types, value)) {
-						if (ignoreInvalid) {
-							return undefined;
+							throw new KdlDeserializeError(
+								`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(prop.getValue())}`,
+								{location: prop},
+							);
 						}
 
-						throw new KdlDeserializeError(
-							`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-							{location: prop},
-						);
+						state.properties.delete(name);
+						return extractor(prop);
 					}
-
-					state.properties.delete(name);
-					return value;
-				}
-			)
-		);
+				)
+			);
 
 		// @ts-expect-error Mapped return types + type inference run into limitations
 		getProperty.enum = (name, ...enumValues) => {
@@ -398,21 +427,20 @@ function makeProperty(state) {
 					location: state.node,
 				});
 			}
-			const value = prop.getValue();
 
-			if (!enumValues.includes(value)) {
+			if (!enumValues.includes(prop.getValue())) {
 				if (ignoreInvalid) {
 					return undefined;
 				}
 
 				throw new KdlDeserializeError(
-					`Expected property ${name} to be onf of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+					`Expected property ${name} to be onf of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(prop.getValue())}`,
 					{location: prop},
 				);
 			}
 
 			state.properties.delete(name);
-			return value;
+			return extractor(prop);
 		};
 
 		let restBuilder;
@@ -448,44 +476,43 @@ function makeProperty(state) {
 	 * @template {boolean} IgnoreInvalid
 	 * @param {Required} required
 	 * @param {IgnoreInvalid} ignoreInvalid
-	 * @returns {t.RestProperty<Required, IgnoreInvalid>}
+	 * @returns {t.RestProperty<IncludeTag, Required, IgnoreInvalid>}
 	 */
 	function mkRestProperties(required, ignoreInvalid) {
-		const getProperty = /** @type {t.RestProperty<Required, IgnoreInvalid>} */ (
-			/** @type {unknown} */ (
-				/** @param {...t.PrimitiveType} types */
-				(...types) => {
-					if (required && state.properties.size === 0) {
-						throw new KdlDeserializeError(`Missing properties`, {
-							location: state.node,
-						});
-					}
+		const getProperty =
+			/** @type {t.RestProperty<IncludeTag, Required, IgnoreInvalid>} */ (
+				/** @type {unknown} */ (
+					/** @param {...t.PrimitiveType} types */
+					(...types) => {
+						if (required && state.properties.size === 0) {
+							throw new KdlDeserializeError(`Missing properties`, {
+								location: state.node,
+							});
+						}
 
-					const result = [...state.properties];
-					state.properties.clear();
+						const result = [...state.properties];
+						state.properties.clear();
 
-					return new Map(
-						result.flatMap(([name, prop]) => {
-							const value = prop.getValue();
+						return new Map(
+							result.flatMap(([name, prop]) => {
+								if (types.length && !hasValidType(types, prop.getValue())) {
+									if (ignoreInvalid) {
+										state.properties.set(name, prop);
+										return [];
+									}
 
-							if (types.length && !hasValidType(types, value)) {
-								if (ignoreInvalid) {
-									state.properties.set(name, prop);
-									return [];
+									throw new KdlDeserializeError(
+										`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(prop.getValue())}`,
+										{location: prop},
+									);
 								}
 
-								throw new KdlDeserializeError(
-									`Expected property ${name} to be a ${joinWithOr(types)} but got ${primitiveTypeOf(value)}`,
-									{location: prop},
-								);
-							}
-
-							return [[name, value]];
-						}),
-					);
-				}
-			)
-		);
+								return [[name, extractor(prop)]];
+							}),
+						);
+					}
+				)
+			);
 
 		getProperty.enum = (...enumValues) => {
 			if (required && state.properties.size === 0) {
@@ -499,21 +526,19 @@ function makeProperty(state) {
 
 			return new Map(
 				result.flatMap(([name, prop]) => {
-					const value = prop.getValue();
-
-					if (!enumValues.includes(value)) {
+					if (!enumValues.includes(prop.getValue())) {
 						if (ignoreInvalid) {
 							state.properties.set(name, prop);
 							return [];
 						}
 
 						throw new KdlDeserializeError(
-							`Expected property ${name} to be one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(value)}`,
+							`Expected property ${name} to be one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(prop.getValue())}`,
 							{location: prop},
 						);
 					}
 
-					return [[name, value]];
+					return [[name, extractor(prop)]];
 				}),
 			);
 		};
@@ -809,10 +834,6 @@ export function deserialize(node, deserializer, ...parameters) {
  * @returns {T}
  */
 export function deserializeFromState(state, deserializer, ...parameters) {
-	const argument = makeArgument(state);
-	const property = makeProperty(state);
-	const [child, children] = makeChildren(state);
-
 	const json = /** @type {t.Json} */ (
 		/** @param {...t.JsonType} types */
 		(...types) => {
@@ -908,18 +929,24 @@ export function deserializeFromState(state, deserializer, ...parameters) {
 		}
 	};
 
+	const [child, children] = makeChildren(state);
 	/** @type {t.DeserializationContext & {[kState]: ContextState}} */
 	const context = {
 		name: state.node.getName(),
 		tag: state.node.getTag(),
 
-		argument,
-		property,
+		argument: makeArgument(state, false),
+		property: makeProperty(state, false),
 		child,
 		children,
 		json,
 
 		run,
+
+		tagged: {
+			argument: makeArgument(state, true),
+			property: makeProperty(state, true),
+		},
 
 		[kState]: state,
 	};
