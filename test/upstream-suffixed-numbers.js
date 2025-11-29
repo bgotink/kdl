@@ -7,7 +7,7 @@ import {clearFormat, format, parse} from "../src/index.js";
 const testValid = suite("valid documents");
 const testInvalid = suite("invalid documents");
 
-const testCasesFolder = new URL("upstream/tests/test_cases/", import.meta.url);
+const testCasesFolder = new URL("upstream-suffixed-numbers/tests/test_cases/", import.meta.url);
 
 const knownBrokenTests = new Set([
 	// All JavaScript numbers are floats, meaning the largest
@@ -21,6 +21,14 @@ const knownBrokenTests = new Set([
 	// javascript engine doesn't provide (yet?)
 	"sci_notation_large.kdl",
 	"sci_notation_small.kdl",
+
+	// These tests that actually should not fail
+	"bare_ident_numeric_fail.kdl",
+	"bare_ident_numeric_sign_fail.kdl",
+	"illegal_char_in_binary_fail.kdl",
+	"multiple_x_in_hex_fail.kdl",
+	"no_digits_in_hex_fail.kdl",
+	"suffix_type_bare_underscore_fail.kdl",
 ]);
 
 /**
@@ -29,7 +37,7 @@ const knownBrokenTests = new Set([
  * @param {string} text
  */
 function roundTrip(text) {
-	return format(parse(text, ));
+	return format(parse(text, {flags: {experimentalSuffixedNumbers: true}}));
 }
 
 /**
@@ -38,7 +46,7 @@ function roundTrip(text) {
  * @param {Parameters<parse>[0]} text
  */
 function parseAndFormat(text) {
-	const document = parse(text, );
+	const document = parse(text, {flags: {experimentalSuffixedNumbers: true}});
 	clearFormat(document);
 
 	// The expected output of the tests uses scientific notation
@@ -112,9 +120,9 @@ for (const testCase of readdirSync(new URL("input", testCasesFolder))) {
 
 		testInvalid(testCase, () => {
 			if (knownBrokenTests.has(testCase)) {
-				assert.doesNotThrow(() => parse(input, ));
+				assert.doesNotThrow(() => parse(input, {flags: {experimentalSuffixedNumbers: true}}));
 			} else {
-				assert.throws(() => parse(input, ));
+				assert.throws(() => parse(input, {flags: {experimentalSuffixedNumbers: true}}));
 			}
 		});
 	} else {

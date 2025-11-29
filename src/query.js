@@ -1,4 +1,5 @@
 import {InvalidKdlQueryError} from "./error.js";
+import {resolveFlags} from "./flags.js";
 import {Query} from "./model/query/query.js";
 import {parseQuery} from "./parser/parse-query.js";
 import {createParserCtx, finalize} from "./parser/parse.js";
@@ -18,10 +19,11 @@ export {InvalidKdlQueryError} from "./error.js";
  * @param {string | ArrayBuffer | Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | DataView} text
  * @param {object} [options]
  * @param {boolean} [options.graphemeLocations]
+ * @param {Partial<import('./flags.js').ParserFlags>} [options.flags]
  * @returns {Query}
  * @throws {InvalidKdlQueryError} If the query is invalid
  */
-export function parse(text, options = {}) {
+export function parse(text, {flags, ...options} = {}) {
 	if (typeof text !== "string") {
 		if (typeof TextDecoder !== "function") {
 			throw new TypeError(
@@ -34,10 +36,12 @@ export function parse(text, options = {}) {
 		text = decoder.decode(text);
 	}
 
-	const tokens = tokenizeQuery(text, options);
+	const resolvedFlags = resolveFlags(flags);
+
+	const tokens = tokenizeQuery(text, {...options, flags: resolvedFlags});
 	// console.log(Array.from(tokens));
 
-	const ctx = createParserCtx(text, tokens, {});
+	const ctx = createParserCtx(text, tokens, {flags: resolvedFlags});
 
 	let value;
 	try {

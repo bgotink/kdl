@@ -4,3 +4,6 @@
 [submodule "test/upstream-v1"]
 	path = test/upstream-v1
 	url = https://github.com/kdl-org/kdl
+[submodule "test/upstream-suffixed-numbers"]
+	path = test/upstream-suffixed-numbers
+	url = https://github.com/kdl-org/kdl

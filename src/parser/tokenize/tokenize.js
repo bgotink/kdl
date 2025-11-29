@@ -355,6 +355,21 @@ function createBaseNumberHandler(
 			zerOrMore(ctx, isDigitOrUnderscore);
 
 			return mkToken(ctx, tokenType);
+		} else if (!ctx.flags.experimentalSuffixedNumbers) {
+			if (consumeCodePoint(ctx, 0x5f)) {
+				zerOrMore(ctx, isDigitOrUnderscore);
+
+				if (!isIdentifierChar(ctx.current)) {
+					return mkToken(
+						ctx,
+						tokenType,
+						`Invalid ${type} number, the first character after 0${String.fromCodePoint(prefixCodePoint)} cannot be an underscore`,
+					);
+				}
+			}
+
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_IDENTIFIER_STRING, `Invalid ${type} number`);
 		} else if (consumeCodePoint(ctx, 0x5f)) {
 			// _
 			// --> unsure if invalid base number or invalid suffixed number, let's guess
@@ -467,6 +482,25 @@ export function handleNumberCharacter(ctx) {
 			}
 
 			return mkToken(ctx, T_NUMBER_DECIMAL);
+		} else if (!ctx.flags.experimentalSuffixedNumbers) {
+			if (ctx.current === 0x5f) {
+				// _
+				zerOrMore(ctx, isDecimalDigitOrUnderscore);
+
+				return mkToken(
+					ctx,
+					T_NUMBER_DECIMAL,
+					"Invalid decimal number, the number after the exponent mustn't start on an underscore",
+				);
+			} else {
+				zerOrMore(ctx, isIdentifierChar);
+
+				return mkToken(
+					ctx,
+					T_NUMBER_DECIMAL,
+					"Invalid decimal number, missing a number after the exponent",
+				);
+			}
 		} else if (consumeCodePoint(ctx, 0x5f)) {
 			// _
 			// --> unsure if invalid number with exponent or invalid suffixed number, let's guess
@@ -494,47 +528,51 @@ export function handleNumberCharacter(ctx) {
 			zerOrMore(ctx, isIdentifierChar);
 			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
 		}
-	} else if (ctx.current === 0x58 || ctx.current === 0x78) {
-		// x or X
-		pop(ctx);
-		let error = null;
+	} else if (ctx.flags.experimentalSuffixedNumbers) {
+		if (ctx.current === 0x58 || ctx.current === 0x78) {
+			// x or X
+			pop(ctx);
+			let error = null;
 
-		if (consume(ctx, isHexadecimalDigitOrUnderscore)) {
-			error =
-				"Invalid number with suffix, a suffix cannot start with an x followed by a hexidecimal number";
+			if (consume(ctx, isHexadecimalDigitOrUnderscore)) {
+				error =
+					"Invalid number with suffix, a suffix cannot start with an x followed by a hexidecimal number";
+			}
+
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
+		} else if (consume(ctx, isAlpha)) {
+			let error = null;
+
+			if (consume(ctx, isDecimalDigitOrUnderscore)) {
+				error =
+					"Invalid number with suffix, a suffix cannot start with a letter followed by a digit";
+			}
+
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
+		} else if (consumeCodePoint(ctx, 0x2c)) {
+			// ,
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(
+				ctx,
+				T_NUMBER_WITH_SUFFIX,
+				"Invalid number with suffix, a suffix cannot start with a comma",
+			);
+		} else if (consumeCodePoint(ctx, 0x2e)) {
+			// .
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(
+				ctx,
+				T_NUMBER_WITH_SUFFIX,
+				"Invalid number with suffix, a suffix cannot start with a dot",
+			);
+		} else if (consume(ctx, isIdentifierChar)) {
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+		} else {
+			return mkToken(ctx, T_NUMBER_DECIMAL);
 		}
-
-		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
-	} else if (consume(ctx, isAlpha)) {
-		let error = null;
-
-		if (consume(ctx, isDecimalDigitOrUnderscore)) {
-			error =
-				"Invalid number with suffix, a suffix cannot start with a letter followed by a digit";
-		}
-
-		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(ctx, T_NUMBER_WITH_SUFFIX, error);
-	} else if (consumeCodePoint(ctx, 0x2c)) {
-		// ,
-		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(
-			ctx,
-			T_NUMBER_WITH_SUFFIX,
-			"Invalid number with suffix, a suffix cannot start with a comma",
-		);
-	} else if (consumeCodePoint(ctx, 0x2e)) {
-		// .
-		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(
-			ctx,
-			T_NUMBER_WITH_SUFFIX,
-			"Invalid number with suffix, a suffix cannot start with a dot",
-		);
-	} else if (consume(ctx, isIdentifierChar)) {
-		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
 	} else {
 		return mkToken(ctx, T_NUMBER_DECIMAL);
 	}
@@ -632,7 +670,9 @@ characterHandlers[0xa0] = handleWhitespaceCharacter; // No-Break Space
 
 /**
  * @param {string} t
- * @param {{graphemeLocations?: boolean}} opts
+ * @param {object} opts
+ * @param {boolean} [opts.graphemeLocations]
+ * @param {import('../../flags.js').ParserFlags} opts.flags
  * @returns {Generator<Token, void>}
  */
 export function* tokenize(t, opts) {

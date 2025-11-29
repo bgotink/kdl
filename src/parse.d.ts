@@ -1,3 +1,4 @@
+import type {ParserFlags} from "./flags.js";
 import type {Document, Entry, Identifier, Node, Value} from "./model.js";
 import type {LineSpace, NodeSpace} from "./model/whitespace.js";
 
@@ -35,6 +36,7 @@ export function parse(
 		as: "value";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): Value;
 /**
@@ -58,6 +60,7 @@ export function parse(
 		as: "identifier";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): Identifier;
 /**
@@ -81,6 +84,7 @@ export function parse(
 		as: "entry";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): Entry;
 /**
@@ -103,6 +107,7 @@ export function parse(
 		as: "node";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): Node;
 /**
@@ -123,6 +128,7 @@ export function parse(
 		as: "whitespace in document";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): LineSpace;
 /**
@@ -143,6 +149,7 @@ export function parse(
 		as: "whitespace in node";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): NodeSpace;
 /**
@@ -165,6 +172,7 @@ export function parse(
 		as?: "document";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
 	},
 ): Document;
 /**
@@ -183,5 +191,10 @@ export function parse<T extends keyof ParserResult>(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {as: T; storeLocations?: boolean; graphemeLocations?: boolean},
+	options: {
+		as: T;
+		storeLocations?: boolean;
+		graphemeLocations?: boolean;
+		flags?: Partial<ParserFlags>;
+	},
 ): ParserResult[T];

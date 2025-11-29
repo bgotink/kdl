@@ -52,6 +52,35 @@ The pride flag that consists of four code points is a single grapheme.
 Tracking by code points is the default for the simple reason that it seems to match how columns are tracked in editors like VS Code or Zed.
 There's also a 6.5x speed difference between the two methods, but even with `graphemeLocations` enabled the parser succeeds in parsing thousands of documents per second.
 
+## Parser flags
+
+The `parse` function accepts optional flags to define parser behaviour.
+There is currently a single flag:
+
+- [`experimentalSuffixedNumbers`](./reference/index/index.md#experimentalsuffixednumbers): if enabled, numbers can have a suffix tag (e.g. `10px` is equivalent to `(px)10`).
+  This suffix is used as tag for the value, which implies a number cannot have both a tag and a suffix.
+  The following limitations apply unless a `#` is used as separator:
+
+  - Binary, octal, and hexadecimal numbers cannot have a suffix, only decimal numbers
+  - Decimal numbers cannot have both an exponent and a suffix, e.g. `1e1lorem` is invalid
+  - A suffix cannot start with a letter followed by a digit or an underscore (`_`)
+  - A suffix cannot start with `x` or `X` followed by the letter a through f or A through F
+  - A suffix cannot start on a dot (`.`) or comma (`,`)
+
+```js
+import {parse} from "@bgotink/kdl";
+
+assert.throws(() => parse("node 10px"));
+
+assert.doesNotThrow(() =>
+	parse("node 10px", {
+		flags: {
+			experimentalSuffixedNumbers: true,
+		},
+	}),
+);
+```
+
 ## Quirks
 
 This package turns KDL documents into JavaScript objects and vice versa. It is therefore limited by the JavaScript language.

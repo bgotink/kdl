@@ -7,8 +7,14 @@ import {
 	Value,
 	clearFormat,
 	format,
-	parse,
+	parse as _parse,
 } from "../src/index.js";
+
+/** @type {typeof _parse} */
+// @ts-ignore
+const parse = (text, options = {}) => {
+	return _parse(text, {...options, flags: {experimentalSuffixedNumbers: true}});
+};
 
 test("bare number suffixes", () => {
 	let value = new Value(10);

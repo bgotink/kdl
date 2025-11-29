@@ -146,7 +146,9 @@ characterHandlers[0xa0] = handleWhitespaceCharacter; // No-Break Space
 
 /**
  * @param {string} t
- * @param {{graphemeLocations?: boolean}} opts
+ * @param {object} opts
+ * @param {boolean} [opts.graphemeLocations]
+ * @param {import('../../flags.js').ParserFlags} opts.flags
  * @returns {Generator<Token, void>}
  */
 export function* tokenizeQuery(t, opts) {

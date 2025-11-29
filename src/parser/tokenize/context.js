@@ -40,16 +40,17 @@ function iterateCodePoints(text) {
  * @prop {Location} start
  * @prop {boolean} graphemeLocations
  * @prop {InvalidKdlError[] | null} errorsInToken
+ * @prop {import('../../flags.js').ParserFlags} flags
  */
 
 /**
  * @param {string} text
- * @param {{graphemeLocations?: boolean}} opts
+ * @param {object} opts
+ * @param {boolean} [opts.graphemeLocations]
+ * @param {import('../../flags.js').ParserFlags} opts.flags
  * @returns {TokenizeContext}
  */
-export function createContext(text, opts) {
-	const graphemeLocations = opts.graphemeLocations ?? false;
-
+export function createContext(text, {flags, graphemeLocations = false}) {
 	const iterator =
 		graphemeLocations ? iterateGraphemes(text) : iterateCodePoints(text);
 	const currentIter = iterator.next();
@@ -86,6 +87,8 @@ export function createContext(text, opts) {
 		start: {line: 1, column: 1, offset: 0},
 
 		errorsInToken: null,
+
+		flags,
 	};
 }
 

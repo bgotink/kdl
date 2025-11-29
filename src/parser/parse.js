@@ -46,6 +46,7 @@ import {
  * @prop {Token} lastToken
  * @prop {boolean} storeLocations
  * @prop {InvalidKdlError[]} errors
+ * @prop {import('../flags.js').ParserFlags} flags
  */
 
 /** @param {ParserCtx} ctx */
@@ -103,11 +104,12 @@ export function concatenate(one = "", two = "", three = "") {
 /**
  * @param {string} text
  * @param {Iterable<Token>} tokens
- * @param {object} [options]
+ * @param {object} options
  * @param {boolean} [options.storeLocations]
+ * @param {import('../flags.js').ParserFlags} options.flags
  * @returns {ParserCtx}
  */
-export function createParserCtx(text, tokens, {storeLocations = false} = {}) {
+export function createParserCtx(text, tokens, {storeLocations = false, flags}) {
 	const iterator = tokens[Symbol.iterator]();
 
 	return {
@@ -131,6 +133,7 @@ export function createParserCtx(text, tokens, {storeLocations = false} = {}) {
 			errors: null,
 		},
 		errors: [],
+		flags,
 	};
 }
 
@@ -220,6 +223,13 @@ function parseNonStringValue(ctx) {
 	switch (token?.type) {
 		case T_NUMBER_WITH_SUFFIX:
 			{
+				if (!ctx.flags.experimentalSuffixedNumbers) {
+					throw new InvalidKdlError(
+						"Unreachable code: got a suffixed number from the tokenizer but the suffixed number flag is not set",
+						{token},
+					);
+				}
+
 				const startOfSuffix = token.text.search(/[^0-9._]/);
 
 				representation = token.text.slice(0, startOfSuffix);
@@ -327,7 +337,9 @@ function parseNonStringValue(ctx) {
 
 	pop(ctx);
 
-	const tagToken = consume(ctx, T_KEYWORD_OR_HASHED_IDENT);
+	const tagToken =
+		ctx.flags.experimentalSuffixedNumbers &&
+		consume(ctx, T_KEYWORD_OR_HASHED_IDENT);
 	if (tagToken) {
 		if (checkSeparatedSuffix) {
 			suffixTagRepresentation = tagToken.text;

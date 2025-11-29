@@ -1,4 +1,5 @@
 import {InvalidKdlError} from "./error.js";
+import {resolveFlags} from "./flags.js";
 import {Document} from "./model/document.js";
 import {parseDocument as parseV1Document} from "./parser/parse-v1.js";
 import {
@@ -60,7 +61,12 @@ export function parse(text, options = {}) {
 
 	const tokens = tokenizeV1(text, options);
 
-	const ctx = createParserCtx(text, tokens, options);
+	const ctx = createParserCtx(text, tokens, {
+		...options,
+		flags: {
+			experimentalSuffixedNumbers: false,
+		},
+	});
 
 	let value;
 	try {
@@ -94,9 +100,13 @@ export function parse(text, options = {}) {
  * @param {object} [options]
  * @param {boolean} [options.storeLocations]
  * @param {boolean} [options.graphemeLocations]
+ * @param {Partial<import('./flags.js').ParserFlags>} [options.flags]
  * @returns {Document}
  */
-export function parseCompat(text, options = {}) {
+export function parseCompat(
+	text,
+	{storeLocations, graphemeLocations, flags} = {},
+) {
 	if (typeof text !== "string") {
 		if (typeof TextDecoder !== "function") {
 			throw new TypeError(
@@ -111,9 +121,17 @@ export function parseCompat(text, options = {}) {
 
 	let v2Error;
 	try {
-		const tokens = tokenizeV2(text, options);
+		const resolvedFlags = resolveFlags(flags);
 
-		const ctx = createParserCtx(text, tokens, options);
+		const tokens = tokenizeV2(text, {
+			graphemeLocations,
+			flags: resolvedFlags,
+		});
+
+		const ctx = createParserCtx(text, tokens, {
+			storeLocations,
+			flags: resolvedFlags,
+		});
 
 		let value;
 		try {
@@ -135,9 +153,13 @@ export function parseCompat(text, options = {}) {
 
 	let v1Error;
 	try {
-		const tokens = tokenizeV1(text, {});
+		const tokens = tokenizeV1(text, {graphemeLocations});
 
-		const ctx = createParserCtx(text, tokens);
+		const ctx = createParserCtx(text, tokens, {
+			flags: {
+				experimentalSuffixedNumbers: false,
+			},
+		});
 
 		let value;
 		try {

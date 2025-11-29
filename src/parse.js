@@ -1,3 +1,5 @@
+import {InvalidKdlError} from "./error.js";
+import {resolveFlags} from "./flags.js";
 import {tokenize} from "./parser/tokenize.js";
 import {
 	finalize,
@@ -12,7 +14,6 @@ import {
 	parseWhitespaceInDocument,
 	parseWhitespaceInNode,
 } from "./parser/parse-whitespace.js";
-import {InvalidKdlError} from "./error.js";
 
 const methods = /** @type {const} */ ({
 	value: parseValue,
@@ -31,8 +32,9 @@ const methods = /** @type {const} */ ({
  * @param {keyof typeof methods} [options.as]
  * @param {boolean} [options.storeLocations]
  * @param {boolean} [options.graphemeLocations]
+ * @param {Partial<import('./flags.js').ParserFlags>} [options.flags]
  */
-export function parse(text, {as = "document", ...parserOptions} = {}) {
+export function parse(text, {as = "document", flags, ...parserOptions} = {}) {
 	const parserMethod = methods[as];
 	if (parserMethod == null) {
 		throw new TypeError(`Invalid "as" target passed: ${JSON.stringify(as)}`);
@@ -50,10 +52,15 @@ export function parse(text, {as = "document", ...parserOptions} = {}) {
 		text = decoder.decode(text);
 	}
 
-	const tokens = tokenize(text, parserOptions);
+	const reoslvedFlags = resolveFlags(flags);
+
+	const tokens = tokenize(text, {...parserOptions, flags: reoslvedFlags});
 	// console.log(Array.from(tokens));
 
-	const ctx = createParserCtx(text, tokens, parserOptions);
+	const ctx = createParserCtx(text, tokens, {
+		...parserOptions,
+		flags: reoslvedFlags,
+	});
 
 	let value;
 	try {

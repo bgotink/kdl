@@ -321,8 +321,13 @@ characterHandlers[0xa0] = handleWhitespaceCharacter; // No-Break Space
  * @param {{graphemeLocations?: boolean}} opts
  * @returns {Generator<Token, void>}
  */
-export function* tokenize(t, opts) {
-	const ctx = createContext(t, opts);
+export function* tokenize(t, {graphemeLocations}) {
+	const ctx = createContext(t, {
+		graphemeLocations,
+		flags: {
+			experimentalSuffixedNumbers: false,
+		},
+	});
 	yield* init(ctx);
 
 	while (!ctx.currentIter.done) {

@@ -6,6 +6,10 @@ export {getLocation} from "./locations.js";
 export {parse} from "./parse.js";
 
 /**
+ * @typedef {import('./flags.js').ParserFlags} ParserFlags
+ */
+
+/**
  * @typedef {import('./model.js').Primitive} Primitive
  */
 
