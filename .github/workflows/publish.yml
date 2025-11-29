@@ -8,7 +8,7 @@ permissions:
   contents: read
   # to publish to GitHub package registry
   packages: write
-  # for NPM provenance
+  # for NPM provenance & NPM trusted publisher
   id-token: write
 
 jobs:
@@ -51,8 +51,6 @@ jobs:
       # Release to NPM
       - name: Publish package on NPM
         run: cd out && npm publish --provenance --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # Release to GitHub Packages
       - name: Setup Node for GitHub Packages
@@ -63,4 +61,4 @@ jobs:
       - name: Publish package on GitHub Packages
         run: cd out && npm publish --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
