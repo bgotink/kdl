@@ -17,13 +17,13 @@ jobs:
     steps:
       # Set up
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 24.x
           registry-url: "https://registry.npmjs.org"
 
       # Prepare for release
@@ -54,9 +54,9 @@ jobs:
 
       # Release to GitHub Packages
       - name: Setup Node for GitHub Packages
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 24.x
           registry-url: "https://npm.pkg.github.com"
       - name: Publish package on GitHub Packages
         run: cd out && npm publish --access public --tag ${{ steps.dist-tag.outputs.dist-tag }}
