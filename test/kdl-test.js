@@ -82,6 +82,15 @@ function stringifyNumber(value) {
 	let exponent = Number.parseInt(str.slice(exponentIndex + 1));
 	let val = str.slice(sign.length, exponentIndex);
 
+	// Note this is far from general enough for a regular toString
+	// functionality for a number with an exponent, but in this scenario
+	// we're only thinking about numbers stringified to exponent notation
+	// by JavaScript's builtin Number.prototype.toString()
+	// --> proper scientific notation with a single non-zero digit before the dot
+	//   + only happens for very large or very small numbers, so we don't have to
+	//     consider the case where the exponent would result in a large number
+	//     with digits behind the decimal point.
+
 	if (val.charAt(1) === '.') {
 		val = val.charAt(0) + val.slice(2);
 		exponent -= val.length - 1;
@@ -90,7 +99,7 @@ function stringifyNumber(value) {
 	if (exponent >= 0) {
 		return `${sign}${val}${"0".repeat(exponent)}`;
 	} else {
-		return `${sign}0.${"0".repeat(-exponent - 1)}${val}`;
+		return `${sign}0.${"0".repeat(-(exponent + val.length))}${val}`;
 	}
 }
 
