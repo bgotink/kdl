@@ -98,4 +98,8 @@ test("issue #11: v1 style raw strings", () => {
 	assert.throws(() => parse('/-node {a x=r#"123"#}'), /Invalid raw string/);
 });
 
+test("issue kdl-org/kdl#558: =/", () => {
+	assert.throws(() => parse(`a b=/x c=d`))
+})
+
 test.run();
