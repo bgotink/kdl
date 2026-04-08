@@ -4,8 +4,9 @@
 
 {{ VERSION }} of the `@bgotink/kdl` package is available on this website via the console of your browser:
 
-- `kdl` exposes the [`@bgotink/kdl`](./reference/index/index.md) export
-- `jik` exposes the [`@bgotink/kdl/json`](./reference/json/index.md) export
+- `kdl` exposes the [`@bgotink/kdl`](./api/reference/index/index.md) export
+- `jik` exposes the [`@bgotink/kdl/json`](./api/reference/json/index.md) export
+- `dessert` exposes the [`@bgotink/kdl/dessert`](./api/reference/dessert/index.md) export
 
 ```js
 console.log(kdl.parse("node arg").findNodeByName("node").getArgument(0));
