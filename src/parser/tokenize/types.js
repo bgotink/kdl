@@ -39,28 +39,28 @@ export const T_NUMBER_WITH_SUFFIX = 28;
 
 /** @param {number} codePoint  */
 export function isUnicodeSpace(codePoint) {
-	switch (codePoint) {
-		case 0x0009: // Character Tabulation
-		case 0x0020: // Space
-		case 0x00a0: // No-Break Space
-		case 0x1680: // Ogham Space Mark
-		case 0x2000: // En Quad
-		case 0x2001: // Em Quad
-		case 0x2002: // En Space
-		case 0x2003: // Em Space
-		case 0x2004: // Three-Per-Em Space
-		case 0x2005: // Four-Per-Em Space
-		case 0x2006: // Six-Per-Em Space
-		case 0x2007: // Figure Space
-		case 0x2008: // Punctuation Space
-		case 0x2009: // Thin Space
-		case 0x200a: // Hair Space
-		case 0x202f: // Narrow No-Break Space
-		case 0x205f: // Medium Mathematical Space
-		case 0x3000: // Ideographic Space
-			return true;
-	}
-	return false;
+	return (
+		codePoint === 0x0009 || // Character Tabulation
+		codePoint === 0x0020 || // Space
+		codePoint === 0x00a0 || // No-Break Space
+		codePoint === 0x1680 || // Ogham Space Mark
+		(codePoint >= 0x2000 && codePoint <= 0x200a) ||
+		// 0x2000 En Quad
+		// 0x2001 Em Quad
+		// 0x2002 En Space
+		// 0x2003 Em Space
+		// 0x2004 Three-Per-Em Space
+		// 0x2005 Four-Per-Em Space
+		// 0x2006 Six-Per-Em Space
+		// 0x2007 Figure Space
+		// 0x2008 Punctuation Space
+		// 0x2009 Thin Space
+		// 0x200a Hair Space
+		codePoint === 0x202f || // Narrow No-Break Space
+		codePoint === 0x205f || // Medium Mathematical Space
+		codePoint === 0x3000 || // Ideographic Space
+		false
+	);
 }
 
 /** @param {number} codePoint */
