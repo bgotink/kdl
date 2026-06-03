@@ -20,22 +20,14 @@ function* iterateGraphemes(text) {
 }
 
 /**
- * @param {string} text
- * @returns {Iterator<string>}
- */
-function iterateCodePoints(text) {
-	return text[Symbol.iterator]();
-}
-
-/**
  * @typedef {object} TokenizeContext
  * @prop {string} text
  * @prop {number} line
  * @prop {number} column
  * @prop {number} offset
  * @prop {number} length
- * @prop {Iterator<string, void, any>} iterator
- * @prop {IteratorResult<string, void>} currentIter
+ * @prop {Iterator<string, void, any> | null} iterator
+ * @prop {{done?: boolean; value?: string | void}} currentIter
  * @prop {number} current
  * @prop {Location} start
  * @prop {boolean} graphemeLocations
@@ -51,9 +43,23 @@ function iterateCodePoints(text) {
  * @returns {TokenizeContext}
  */
 export function createContext(text, {flags, graphemeLocations = false}) {
-	const iterator =
-		graphemeLocations ? iterateGraphemes(text) : iterateCodePoints(text);
-	const currentIter = iterator.next();
+	/** @type {TokenizeContext["iterator"]} */
+	let iterator;
+	/** @type {TokenizeContext["currentIter"]} */
+	let currentIter;
+	/** @type {TokenizeContext["current"]} */
+	let current;
+	const {length} = text;
+
+	if (graphemeLocations) {
+		iterator = iterateGraphemes(text);
+		const ci = (currentIter = iterator.next());
+		current = ci.done ? NaN : /** @type {number} */ (ci.value.codePointAt(0));
+	} else {
+		iterator = null;
+		currentIter = {done: length === 0};
+		current = text.codePointAt(0) ?? NaN;
+	}
 
 	return {
 		text,
@@ -63,7 +69,7 @@ export function createContext(text, {flags, graphemeLocations = false}) {
 		column: 1,
 		offset: 0,
 
-		length: text.length,
+		length,
 
 		iterator,
 		currentIter,
@@ -79,10 +85,7 @@ export function createContext(text, {flags, graphemeLocations = false}) {
 		 * - "\r\n" is the only exception, which we want to count as a single newline,
 		 *   and by looking at the first code point we can easily handle that.
 		 */
-		current:
-			currentIter.done ? NaN : (
-				/** @type {number} */ (currentIter.value.codePointAt(0))
-			),
+		current,
 
 		start: {line: 1, column: 1, offset: 0},
 
@@ -113,14 +116,23 @@ export function* init(ctx) {
  * @param {TokenizeContext} ctx
  */
 export function pop(ctx) {
-	ctx.offset += /** @type {string} */ (ctx.currentIter.value).length;
+	ctx.offset +=
+		ctx.currentIter.value?.length ?? (ctx.current < 0x10000 ? 1 : 2);
 	ctx.column++;
 
-	const currentIter = (ctx.currentIter = ctx.iterator.next());
-	const current = (ctx.current =
-		currentIter.done ? NaN : (
-			/** @type {number} */ (currentIter.value.codePointAt(0))
-		));
+	let current;
+	if (ctx.iterator == null) {
+		current = ctx.text.codePointAt(ctx.offset);
+		if (current == null) {
+			current = NaN;
+			ctx.currentIter.done = true;
+		}
+	} else {
+		const currentIter = (ctx.currentIter = ctx.iterator.next());
+		current = currentIter.value?.codePointAt(0) ?? NaN;
+	}
+
+	ctx.current = current;
 
 	if (isInvalidCharacter(current)) {
 		if ((current >= 0xd800 && current <= 0xdfff) || current > 0x10ffff) {
@@ -176,7 +188,7 @@ export function consumeNewline(ctx) {
 		ctx.current === 0x0d &&
 		ctx.text.codePointAt(ctx.offset + 1) === 0x0a
 	) {
-		ctx.iterator.next();
+		ctx.iterator?.next();
 		ctx.offset++;
 	}
 

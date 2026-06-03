@@ -82,7 +82,7 @@ console.log(
 	`cleaned up size: ${formatted.length} bytes instead of the original ${file.length} bytes`,
 );
 
-const query = parseQuery("span[class=secno]");
+const query = parseQuery("span[class = secno]");
 
 start = performance.now();
 let count = 0;
