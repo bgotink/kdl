@@ -52,8 +52,7 @@ export interface DeserializerFromNode<T, P extends unknown[] = []> {
  * Parameters can be passed via `deserialize` or any of the `child`/`children` functions on a {@link DeserializationContext}
  */
 export type Deserializer<T, P extends unknown[] = []> =
-	| DeserializerFromContext<T, P>
-	| DeserializerFromNode<T, P>;
+	DeserializerFromContext<T, P> | DeserializerFromNode<T, P>;
 
 /**
  * Helper type to extract the type a deserializer supports
@@ -88,6 +87,12 @@ export type ArgumentReturnType<
  */
 export type Tagged<T, IncludeTag extends boolean> =
 	IncludeTag extends true ? [T, string | null] : T;
+
+export interface RegExpLike {
+	test(text: string): boolean;
+
+	toString(): string;
+}
 
 export interface Argument<
 	IncludeTag extends boolean,
@@ -127,6 +132,20 @@ export interface Argument<
 		...values: T
 	): ArgumentReturnType<
 		Tagged<T[number], IncludeTag>,
+		Required,
+		ReturnMultiple,
+		IgnoreInvalid
+	>;
+
+	/**
+	 * Return the next argument, if there is a next argument, requiring the argument is a string that matches one of the given patterns
+	 *
+	 * @throws If the next argument does not match any of the given patterns
+	 */
+	pattern(
+		...patterns: [RegExpLike, ...RegExpLike[]]
+	): ArgumentReturnType<
+		Tagged<string, IncludeTag>,
 		Required,
 		ReturnMultiple,
 		IgnoreInvalid
@@ -215,6 +234,21 @@ export interface Property<
 	>;
 
 	/**
+	 * Return the property with the given name if it exists and it is a string that matches one of the given patterns
+	 *
+	 * @throws If the property value does not match any of the given patterns
+	 */
+	pattern(
+		name: string,
+		...patterns: [RegExpLike, ...RegExpLike[]]
+	): PropertyReturnType<
+		Tagged<string, IncludeTag>,
+		Required,
+		false,
+		IgnoreInvalid
+	>;
+
+	/**
 	 * Throw if there is no property with the given name, rather than return undefined
 	 */
 	required: Required extends false ? Property<IncludeTag, true, IgnoreInvalid>
@@ -265,6 +299,20 @@ export interface RestProperty<
 		...values: T
 	): PropertyReturnType<
 		Tagged<T[number], IncludeTag>,
+		Required,
+		true,
+		IgnoreInvalid
+	>;
+
+	/**
+	 * Return all remaining properties
+	 *
+	 * @throws If any remaining property value does not match any of the given patterns
+	 */
+	pattern(
+		...patterns: [RegExpLike, ...RegExpLike[]]
+	): PropertyReturnType<
+		Tagged<string, IncludeTag>,
 		Required,
 		true,
 		IgnoreInvalid

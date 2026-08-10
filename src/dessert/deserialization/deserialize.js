@@ -245,6 +245,38 @@ function makeArgument(state, includeTag) {
 			return extractor(arg);
 		};
 
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getArgument.pattern = (...patterns) => {
+			const arg = state.arguments[0];
+			if (arg === undefined) {
+				if (!required) {
+					return undefined;
+				}
+
+				throw new KdlDeserializeError(`Missing argument`, {
+					location: state.node,
+				});
+			}
+
+			const value = arg.getValue();
+			if (
+				typeof value !== "string" ||
+				!patterns.some((pattern) => pattern.test(value))
+			) {
+				if (ignoreInvalid) {
+					return undefined;
+				}
+
+				throw new KdlDeserializeError(
+					`Expected a string matching ${joinWithOr(patterns.map((v) => String(v)))} but got ${JSON.stringify(arg.getValue())}`,
+					{location: arg},
+				);
+			}
+
+			state.arguments.shift();
+			return extractor(arg);
+		};
+
 		let restBuilder;
 		Object.defineProperty(getArgument, "rest", {
 			get() {
@@ -330,6 +362,37 @@ function makeArgument(state, includeTag) {
 
 						throw new KdlDeserializeError(
 							`Expected one of ${joinWithOr(enumValues.map((v) => JSON.stringify(v)))} but got ${JSON.stringify(arg.getValue())}`,
+							{location: arg},
+						);
+					}
+
+					return [extractor(arg)];
+				});
+		};
+
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getArgument.pattern = (...patterns) => {
+			if (required && state.arguments.length === 0) {
+				throw new KdlDeserializeError(`Missing argument`, {
+					location: state.node,
+				});
+			}
+
+			return state.arguments
+				.splice(0, state.arguments.length)
+				.flatMap((arg) => {
+					const value = arg.getValue();
+					if (
+						typeof value !== "string" ||
+						!patterns.some((pattern) => pattern.test(value))
+					) {
+						if (ignoreInvalid) {
+							state.arguments.push(arg);
+							return [];
+						}
+
+						throw new KdlDeserializeError(
+							`Expected a string matching ${joinWithOr(patterns.map((v) => String(v)))} but got ${JSON.stringify(arg.getValue())}`,
 							{location: arg},
 						);
 					}
@@ -443,6 +506,38 @@ function makeProperty(state, includeTag) {
 			return extractor(prop);
 		};
 
+		// @ts-expect-error Mapped return types + type inference run into limitations
+		getProperty.pattern = (name, ...patterns) => {
+			const prop = state.properties.get(name);
+			if (prop === undefined) {
+				if (!required) {
+					return prop;
+				}
+
+				throw new KdlDeserializeError(`Missing property ${name}`, {
+					location: state.node,
+				});
+			}
+
+			const value = prop.getValue();
+			if (
+				typeof value !== "string" ||
+				!patterns.some((pattern) => pattern.test(value))
+			) {
+				if (ignoreInvalid) {
+					return undefined;
+				}
+
+				throw new KdlDeserializeError(
+					`Expected property ${name} to match ${joinWithOr(patterns.map((v) => String(v)))} but got ${JSON.stringify(prop.getValue())}`,
+					{location: prop},
+				);
+			}
+
+			state.properties.delete(name);
+			return extractor(prop);
+		};
+
 		let restBuilder;
 		Object.defineProperty(getProperty, "rest", {
 			get() {
@@ -539,6 +634,44 @@ function makeProperty(state, includeTag) {
 					}
 
 					return [[name, extractor(prop)]];
+				}),
+			);
+		};
+
+		getProperty.pattern = (...patterns) => {
+			if (required && state.properties.size === 0) {
+				throw new KdlDeserializeError(`Missing properties`, {
+					location: state.node,
+				});
+			}
+
+			const result = [...state.properties];
+			state.properties.clear();
+
+			return new Map(
+				result.flatMap(([name, prop]) => {
+					const value = prop.getValue();
+					if (
+						typeof value !== "string" ||
+						!patterns.some((pattern) => pattern.test(value))
+					) {
+						if (ignoreInvalid) {
+							state.properties.set(name, prop);
+							return [];
+						}
+
+						throw new KdlDeserializeError(
+							`Expected property ${name} to match ${joinWithOr(patterns.map((v) => String(v)))} but got ${JSON.stringify(prop.getValue())}`,
+							{location: prop},
+						);
+					}
+
+					return [
+						[
+							name,
+							/** @type {t.Tagged<string, IncludeTag>} */ (extractor(prop)),
+						],
+					];
 				}),
 			);
 		};

@@ -252,4 +252,22 @@ test("tagged", () => {
 	}
 });
 
+test("pattern", () => {
+	const node = parse(`node "2026-08-10T22:40:03Z"`, {as: "node"});
+
+	assert.equal(
+		deserialize(node, (c) =>
+			c.argument.required.pattern(/^\d{4}-\d{2}-\d{2}T/),
+		),
+		"2026-08-10T22:40:03Z",
+	);
+
+	assert.equal(
+		deserialize(node, (c) =>
+			c.argument.required.pattern(/lorem/, /ipsum/, /^\d{4}-\d{2}-\d{2}T/),
+		),
+		"2026-08-10T22:40:03Z",
+	);
+});
+
 test.run();
