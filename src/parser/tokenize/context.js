@@ -104,7 +104,7 @@ export function* init(ctx) {
 		// Byte-Order Mark
 		// don't let BOM count as column
 		ctx.column = 1;
-		yield mkToken(ctx, T_BOM);
+		yield mkToken(ctx, T_BOM, null);
 	}
 
 	if (isInvalidCharacter(ctx.current)) {
@@ -223,7 +223,7 @@ export function zerOrMore(ctx, test) {
 /**
  * @param {TokenizeContext} ctx
  * @param {number} type
- * @param {string?=} error
+ * @param {string | null} error
  * @returns {Token}
  */
 export function mkToken(ctx, type, error) {

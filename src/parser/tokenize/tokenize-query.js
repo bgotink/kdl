@@ -46,34 +46,34 @@ function handleQueryOperatorCharacter(ctx) {
 	switch (ctx.current) {
 		case 0x3d /* = */:
 			pop(ctx);
-			return mkToken(ctx, T_QUERY_OPERATOR);
+			return mkToken(ctx, T_QUERY_OPERATOR, null);
 		case 0x3e /* > */:
 			pop(ctx);
 			consumeCodePoint(ctx, 0x3d) || consumeCodePoint(ctx, 0x3e); // > or >= or >>
-			return mkToken(ctx, T_QUERY_OPERATOR);
+			return mkToken(ctx, T_QUERY_OPERATOR, null);
 		case 0x3c /* < */:
 			pop(ctx);
 			consumeCodePoint(ctx, 0x3d); // < or <=
-			return mkToken(ctx, T_QUERY_OPERATOR);
+			return mkToken(ctx, T_QUERY_OPERATOR, null);
 		case 0x21 /* ! */:
 		case 0x24 /* $ */:
 		case 0x2a /* * */:
 		case 0x5e /* ^ */:
 			pop(ctx);
 			if (consumeCodePoint(ctx, 0x3d)) {
-				return mkToken(ctx, T_QUERY_OPERATOR);
+				return mkToken(ctx, T_QUERY_OPERATOR, null);
 			}
 
 			zerOrMore(ctx, isIdentifierChar);
-			return mkToken(ctx, T_IDENTIFIER_STRING);
+			return mkToken(ctx, T_IDENTIFIER_STRING, null);
 		case 0x7c /* | */:
 			pop(ctx);
 			if (consumeCodePoint(ctx, 0x7c)) {
-				return mkToken(ctx, T_QUERY_OPERATOR);
+				return mkToken(ctx, T_QUERY_OPERATOR, null);
 			}
 
 			zerOrMore(ctx, isIdentifierChar);
-			return mkToken(ctx, T_IDENTIFIER_STRING);
+			return mkToken(ctx, T_IDENTIFIER_STRING, null);
 		default:
 			throw new Error("unreachable");
 	}
@@ -84,11 +84,11 @@ function handleQueryPlusSignCharacter(ctx) {
 	pop(ctx);
 
 	if (consumeCodePoint(ctx, 0x2b)) {
-		return mkToken(ctx, T_QUERY_OPERATOR);
+		return mkToken(ctx, T_QUERY_OPERATOR, null);
 	}
 
 	if (isUnicodeSpace(ctx.current)) {
-		return mkToken(ctx, T_QUERY_OPERATOR);
+		return mkToken(ctx, T_QUERY_OPERATOR, null);
 	}
 
 	return handleSignCharacterAfterPop(ctx);
@@ -176,5 +176,5 @@ export function* tokenizeQuery(t, opts) {
 		yield handleIdentifierCharacter(ctx);
 	}
 
-	yield mkToken(ctx, T_EOF);
+	yield mkToken(ctx, T_EOF, null);
 }

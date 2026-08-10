@@ -61,20 +61,20 @@ export function createSingleCharacterToken(type) {
 	/** @param {TokenizeContext} ctx */
 	return (ctx) => {
 		pop(ctx);
-		return mkToken(ctx, type);
+		return mkToken(ctx, type, null);
 	};
 }
 
 /** @param {TokenizeContext} ctx */
 export function handleWhitespaceCharacter(ctx) {
 	zerOrMore(ctx, isUnicodeSpace);
-	return mkToken(ctx, T_INLINE_WHITESPACE);
+	return mkToken(ctx, T_INLINE_WHITESPACE, null);
 }
 
 /** @param {TokenizeContext} ctx */
 export function handleNewlineCharacter(ctx) {
 	consumeNewline(ctx);
-	return mkToken(ctx, T_NEWLINE);
+	return mkToken(ctx, T_NEWLINE, null);
 }
 
 /** @param {TokenizeContext} ctx */
@@ -87,7 +87,7 @@ export function handleQuoteCharacter(ctx) {
 		// "" -> either empty or multiline string
 		if (!consumeCodePoint(ctx, 0x22)) {
 			// only two quotes
-			return mkToken(ctx, T_QUOTED_STRING);
+			return mkToken(ctx, T_QUOTED_STRING, null);
 		}
 
 		multiline = true;
@@ -126,7 +126,11 @@ export function handleQuoteCharacter(ctx) {
 		throw mkError(ctx, "Unexpected EOF inside string");
 	}
 
-	return mkToken(ctx, multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING);
+	return mkToken(
+		ctx,
+		multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING,
+		null,
+	);
 }
 
 /** @param {TokenizeContext} ctx */
@@ -172,7 +176,7 @@ export function handleHashCharacter(ctx) {
 				}
 
 				if (numberOfClosingHashes === numberOfOpeningHashes) {
-					return mkToken(ctx, T_RAW_STRING);
+					return mkToken(ctx, T_RAW_STRING, null);
 				}
 			}
 		}
@@ -201,6 +205,7 @@ export function handleHashCharacter(ctx) {
 					return mkToken(
 						ctx,
 						multiline ? T_MULTILINE_RAW_STRING : T_RAW_STRING,
+						null,
 					);
 				}
 			} else {
@@ -251,7 +256,7 @@ export function handleDotCharacter(ctx) {
 
 	zerOrMore(ctx, isIdentifierChar);
 
-	return mkToken(ctx, T_IDENTIFIER_STRING);
+	return mkToken(ctx, T_IDENTIFIER_STRING, null);
 }
 
 /** @param {TokenizeContext} ctx */
@@ -261,7 +266,7 @@ export function handleSlashCharacter(ctx) {
 	if (consumeCodePoint(ctx, 0x2d)) {
 		// slash-dash
 
-		return mkToken(ctx, T_SLASHDASH);
+		return mkToken(ctx, T_SLASHDASH, null);
 	} else if (consumeCodePoint(ctx, 0x2f)) {
 		// --> //
 
@@ -269,7 +274,7 @@ export function handleSlashCharacter(ctx) {
 			pop(ctx);
 		}
 
-		return mkToken(ctx, T_COMMENT_SINGLE);
+		return mkToken(ctx, T_COMMENT_SINGLE, null);
 	} else if (consumeCodePoint(ctx, 0x2a)) {
 		// --> /*
 
@@ -283,7 +288,7 @@ export function handleSlashCharacter(ctx) {
 					level--;
 
 					if (level === 0) {
-						return mkToken(ctx, T_COMMENT_MULTI);
+						return mkToken(ctx, T_COMMENT_MULTI, null);
 					}
 				}
 			} else if (consumeCodePoint(ctx, 0x2f)) {
@@ -327,11 +332,11 @@ export function handleSignCharacterAfterPop(ctx) {
 
 		zerOrMore(ctx, isIdentifierChar);
 
-		return mkToken(ctx, T_IDENTIFIER_STRING);
+		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	} else {
 		zerOrMore(ctx, isIdentifierChar);
 
-		return mkToken(ctx, T_IDENTIFIER_STRING);
+		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	}
 }
 
@@ -354,7 +359,7 @@ function createBaseNumberHandler(
 		if (consume(ctx, isDigit)) {
 			zerOrMore(ctx, isDigitOrUnderscore);
 
-			return mkToken(ctx, tokenType);
+			return mkToken(ctx, tokenType, null);
 		} else if (!ctx.flags.experimentalSuffixedNumbers) {
 			if (consumeCodePoint(ctx, 0x5f)) {
 				zerOrMore(ctx, isDigitOrUnderscore);
@@ -403,7 +408,7 @@ function createBaseNumberHandler(
 			);
 		} else {
 			zerOrMore(ctx, isIdentifierChar);
-			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, null);
 		}
 	};
 }
@@ -481,7 +486,7 @@ export function handleNumberCharacter(ctx) {
 				);
 			}
 
-			return mkToken(ctx, T_NUMBER_DECIMAL);
+			return mkToken(ctx, T_NUMBER_DECIMAL, null);
 		} else if (!ctx.flags.experimentalSuffixedNumbers) {
 			if (ctx.current === 0x5f) {
 				// _
@@ -526,7 +531,7 @@ export function handleNumberCharacter(ctx) {
 			);
 		} else {
 			zerOrMore(ctx, isIdentifierChar);
-			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, null);
 		}
 	} else if (ctx.flags.experimentalSuffixedNumbers) {
 		if (ctx.current === 0x58 || ctx.current === 0x78) {
@@ -569,12 +574,12 @@ export function handleNumberCharacter(ctx) {
 			);
 		} else if (consume(ctx, isIdentifierChar)) {
 			zerOrMore(ctx, isIdentifierChar);
-			return mkToken(ctx, T_NUMBER_WITH_SUFFIX);
+			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, null);
 		} else {
-			return mkToken(ctx, T_NUMBER_DECIMAL);
+			return mkToken(ctx, T_NUMBER_DECIMAL, null);
 		}
 	} else {
-		return mkToken(ctx, T_NUMBER_DECIMAL);
+		return mkToken(ctx, T_NUMBER_DECIMAL, null);
 	}
 }
 
@@ -584,7 +589,7 @@ function handleR(ctx) {
 
 	if (ctx.current != 0x23 /* # */) {
 		zerOrMore(ctx, isIdentifierChar);
-		return mkToken(ctx, T_IDENTIFIER_STRING);
+		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	}
 
 	const token = handleHashCharacter(ctx);
@@ -611,7 +616,7 @@ export function handleIdentifierCharacter(ctx) {
 	pop(ctx);
 
 	zerOrMore(ctx, isIdentifierChar);
-	return mkToken(ctx, T_IDENTIFIER_STRING);
+	return mkToken(ctx, T_IDENTIFIER_STRING, null);
 }
 
 /**
@@ -700,5 +705,5 @@ export function* tokenize(t, opts) {
 		yield handleIdentifierCharacter(ctx);
 	}
 
-	yield mkToken(ctx, T_EOF);
+	yield mkToken(ctx, T_EOF, null);
 }

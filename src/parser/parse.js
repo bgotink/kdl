@@ -47,6 +47,7 @@ import {
  * @prop {boolean} storeLocations
  * @prop {InvalidKdlError[]} errors
  * @prop {import('../flags.js').ParserFlags} flags
+ * @prop {(message: string) => InvalidKdlError} mkError
  */
 
 /** @param {ParserCtx} ctx */
@@ -77,11 +78,10 @@ export function consume(ctx, tokenType) {
 }
 
 /**
- * @param {ParserCtx | Token} ctx
+ * @param {Token} token
  * @param {string} message
  */
-export function mkError(ctx, message) {
-	const token = "current" in ctx ? (ctx.current.value ?? ctx.lastToken) : ctx;
+export function mkError(token, message) {
 	return new InvalidKdlError(message, {token});
 }
 
@@ -134,7 +134,16 @@ export function createParserCtx(text, tokens, {storeLocations = false, flags}) {
 		},
 		errors: [],
 		flags,
+		mkError: mkErrorFromContext,
 	};
+}
+
+/**
+ * @this {ParserCtx}
+ * @param {string} message
+ */
+function mkErrorFromContext(message) {
+	return mkError(this.current.value ?? this.lastToken, message);
 }
 
 /**
@@ -143,8 +152,7 @@ export function createParserCtx(text, tokens, {storeLocations = false, flags}) {
  */
 export function finalize(ctx, fatalError) {
 	if (!fatalError && !ctx.current.done && ctx.current.value.type !== T_EOF) {
-		fatalError = mkError(
-			ctx,
+		fatalError = ctx.mkError(
 			`Unexpected token ${JSON.stringify(ctx.current.value.text)}, did you forget to quote an identifier?`,
 		);
 	}
@@ -238,8 +246,7 @@ function parseNonStringValue(ctx) {
 
 				if (isKeywordlikeIdent(suffixTag)) {
 					ctx.errors.push(
-						mkError(
-							ctx,
+						ctx.mkError(
 							`Invalid suffix ${suffixTag}, values that look like keywords cannot be used as suffix`,
 						),
 					);
@@ -270,8 +277,7 @@ function parseNonStringValue(ctx) {
 
 				if (getKeywordValue(token.text.toLowerCase()) !== undefined) {
 					ctx.errors.push(
-						mkError(
-							ctx,
+						ctx.mkError(
 							`Invalid keyword ${token.text}, keywords are case sensitive, write ${token.text.toLowerCase()} instead`,
 						),
 					);
@@ -280,8 +286,7 @@ function parseNonStringValue(ctx) {
 						case "#nul":
 						case "#nill":
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, did you mean #null?`,
 								),
 							);
@@ -289,8 +294,7 @@ function parseNonStringValue(ctx) {
 						case "#fals":
 						case "#fasle":
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, did you mean #false?`,
 								),
 							);
@@ -298,32 +302,28 @@ function parseNonStringValue(ctx) {
 						case "#ture":
 						case "#treu":
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, did you mean #true?`,
 								),
 							);
 							break;
 						case "#ifn":
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, did you mean #inf?`,
 								),
 							);
 							break;
 						case "#-ifn":
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, did you mean #-inf?`,
 								),
 							);
 							break;
 						default:
 							ctx.errors.push(
-								mkError(
-									ctx,
+								ctx.mkError(
 									`Invalid keyword ${token.text}, surround it with quotes to use a string`,
 								),
 							);
@@ -409,8 +409,7 @@ function _parseString(ctx) {
 			pop(ctx);
 			if (isKeywordlikeIdent(token.text)) {
 				ctx.errors.push(
-					mkError(
-						ctx,
+					ctx.mkError(
 						`Invalid keyword "${token.text}", add a leading # to use the keyword or surround with quotes to make it a string`,
 					),
 				);
@@ -560,8 +559,7 @@ export function parseEscline(ctx) {
 		!consume(ctx, T_EOF)
 	) {
 		ctx.errors.push(
-			mkError(
-				ctx,
+			ctx.mkError(
 				`Expected newline or single-line comment after backslash but got ${ctx.current.value?.text ?? "EOF"}`,
 			),
 		);
@@ -630,14 +628,14 @@ export function parseTag(ctx) {
 	if (!name) {
 		if (parseNonStringValue(ctx)) {
 			ctx.errors.push(
-				mkError(ctx, "Invalid tag, did you forget to quote a string?"),
+				ctx.mkError("Invalid tag, did you forget to quote a string?"),
 			);
 			name = ["error", "error"];
 		}
 	}
 
 	if (!name) {
-		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
+		throw ctx.mkError("Invalid tag, did you forget to quote a string?");
 	}
 
 	const trailing = parseNodeSpace(ctx);
@@ -659,7 +657,7 @@ export function parseTag(ctx) {
 	}
 
 	if (!end) {
-		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
+		throw ctx.mkError("Invalid tag, did you forget to quote a string?");
 	}
 
 	const result = new Tag(name[0]);
@@ -691,7 +689,7 @@ export function parseNodeChildren(ctx) {
 	const document = _parseDocument(ctx);
 
 	if (!consume(ctx, T_CLOSE_BRACE)) {
-		throw mkError(ctx, `Invalid node children`);
+		throw ctx.mkError(`Invalid node children`);
 	}
 
 	return document;
@@ -711,7 +709,7 @@ export function parseNodePropOrArg(ctx) {
 			const betweenTagAndValue = parseNodeSpace(ctx);
 			const value = parseValue(ctx);
 			if (!value) {
-				throw mkError(ctx, `Invalid argument`);
+				throw ctx.mkError(`Invalid argument`);
 			}
 
 			if (value.tag) {
@@ -812,7 +810,7 @@ export function parseNodePropOrArg(ctx) {
 
 	const value = parseValue(ctx);
 	if (!value) {
-		throw mkError(ctx, `Expected a value`);
+		throw ctx.mkError(`Expected a value`);
 	}
 
 	if (tag) {
@@ -845,13 +843,12 @@ export function parseNodePropOrArgWithSpace(ctx) {
 		const start = ctx.lastToken.end;
 		const propOrArg = parseNodePropOrArg(ctx);
 		if (!propOrArg) {
-			throw mkError(ctx, `Expected a property or argument`);
+			throw ctx.mkError(`Expected a property or argument`);
 		}
 
 		const space = propOrArg[1] ?? parseNodeSpace(ctx);
 		if (!space) {
-			throw mkError(
-				ctx,
+			throw ctx.mkError(
 				`Expected space after slashdashed property or argument`,
 			);
 		}
@@ -871,7 +868,7 @@ export function parseNodePropOrArgWithSpace(ctx) {
 		const start = ctx.lastToken.end;
 		const propOrArg = parseNodePropOrArg(ctx);
 		if (!propOrArg) {
-			throw mkError(ctx, `Expected a property or argument`);
+			throw ctx.mkError(`Expected a property or argument`);
 		}
 
 		const space = propOrArg[1] ?? parseNodeSpace(ctx);
@@ -911,7 +908,7 @@ export function parseBaseNode(ctx) {
 	const name = parseIdentifier(ctx);
 	if (!name) {
 		if (tag) {
-			throw mkError(ctx, `Couldn't find node name`);
+			throw ctx.mkError(`Couldn't find node name`);
 		} else {
 			return;
 		}
@@ -964,7 +961,7 @@ export function parseBaseNode(ctx) {
 		const parsedChildren = parseNodeChildren(ctx);
 		if (!parsedChildren) {
 			if (slashdash) {
-				throw mkError(ctx, `Unexpected slashdash`);
+				throw ctx.mkError(`Unexpected slashdash`);
 			}
 
 			break;
@@ -979,9 +976,7 @@ export function parseBaseNode(ctx) {
 			slashdash = undefined;
 		} else {
 			if (possibleChildren) {
-				ctx.errors.push(
-					mkError(ctx, `A node can only have one children block`),
-				);
+				ctx.errors.push(ctx.mkError(`A node can only have one children block`));
 			}
 
 			possibleChildren = parsedChildren;
@@ -1059,7 +1054,7 @@ function _parseDocument(ctx) {
 		const node = parseBaseNode(ctx);
 		if (!node) {
 			if (slashdash) {
-				throw mkError(ctx, `Unexpected slashdash`);
+				throw ctx.mkError(`Unexpected slashdash`);
 			}
 
 			break;

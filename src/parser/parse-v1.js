@@ -237,8 +237,7 @@ function parseEscline(ctx) {
 
 	if (!parseSingleLineComment(ctx) && !consume(ctx, T_NEWLINE)) {
 		ctx.errors.push(
-			mkError(
-				ctx,
+			ctx.mkError(
 				`Expected newline or single-line comment after backslash but got ${ctx.current.value?.text ?? "EOF"}`,
 			),
 		);
@@ -289,7 +288,7 @@ function parseTag(ctx) {
 	if (!name) {
 		if (parseNonStringValue(ctx)) {
 			ctx.errors.push(
-				mkError(ctx, "Invalid tag, did you forget to quote a string?"),
+				ctx.mkError("Invalid tag, did you forget to quote a string?"),
 			);
 			name = new Identifier("error");
 			name.representation = "error";
@@ -297,11 +296,11 @@ function parseTag(ctx) {
 	}
 
 	if (!name) {
-		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
+		throw ctx.mkError("Invalid tag, did you forget to quote a string?");
 	}
 
 	if (!consume(ctx, T_CLOSE_PAREN)) {
-		throw mkError(ctx, "Invalid tag, did you forget to quote a string?");
+		throw ctx.mkError("Invalid tag, did you forget to quote a string?");
 	}
 
 	const result = new Tag(name.name);
@@ -330,7 +329,7 @@ function parseNodeChildren(ctx) {
 	const document = _parseDocument(ctx);
 
 	if (!consume(ctx, T_CLOSE_BRACE)) {
-		throw mkError(ctx, `Invalid node children`);
+		throw ctx.mkError(`Invalid node children`);
 	}
 
 	return document;
@@ -349,7 +348,7 @@ function parseNodePropOrArg(ctx) {
 			// starts with tag -> must be an argument
 			const value = parseValue(ctx);
 			if (!value) {
-				throw mkError(ctx, `Invalid argument`);
+				throw ctx.mkError(`Invalid argument`);
 			}
 
 			value.tag = tag;
@@ -416,10 +415,7 @@ function parseNodePropOrArg(ctx) {
 
 		if (name && !consume(ctx, T_EQUALS)) {
 			ctx.errors.push(
-				mkError(
-					ctx,
-					"Unexpected identifier, did you forget to quote a string?",
-				),
+				ctx.mkError("Unexpected identifier, did you forget to quote a string?"),
 			);
 			return new Entry(new Value(name.name), null);
 		}
@@ -432,7 +428,7 @@ function parseNodePropOrArg(ctx) {
 	const tag = parseTag(ctx);
 	const value = parseValue(ctx);
 	if (!value) {
-		throw mkError(ctx, `Expected a value`);
+		throw ctx.mkError(`Expected a value`);
 	}
 
 	if (tag) {
@@ -465,7 +461,7 @@ function parseBaseNode(ctx) {
 	const name = parseIdentifier(ctx);
 	if (!name) {
 		if (tag) {
-			throw mkError(ctx, `Couldn't find node name`);
+			throw ctx.mkError(`Couldn't find node name`);
 		} else {
 			return;
 		}
@@ -515,7 +511,7 @@ function parseBaseNode(ctx) {
 			space = undefined;
 		} else {
 			if (slashdash) {
-				throw mkError(ctx, `Unexpected slashdash`);
+				throw ctx.mkError(`Unexpected slashdash`);
 			}
 		}
 	}
@@ -570,7 +566,7 @@ function _parseDocument(ctx) {
 		const node = parseBaseNode(ctx);
 		if (!node) {
 			if (slashdash) {
-				throw mkError(ctx, `Unexpected slashdash`);
+				throw ctx.mkError(`Unexpected slashdash`);
 			}
 
 			break;
@@ -579,7 +575,7 @@ function _parseDocument(ctx) {
 		const trailing = parseNodeSpace(ctx);
 		const terminator = parseNodeTerminator(ctx);
 		if (terminator == null) {
-			ctx.errors.push(mkError(ctx, "Missing node terminator"));
+			ctx.errors.push(ctx.mkError("Missing node terminator"));
 		}
 
 		if (slashdash) {

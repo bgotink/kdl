@@ -75,7 +75,7 @@ function handleQuoteCharacter(ctx) {
 		// "" -> either empty or multiline string
 		if (!consumeCodePoint(ctx, 0x22)) {
 			// only two quotes
-			return mkToken(ctx, T_QUOTED_STRING);
+			return mkToken(ctx, T_QUOTED_STRING, null);
 		}
 
 		multiline = true;
@@ -114,7 +114,11 @@ function handleQuoteCharacter(ctx) {
 		throw mkError(ctx, "Unexpected EOF inside string");
 	}
 
-	return mkToken(ctx, multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING);
+	return mkToken(
+		ctx,
+		multiline ? T_MULTILINE_QUOTED_STRING : T_QUOTED_STRING,
+		null,
+	);
 }
 
 /** @param {TokenizeContext} ctx */
@@ -132,7 +136,7 @@ function handleDotCharacter(ctx) {
 
 	zerOrMore(ctx, isV1IdentifierChar);
 
-	return mkToken(ctx, T_IDENTIFIER_STRING);
+	return mkToken(ctx, T_IDENTIFIER_STRING, null);
 }
 
 /** @param {TokenizeContext} ctx */
@@ -142,7 +146,7 @@ function handleSlashCharacter(ctx) {
 	if (consumeCodePoint(ctx, 0x2d)) {
 		// slash-dash
 
-		return mkToken(ctx, T_SLASHDASH);
+		return mkToken(ctx, T_SLASHDASH, null);
 	} else if (consumeCodePoint(ctx, 0x2f)) {
 		// --> //
 
@@ -150,7 +154,7 @@ function handleSlashCharacter(ctx) {
 			pop(ctx);
 		}
 
-		return mkToken(ctx, T_COMMENT_SINGLE);
+		return mkToken(ctx, T_COMMENT_SINGLE, null);
 	} else if (consumeCodePoint(ctx, 0x2a)) {
 		// --> /*
 
@@ -164,7 +168,7 @@ function handleSlashCharacter(ctx) {
 					level--;
 
 					if (level === 0) {
-						return mkToken(ctx, T_COMMENT_MULTI);
+						return mkToken(ctx, T_COMMENT_MULTI, null);
 					}
 				}
 			} else if (consumeCodePoint(ctx, 0x2f)) {
@@ -188,7 +192,7 @@ function handleV1IdentifierCharacter(ctx) {
 	pop(ctx);
 
 	zerOrMore(ctx, isV1IdentifierChar);
-	return mkToken(ctx, T_IDENTIFIER_STRING);
+	return mkToken(ctx, T_IDENTIFIER_STRING, null);
 }
 
 /**
@@ -216,11 +220,11 @@ function handleV1KeywordOrIdentifier(keyword) {
 		}
 
 		if (matchesKeyword && !isV1IdentifierChar(ctx.current)) {
-			return mkToken(ctx, T_KEYWORD_OR_HASHED_IDENT);
+			return mkToken(ctx, T_KEYWORD_OR_HASHED_IDENT, null);
 		}
 
 		zerOrMore(ctx, isV1IdentifierChar);
-		return mkToken(ctx, T_IDENTIFIER_STRING);
+		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	};
 }
 
@@ -233,7 +237,7 @@ function handleV1RawStringOrIdentifier(ctx) {
 
 	if (ctx.current !== 0x22 && ctx.current !== 0x23) {
 		zerOrMore(ctx, isV1IdentifierChar);
-		return mkToken(ctx, T_IDENTIFIER_STRING);
+		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	}
 
 	let numberOfOpeningHashes = 0;
@@ -263,7 +267,7 @@ function handleV1RawStringOrIdentifier(ctx) {
 			}
 
 			if (numberOfClosingHashes === numberOfOpeningHashes) {
-				return mkToken(ctx, T_RAW_STRING);
+				return mkToken(ctx, T_RAW_STRING, null);
 			}
 		} else {
 			consumeNewline(ctx) || pop(ctx);
@@ -351,5 +355,5 @@ export function* tokenize(t, {graphemeLocations}) {
 		yield handleV1IdentifierCharacter(ctx);
 	}
 
-	yield mkToken(ctx, T_EOF);
+	yield mkToken(ctx, T_EOF, null);
 }

@@ -142,7 +142,7 @@ export function parseWhitespaceInDocument(ctx) {
 
 				const node = parseBaseNode(ctx);
 				if (!node) {
-					throw mkError(ctx, "Invalid slashdash, expected a commented node");
+					throw ctx.mkError("Invalid slashdash, expected a commented node");
 				}
 
 				node.trailing = concatenate(
