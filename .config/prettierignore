@@ -1,5 +1,6 @@
 ../.yarn
 ../test/upstream*
+../test/kdl-test
 ../out
 
 ../documentation/book

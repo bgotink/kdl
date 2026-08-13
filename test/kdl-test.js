@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
-import { suite } from "uvu";
+import {readFileSync, readdirSync, existsSync} from "node:fs";
+import {suite} from "uvu";
 
-import { Entry, Node, parse } from "../src/index.js";
+import {Entry, Node, parse} from "../src/index.js";
 
 const testValid = suite("valid documents");
 const testInvalid = suite("invalid documents");
@@ -60,11 +60,11 @@ const knownBrokenTests = new Set([
 /** @param {number} value */
 function stringifyNumber(value) {
 	if (Number.isNaN(value)) {
-		return 'nan';
+		return "nan";
 	}
 
 	if (!Number.isFinite(value)) {
-		return value > 0 ? 'inf' : '-inf';
+		return value > 0 ? "inf" : "-inf";
 	}
 
 	if (Number.isInteger(value)) {
@@ -73,12 +73,12 @@ function stringifyNumber(value) {
 
 	const str = value.toString();
 
-	const exponentIndex = str.indexOf('e');
+	const exponentIndex = str.indexOf("e");
 	if (exponentIndex === -1) {
 		return str;
 	}
 
-	const sign = str.charAt(0) === '-' ? '-' : '';
+	const sign = str.charAt(0) === "-" ? "-" : "";
 	let exponent = Number.parseInt(str.slice(exponentIndex + 1));
 	let val = str.slice(sign.length, exponentIndex);
 
@@ -91,7 +91,7 @@ function stringifyNumber(value) {
 	//     consider the case where the exponent would result in a large number
 	//     with digits behind the decimal point.
 
-	if (val.charAt(1) === '.') {
+	if (val.charAt(1) === ".") {
 		val = val.charAt(0) + val.slice(2);
 		exponent -= val.length - 1;
 	}
@@ -108,26 +108,26 @@ function stringifyNumber(value) {
  * @returns {JsonValue}
  */
 function mapValue(entry) {
-  /** @type {JsonValue['value']} */
-  let value;
-  switch (typeof entry.value.value) {
-    case "string":
-      value = { type: "string", value: entry.value.value };
-      break;
-    case "boolean":
-      value = { type: "boolean", value: `${entry.value.value}` };
-      break;
-    case "number":
-      value = { type: "number", value: stringifyNumber(entry.value.value) };
-      break;
-    default:
-      value = { type: "null" };
-  }
+	/** @type {JsonValue['value']} */
+	let value;
+	switch (typeof entry.value.value) {
+		case "string":
+			value = {type: "string", value: entry.value.value};
+			break;
+		case "boolean":
+			value = {type: "boolean", value: `${entry.value.value}`};
+			break;
+		case "number":
+			value = {type: "number", value: stringifyNumber(entry.value.value)};
+			break;
+		default:
+			value = {type: "null"};
+	}
 
-  return {
-    type: entry.getTag(),
-    value,
-  };
+	return {
+		type: entry.getTag(),
+		value,
+	};
 }
 
 /**
@@ -135,58 +135,60 @@ function mapValue(entry) {
  * @returns {JsonNode}
  */
 function mapNode(node) {
-  return {
-    type: node.getTag(),
-    name: node.getName(),
+	return {
+		type: node.getTag(),
+		name: node.getName(),
 		args: node.getArgumentEntries().map(mapValue),
 		props: Object.fromEntries(
-			node.getPropertyEntries().map(entry => [entry.getName(), mapValue(entry)])
-    ),
-    children: node.children?.nodes.map(mapNode) ?? [],
-  };
+			node
+				.getPropertyEntries()
+				.map((entry) => [entry.getName(), mapValue(entry)]),
+		),
+		children: node.children?.nodes.map(mapNode) ?? [],
+	};
 }
 
 for (const testCase of readdirSync(new URL("invalid", testCasesFolder))) {
-  const inputFile = new URL(`invalid/${testCase}`, testCasesFolder);
+	const inputFile = new URL(`invalid/${testCase}`, testCasesFolder);
 
-  // read as buffer because the file might contain invalid UTF8 and we don't
-  // want node to replace those with a filler codepoint.
-  const input = readFileSync(inputFile);
+	// read as buffer because the file might contain invalid UTF8 and we don't
+	// want node to replace those with a filler codepoint.
+	const input = readFileSync(inputFile);
 
-  testInvalid(testCase, () => {
-    if (knownBrokenTests.has(testCase)) {
-      assert.doesNotThrow(() => parse(input));
-    } else {
-      assert.throws(() => parse(input));
-    }
-  });
+	testInvalid(testCase, () => {
+		if (knownBrokenTests.has(testCase)) {
+			assert.doesNotThrow(() => parse(input));
+		} else {
+			assert.throws(() => parse(input));
+		}
+	});
 }
 
 for (const testCase of readdirSync(new URL("valid", testCasesFolder))) {
-  if (!testCase.endsWith(".kdl")) {
-    continue;
-  }
+	if (!testCase.endsWith(".kdl")) {
+		continue;
+	}
 
-  const inputFile = new URL(`valid/${testCase}`, testCasesFolder);
-  const outputFile = new URL(
-    `valid/${testCase.slice(0, -4)}.json`,
-    testCasesFolder,
-  );
+	const inputFile = new URL(`valid/${testCase}`, testCasesFolder);
+	const outputFile = new URL(
+		`valid/${testCase.slice(0, -4)}.json`,
+		testCasesFolder,
+	);
 
-  // read as buffer because the file might contain invalid UTF8 and we don't
-  // want node to replace those with a filler codepoint.
-  const input = readFileSync(inputFile);
-  const output = JSON.parse(readFileSync(outputFile, "utf-8"));
+	// read as buffer because the file might contain invalid UTF8 and we don't
+	// want node to replace those with a filler codepoint.
+	const input = readFileSync(inputFile);
+	const output = JSON.parse(readFileSync(outputFile, "utf-8"));
 
-  testValid(testCase, () => {
-    if (knownBrokenTests.has(testCase)) {
-      assert.throws(() => {
-        assert.deepEqual(parse(input).nodes.map(mapNode), output);
-      });
-    } else {
-      assert.deepEqual(parse(input).nodes.map(mapNode), output);
-    }
-  });
+	testValid(testCase, () => {
+		if (knownBrokenTests.has(testCase)) {
+			assert.throws(() => {
+				assert.deepEqual(parse(input).nodes.map(mapNode), output);
+			});
+		} else {
+			assert.deepEqual(parse(input).nodes.map(mapNode), output);
+		}
+	});
 }
 
 testValid.run();

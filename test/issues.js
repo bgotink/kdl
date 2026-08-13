@@ -99,7 +99,7 @@ test("issue #11: v1 style raw strings", () => {
 });
 
 test("issue kdl-org/kdl#558: =/", () => {
-	assert.throws(() => parse(`a b=/x c=d`))
-})
+	assert.throws(() => parse(`a b=/x c=d`));
+});
 
 test.run();

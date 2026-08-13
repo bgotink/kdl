@@ -1,0 +1,24 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+
+	"readme": "none",
+	"excludePrivate": true,
+	"excludeProtected": true,
+	"githubPages": false,
+
+	"validation": true,
+
+	"externalSymbolLinkMappings": {
+		"typescript": {
+			"RegExp": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp"
+		}
+	},
+
+	"plugin": ["typedoc-plugin-markdown"],
+
+	"entryFileName": "index",
+	"membersWithOwnFile": "Class",
+	"parametersFormat": "table",
+	"hideBreadcrumbs": true,
+	"hidePageHeader": true
+}

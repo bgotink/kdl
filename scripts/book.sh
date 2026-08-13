@@ -10,18 +10,7 @@ if ! command -v mdbook >/dev/null 2>&1; then
 fi
 
 yarn typedoc \
-	--plugin typedoc-plugin-markdown \
 	--out documentation/src/api/reference \
-	--readme none \
-	--excludePrivate \
-	--excludeProtected \
-	--githubPages false \
-	--validation \
-	--entryFileName index \
-	--membersWithOwnFile Class \
-	--parametersFormat table \
-	--hideBreadcrumbs \
-	--hidePageHeader \
 	src/index.js src/json.d.ts src/v1-compat.js src/dessert.d.ts
 
 yarn esbuild --bundle \

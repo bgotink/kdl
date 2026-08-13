@@ -256,7 +256,9 @@ export function postProcessStringValue(errors, value, token) {
 		const start = computeStartLocation(
 			token,
 			value,
-			/** @type {RegExpIndicesArray} */ (unescapedNewlineMatch.indices)[1][0],
+			/** @type {NonNullable<RegExpIndicesArray[number]>} */ (
+				/** @type {RegExpIndicesArray} */ (unescapedNewlineMatch.indices)[1]
+			)[0],
 		);
 
 		errors.push(

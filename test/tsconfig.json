@@ -2,6 +2,8 @@
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"rootDir": "..",
+		"types": ["node"],
+		"lib": ["es2023", "ES2025.Iterator"],
 		"noEmit": true
 	},
 	"include": ["**/*.js"],

@@ -3,7 +3,7 @@ import {
 	deserializeFromState,
 	getState,
 	isDeserializerFromContext,
-} from "./deserialize.js";
+} from "./deserialize.ts";
 import {KdlDeserializeError} from "./error.js";
 
 /** @import {Node} from "../../index.js" */

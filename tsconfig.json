@@ -3,15 +3,21 @@
 		"allowJs": true,
 		"checkJs": true,
 
-		"target": "es2022",
-		"lib": ["es2022"],
+		"target": "es2023",
+		"lib": ["es2023", "es2024.Regexp"],
 		"module": "Node16",
 		"moduleResolution": "Node16",
 
 		"strict": true,
 
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"skipLibCheck": true,
+
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+
 		"declaration": true,
-		"emitDeclarationOnly": true,
 		"rootDir": "src",
 		"outDir": "out"
 	},

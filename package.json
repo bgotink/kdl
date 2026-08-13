@@ -40,15 +40,15 @@
 		"@types/benchmark": "^2.1.5",
 		"@types/node": "^22",
 		"benchmark": "^2.1.4",
-		"esbuild": "^0.24.2",
+		"esbuild": "^0.28.2",
 		"express-check-in": "^0.2.0",
 		"husky": "npm:@dot-config/husky@9.1.7-dotconfig.0.1.0",
 		"is-ci": "^4.1.0",
-		"marked": "^15.0.6",
+		"marked": "^18.0.9",
 		"prettier": "npm:@dot-config/prettier@3.4.2-dotconfig.0.1.0",
-		"typedoc": "^0.28.5",
-		"typedoc-plugin-markdown": "^4.7.0",
-		"typescript": "~5.8.3",
+		"typedoc": "^0.28.20",
+		"typedoc-plugin-markdown": "^4.12.0",
+		"typescript": "~6.0.3",
 		"uvu": "^0.5.6"
 	}
 }

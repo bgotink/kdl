@@ -11,7 +11,7 @@ export type PrimitiveType = "boolean" | "null" | "number" | "string";
 /**
  * Helper type to turn a list of {@link PrimitiveType}s into matching {@link Primitive} types
  */
-export type TypeOf<T extends PrimitiveType[]> = {
+export type TypeOf<T extends readonly PrimitiveType[]> = {
 	/** only here to quiet a typedoc warning */
 	boolean: boolean;
 	/** only here to quiet a typedoc warning */
@@ -52,7 +52,8 @@ export interface DeserializerFromNode<T, P extends unknown[] = []> {
  * Parameters can be passed via `deserialize` or any of the `child`/`children` functions on a {@link DeserializationContext}
  */
 export type Deserializer<T, P extends unknown[] = []> =
-	DeserializerFromContext<T, P> | DeserializerFromNode<T, P>;
+	| DeserializerFromContext<T, P>
+	| DeserializerFromNode<T, P>;
 
 /**
  * Helper type to extract the type a deserializer supports
@@ -88,9 +89,24 @@ export type ArgumentReturnType<
 export type Tagged<T, IncludeTag extends boolean> =
 	IncludeTag extends true ? [T, string | null] : T;
 
+/**
+ * An object that looks like a JavaScript {@link RegExp}
+ *
+ * This interface requires only two things:
+ * - A toString method, used to print the RegExpLike object in error messages
+ * - A `test` method that returns whether or not the text matches the RegExpLike
+ *
+ * Using this interface allows for using {@link RegExp}, {@link https://npmx.dev/package/re2js RE2}, or even objects that implement non-regex patterns.
+ */
 export interface RegExpLike {
+	/**
+	 * Returns whether the given text matches
+	 */
 	test(text: string): boolean;
 
+	/**
+	 * Returns a useful representation of this object for use in error messages
+	 */
 	toString(): string;
 }
 
@@ -154,23 +170,17 @@ export interface Argument<
 	/**
 	 * Throw if there is no next argument, rather than return undefined
 	 */
-	required: Required extends false ?
-		Argument<IncludeTag, true, ReturnMultiple, IgnoreInvalid>
-	:	never;
+	required: Argument<IncludeTag, true, ReturnMultiple, IgnoreInvalid>;
 
 	/**
 	 * Return all remaining arguments rather than only the next argument
 	 */
-	rest: ReturnMultiple extends false ?
-		Argument<IncludeTag, Required, true, IgnoreInvalid>
-	:	never;
+	rest: Argument<IncludeTag, Required, true, IgnoreInvalid>;
 
 	/**
 	 * Return undefined instead of throwing if the next argument doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ?
-		Argument<IncludeTag, Required, ReturnMultiple, true>
-	:	never;
+	if: Argument<IncludeTag, Required, ReturnMultiple, true>;
 }
 
 /**
@@ -251,8 +261,7 @@ export interface Property<
 	/**
 	 * Throw if there is no property with the given name, rather than return undefined
 	 */
-	required: Required extends false ? Property<IncludeTag, true, IgnoreInvalid>
-	:	never;
+	required: Property<IncludeTag, true, IgnoreInvalid>;
 
 	/**
 	 * Return all remaining properties rather than only a single named property
@@ -262,8 +271,7 @@ export interface Property<
 	/**
 	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ? Property<IncludeTag, Required, true>
-	:	never;
+	if: Property<IncludeTag, Required, true>;
 }
 
 export interface RestProperty<
@@ -321,15 +329,12 @@ export interface RestProperty<
 	/**
 	 * Throw if there is no property with the given name, rather than return undefined
 	 */
-	required: Required extends false ?
-		RestProperty<IncludeTag, true, IgnoreInvalid>
-	:	never;
+	required: RestProperty<IncludeTag, true, IgnoreInvalid>;
 
 	/**
 	 * Return undefined instead of throwing if the property doesn't match the given types or enum values
 	 */
-	if: IgnoreInvalid extends false ? RestProperty<IncludeTag, Required, true>
-	:	never;
+	if: RestProperty<IncludeTag, Required, true>;
 }
 
 export interface Child<
@@ -451,7 +456,7 @@ export type JsonType = PrimitiveType | "object" | "array";
 /**
  * Helper type to turn {@link JsonType}s into the corresponding {@link JsonValue} types
  */
-export type JsonTypeOf<T extends JsonType[]> = {
+export type JsonTypeOf<T extends readonly JsonType[]> = {
 	/** only here to quiet a typedoc warning */
 	boolean: boolean;
 	/** only here to quiet a typedoc warning */

@@ -16,9 +16,13 @@ if (process.versions.node > "22") {
 		await readFile(new URL("../README.md", import.meta.url), "utf-8"),
 	);
 
-	for (const [i, {text}] of /** @type {import("marked").Tokens.Code[]} */ (
-		readme.filter((block) => block.type === "code" && block.lang === "js")
-	).entries()) {
+	for (const [i, {text}] of Iterator.from(readme)
+		.filter(
+			/** @returns {block is import("marked").Tokens.Code} */ (block) =>
+				block.type === "code",
+		)
+		.filter((block) => block.lang === "js")
+		.map((block, i) => /** @type {const} */ ([i, block]))) {
 		test(`README code block ${i}`, async () => {
 			const worker = new Worker(
 				text,

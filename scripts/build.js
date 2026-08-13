@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-check
 
 import {execSync} from "node:child_process";
 import {
@@ -9,32 +10,42 @@ import {
 	copyFileSync,
 	cpSync,
 } from "node:fs";
+import path from "node:path";
 import process from "node:process";
-import {fileURLToPath} from "node:url";
 
-process.chdir(fileURLToPath(new URL("..", import.meta.url)));
+process.chdir(path.dirname(import.meta.dirname));
 
 // Start fresh
 
 rmSync("out", {recursive: true, force: true});
 mkdirSync("out");
 
-// TypeScript
-
 try {
+	// Compile code
 	execSync("tsc -p tsconfig.json");
+
+	// Then copy over the .d.ts files, since tsc doesn't do that for us
+	cpSync("src", "out", {
+		recursive: true,
+		force: true,
+		filter: (name) =>
+			name.endsWith(".d.ts") || !(name.endsWith(".ts") || name.endsWith(".js")),
+	});
+
+	// Reformat code, since tsc emits weird formatting
+	execSync("prettier --write .", {cwd: "out"});
 } catch (e) {
-	if ("stdout" in e) {
-		console.error(`${e.name}: ${e.message}`);
+	console.error(String(e));
+	if (e && typeof e === "object" && "stdout" in e) {
 		console.error("output:");
-		console.error(e.stdout.toString());
-		process.exit(1);
+		console.error(
+			/** @type {import("node:child_process").ExecException} */ (
+				e
+			).stdout?.toString(),
+		);
 	}
+	process.exit(1);
 }
-
-// JavaScript
-
-cpSync("src", "out", {recursive: true});
 
 // Write metadata
 

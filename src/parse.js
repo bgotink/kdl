@@ -1,3 +1,10 @@
+// TextDecoder is included in DOM or in @types/node,
+// benefit of @types/node is that we can pick and choose
+// to only import the util types so we don't accidentally
+// import any actual node code.
+//
+/// <reference types="node/util.d.ts" />
+
 import {InvalidKdlError} from "./error.js";
 import {resolveFlags} from "./flags.js";
 import {tokenize} from "./parser/tokenize.js";
