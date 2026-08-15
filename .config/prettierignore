@@ -1,5 +1,5 @@
 ../.yarn
-../test/upstream*
+../test/upstream*/**
 ../test/kdl-test
 ../out
 

@@ -34,6 +34,25 @@ const methods = /** @type {const} */ ({
 });
 
 /**
+ * @param {Parameters<typeof parse>[0]} text
+ * @returns {string}
+ */
+export function textToString(text) {
+	if (typeof text === "string") {
+		return text;
+	}
+
+	if (typeof TextDecoder !== "function") {
+		throw new TypeError(
+			"Uint8Array input is only supported on platforms that include TextDecoder",
+		);
+	}
+
+	const decoder = new TextDecoder("utf-8", {fatal: true});
+	return decoder.decode(text);
+}
+
+/**
  * @param {string | ArrayBuffer | Uint8Array | Int8Array | Uint16Array | Int16Array | Uint32Array | Int32Array | DataView} text
  * @param {object} [options]
  * @param {keyof typeof methods} [options.as]
@@ -47,17 +66,7 @@ export function parse(text, {as = "document", flags, ...parserOptions} = {}) {
 		throw new TypeError(`Invalid "as" target passed: ${JSON.stringify(as)}`);
 	}
 
-	if (typeof text !== "string") {
-		if (typeof TextDecoder !== "function") {
-			throw new TypeError(
-				"Uint8Array input is only supported on platforms that include TextDecoder",
-			);
-		}
-
-		const decoder = new TextDecoder("utf-8", {fatal: true});
-
-		text = decoder.decode(text);
-	}
+	text = textToString(text);
 
 	const reoslvedFlags = resolveFlags(flags);
 

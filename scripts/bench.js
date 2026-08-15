@@ -1,8 +1,21 @@
+import {parseArgs} from "node:util";
+
 import bench from "benchmark";
-import * as v1 from "@bgotink/kdl-v1";
 
 import * as self from "../src/index.js";
 import * as compat from "../src/v1-compat.js";
+
+const {full} = parseArgs({
+	strict: true,
+	allowPositionals: false,
+	options: {
+		full: {
+			type: "boolean",
+			default: false,
+			short: "f",
+		},
+	},
+}).values;
 
 const suite = new bench.Suite();
 
@@ -39,29 +52,30 @@ const documentV1 = document.replace(/(\s)(#+")/g, "$1r$2");
 // sanity check: assert document parses
 self.parse(document);
 
-suite.add("v1 #parse", () => {
-	v1.parse(documentV1);
-});
+if (full) {
+	const v1 = await import("@bgotink/kdl-v1");
+	suite.add("v1 #parse", () => {
+		v1.parse(documentV1);
+	});
+}
 
-suite.add("v1 compat #parseAndTransform", () => {
-	compat.parseAndTransform(documentV1);
-});
-
-suite.add("v1 compat #parseWithoutFormatting", () => {
-	compat.parseWithoutFormatting(documentV1);
+suite.add("v1 compat #parse", () => {
+	compat.parse(documentV1);
 });
 
 suite.add("development #parse", () => {
 	self.parse(document);
 });
 
-suite.add("development #parse {graphemeLocations: true}", () => {
-	self.parse(document, {graphemeLocations: true});
-});
+if (full) {
+	suite.add("development #parse {graphemeLocations: true}", () => {
+		self.parse(document, {graphemeLocations: true});
+	});
 
-suite.add("development #parse {storeLocations: true}", () => {
-	self.parse(document, {storeLocations: true});
-});
+	suite.add("development #parse {storeLocations: true}", () => {
+		self.parse(document, {storeLocations: true});
+	});
+}
 
 try {
 	const out = await import("../out/index.js");

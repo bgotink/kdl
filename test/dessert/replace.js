@@ -1,84 +1,85 @@
 import assert from "node:assert/strict";
-import {test} from "uvu";
+import {suite, test} from "node:test";
 
 import {parse, format} from "../../src/dessert.js";
 /** @import {DeserializationContext, DocumentSerializationContext, SerializationContext} from "../../src/dessert.js"; */
 
-class Trie {
-	/**
-	 * @param {DeserializationContext} ctx
-	 * @returns {Trie}
-	 */
-	static deserialize(ctx) {
-		const trie = new Trie(
-			new Map(ctx.children.entries.filtered(/^[a-zA-Z]$/, Trie)),
-		);
+suite("dessert/replace", () => {
+	class Trie {
+		/**
+		 * @param {DeserializationContext} ctx
+		 * @returns {Trie}
+		 */
+		static deserialize(ctx) {
+			const trie = new Trie(
+				new Map(ctx.children.entries.filtered(/^[a-zA-Z]$/, Trie)),
+			);
 
-		trie.#ctx = ctx;
+			trie.#ctx = ctx;
 
-		return trie;
-	}
+			return trie;
+		}
 
-	/** @type {DeserializationContext=} */
-	#ctx;
+		/** @type {DeserializationContext=} */
+		#ctx;
 
-	/**
-	 * @param {Map<string, Trie>} children
-	 */
-	constructor(children = new Map()) {
-		this.children = children;
-	}
+		/**
+		 * @param {Map<string, Trie>} children
+		 */
+		constructor(children = new Map()) {
+			this.children = children;
+		}
 
-	/**
-	 * @param {string} name
-	 * @param {Trie} trie
-	 */
-	set(name, trie = new Trie()) {
-		this.children.set(name, trie);
-	}
-
-	/** @param {string} name */
-	delete(name) {
-		this.children.delete(name);
-	}
-
-	/** @param {string} name */
-	get(name) {
-		return this.children.get(name);
-	}
-
-	/** @param {string} name */
-	getOrInsert(name) {
-		let trie = this.children.get(name);
-		if (trie == null) {
-			trie = new Trie();
+		/**
+		 * @param {string} name
+		 * @param {Trie} trie
+		 */
+		set(name, trie = new Trie()) {
 			this.children.set(name, trie);
 		}
-		return trie;
-	}
 
-	/** @param {SerializationContext | DocumentSerializationContext} ctx */
-	serialize(ctx) {
-		ctx.source(this.#ctx);
+		/** @param {string} name */
+		delete(name) {
+			this.children.delete(name);
+		}
 
-		for (const [name, child] of this.children) {
-			ctx.child(name, child);
+		/** @param {string} name */
+		get(name) {
+			return this.children.get(name);
+		}
+
+		/** @param {string} name */
+		getOrInsert(name) {
+			let trie = this.children.get(name);
+			if (trie == null) {
+				trie = new Trie();
+				this.children.set(name, trie);
+			}
+			return trie;
+		}
+
+		/** @param {SerializationContext | DocumentSerializationContext} ctx */
+		serialize(ctx) {
+			ctx.source(this.#ctx);
+
+			for (const [name, child] of this.children) {
+				ctx.child(name, child);
+			}
 		}
 	}
-}
 
-/** @param {string} text */
-function parseTrie(text) {
-	return parse(text, Trie);
-}
+	/** @param {string} text */
+	function parseTrie(text) {
+		return parse(text, Trie);
+	}
 
-/** @param {Trie} trie */
-function formatTrie(trie) {
-	return format(trie);
-}
+	/** @param {Trie} trie */
+	function formatTrie(trie) {
+		return format(trie);
+	}
 
-test("replacement", () => {
-	const trie = parseTrie(`
+	test("replacement", () => {
+		const trie = parseTrie(`
 b {
 	o {
 		o {
@@ -86,15 +87,15 @@ b {
 		}
 	}
 }
-	`);
+		`);
 
-	const o = trie.getOrInsert("b").getOrInsert("o").getOrInsert("o");
-	o.set("t", o.getOrInsert("k"));
-	o.delete("k");
+		const o = trie.getOrInsert("b").getOrInsert("o").getOrInsert("o");
+		o.set("t", o.getOrInsert("k"));
+		o.delete("k");
 
-	assert.equal(
-		formatTrie(trie),
-		`
+		assert.equal(
+			formatTrie(trie),
+			`
 b {
 	o {
 		o {
@@ -102,14 +103,14 @@ b {
 		}
 	}
 }
-	`,
-	);
+		`,
+		);
 
-	o.set("t", new Trie());
+		o.set("t", new Trie());
 
-	assert.equal(
-		formatTrie(trie),
-		`
+		assert.equal(
+			formatTrie(trie),
+			`
 b {
 	o {
 		o {
@@ -117,14 +118,14 @@ b {
 		}
 	}
 }
-	`,
-	);
+		`,
+		);
 
-	o.getOrInsert("t").set("s");
+		o.getOrInsert("t").set("s");
 
-	assert.equal(
-		formatTrie(trie),
-		`
+		assert.equal(
+			formatTrie(trie),
+			`
 b {
 	o {
 		o {
@@ -134,64 +135,63 @@ b {
 		}
 	}
 }
-	`,
-	);
-});
-
-class WrappedJson {
-	/** @param {DeserializationContext} ctx */
-	static deserialize(ctx) {
-		const value = new WrappedJson(ctx.json.required("object"));
-		value.#ctx = ctx;
-		return value;
-	}
-
-	/** @type {DeserializationContext=} */
-	#ctx;
-
-	/** @param {import("../../src/json.js").JsonObject} value */
-	constructor(value) {
-		this.value = value;
-	}
-
-	/** @param {SerializationContext | DocumentSerializationContext} ctx */
-	serialize(ctx) {
-		ctx.source(this.#ctx);
-		ctx.json(this.value);
-	}
-}
-
-test("json replacement", () => {
-	const object = parse(
-		`
-prop /- "test" #false
-otherProp /- -1 0 1 2
 		`,
-		WrappedJson,
-	);
-
-	assert.deepEqual(object.value, {
-		prop: false,
-		otherProp: /** @type {import("../../src/json.js").JsonValue[]} */ ([
-			0, 1, 2,
-		]),
+		);
 	});
 
-	object.value.prop = true;
-	object.value.otherProp[1] = {};
+	class WrappedJson {
+		/** @param {DeserializationContext} ctx */
+		static deserialize(ctx) {
+			const value = new WrappedJson(ctx.json.required("object"));
+			value.#ctx = ctx;
+			return value;
+		}
 
-	assert.deepEqual(
-		format(object),
-		`
+		/** @type {DeserializationContext=} */
+		#ctx;
+
+		/** @param {import("../../src/json.js").JsonObject} value */
+		constructor(value) {
+			this.value = value;
+		}
+
+		/** @param {SerializationContext | DocumentSerializationContext} ctx */
+		serialize(ctx) {
+			ctx.source(this.#ctx);
+			ctx.json(this.value);
+		}
+	}
+
+	test("json replacement", () => {
+		const object = parse(
+			`
+prop /- "test" #false
+otherProp /- -1 0 1 2
+			`,
+			WrappedJson,
+		);
+
+		assert.deepEqual(object.value, {
+			prop: false,
+			otherProp: /** @type {import("../../src/json.js").JsonValue[]} */ ([
+				0, 1, 2,
+			]),
+		});
+
+		object.value.prop = true;
+		object.value.otherProp[1] = {};
+
+		assert.deepEqual(
+			format(object),
+			`
 prop /- "test" #true
 otherProp /- -1 0 {
 	(object)-
 	- 2
 }
-		`,
-	);
+			`,
+		);
 
-	assert.deepEqual(parse(format(object), WrappedJson), object);
+		assert.deepEqual(parse(format(object), WrappedJson), object);
+	});
 });
-
-test.run();

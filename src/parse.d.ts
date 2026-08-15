@@ -16,6 +16,11 @@ export interface ParserResult {
 }
 
 /**
+ * @internal
+ */
+export function textToString(text: Parameters<typeof parse>[0]): string;
+
+/**
  * Parse the given text as a value.
  *
  * The text should not contain anything other than the value, i.e. no leading
@@ -32,12 +37,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "value";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): Value;
 /**
  * Parse the given text as a identifier.
@@ -56,12 +61,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "identifier";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): Identifier;
 /**
  * Parse the given text as an entry.
@@ -80,12 +85,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "entry";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): Entry;
 /**
  * Parse the given text as a node.
@@ -103,12 +108,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "node";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): Node;
 /**
  * Parse the given text as a whitespace in a document.
@@ -124,12 +129,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "whitespace in document";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): LineSpace;
 /**
  * Parse the given text as a whitespace in a node.
@@ -145,12 +150,12 @@ export function parse(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: "whitespace in node";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): NodeSpace;
 /**
  * Parse the given text as a document.
@@ -172,7 +177,7 @@ export function parse(
 		as?: "document";
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
+		flags?: Partial<Readonly<ParserFlags>>;
 	},
 ): Document;
 /**
@@ -191,10 +196,10 @@ export function parse<T extends keyof ParserResult>(
 		| Uint32Array
 		| Int32Array
 		| DataView,
-	options: {
+	options: Readonly<{
 		as: T;
 		storeLocations?: boolean;
 		graphemeLocations?: boolean;
-		flags?: Partial<ParserFlags>;
-	},
+		flags?: Partial<Readonly<ParserFlags>>;
+	}>,
 ): ParserResult[T];

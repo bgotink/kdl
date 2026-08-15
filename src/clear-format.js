@@ -123,7 +123,9 @@ const clearFormatters = new Map(
 export function clearFormat(v) {
 	const clearFormatter = clearFormatters.get(v.type);
 	if (clearFormatter == null) {
-		throw new InvalidKdlError(`Cannot clear formatting on non-KDL ${v}`);
+		throw new InvalidKdlError(
+			`Cannot clear formatting on non-KDL ${String(v)}`,
+		);
 	}
 
 	clearFormatter(v);

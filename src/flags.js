@@ -20,7 +20,7 @@
  */
 
 /**
- * @param {Partial<ParserFlags>} [flags]
+ * @param {Partial<Readonly<ParserFlags>>} [flags]
  * @returns {ParserFlags}
  */
 export function resolveFlags({experimentalSuffixedNumbers = false} = {}) {

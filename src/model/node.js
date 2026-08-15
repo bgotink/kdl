@@ -279,8 +279,8 @@ export class Node {
 		entry.value.setTag(tag);
 
 		if (index != null) {
-			for (const [i, entry] of this.entries.entries()) {
-				if (!entry.isArgument()) {
+			for (const [i, existingEntry] of this.entries.entries()) {
+				if (!existingEntry.isArgument()) {
 					continue;
 				}
 
@@ -510,7 +510,7 @@ export class Node {
 	 */
 	replaceNode(oldNode, newNode) {
 		if (this.children == null) {
-			throw new Error("Node to remove is not in document");
+			throw new Error("Node to replace is not in document");
 		}
 
 		this.children.replaceNode(oldNode, newNode);

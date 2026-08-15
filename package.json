@@ -31,7 +31,7 @@
 	"scripts": {
 		"postinstall": "is-ci || husky",
 		"build": "node scripts/build.js",
-		"test": "tsc -p test/tsconfig.json && uvu test",
+		"test": "tsc -p test/tsconfig.json && scripts/test.sh",
 		"bench": "node scripts/bench.js",
 		"book": "scripts/book.sh"
 	},
@@ -48,7 +48,6 @@
 		"prettier": "npm:@dot-config/prettier@3.4.2-dotconfig.0.1.0",
 		"typedoc": "^0.28.20",
 		"typedoc-plugin-markdown": "^4.12.0",
-		"typescript": "~6.0.3",
-		"uvu": "^0.5.6"
+		"typescript": "~6.0.3"
 	}
 }

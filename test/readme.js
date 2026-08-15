@@ -1,12 +1,9 @@
-import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {Worker} from "node:worker_threads";
+import {suite, test} from "node:test";
 import {Lexer} from "marked";
-import {test} from "uvu";
 
-import {Document, format, parse} from "../src/index.js";
-
-if (process.versions.node > "22") {
+suite("readme", async () => {
 	const lexer = new Lexer({
 		gfm: true,
 		silent: true,
@@ -40,34 +37,4 @@ if (process.versions.node > "22") {
 			}
 		});
 	}
-} else {
-	test("readme code sample", () => {
-		const doc = parse(String.raw`
-			node "value" #"other value"# 2.0 4 #false \
-					#null -0 {
-				child; "child too"
-			}
-		`);
-
-		/** @type {Document} */ (doc.nodes[0].children).nodes[0].entries.push(
-			parse(
-				String.raw`/-lorem="ipsum" \
-					dolor=#true`,
-				{as: "entry"},
-			),
-		);
-
-		assert.equal(
-			format(doc),
-			String.raw`
-			node "value" #"other value"# 2.0 4 #false \
-					#null -0 {
-				child /-lorem="ipsum" \
-					dolor=#true; "child too"
-			}
-		`,
-		);
-	});
-}
-
-test.run();
+});

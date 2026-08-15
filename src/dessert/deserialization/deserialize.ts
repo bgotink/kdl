@@ -847,7 +847,7 @@ export function deserialize<T, P extends unknown[] = []>(
 }
 
 /**
- * Deserialize the given {@link ContextState} using the given {@link t.DeserializationContext<T, P> deserializer}.
+ * Deserialize the given {@link ContextState} using the given {@link DeserializationContext<T, P> deserializer}.
  */
 export function deserializeFromState<T, P extends unknown[] = []>(
 	state: ContextState,

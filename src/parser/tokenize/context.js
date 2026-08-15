@@ -259,13 +259,9 @@ export function mkToken(ctx, type, error) {
  * Create an error based on the current token and location
  *
  * @param {TokenizeContext} ctx
- * @param {string | InvalidKdlError} message
+ * @param {string} message
  */
 export function mkError(ctx, message) {
-	if (message instanceof InvalidKdlError) {
-		return message;
-	}
-
 	const {line, column, offset} = ctx;
 	const start = {line, column, offset};
 	let end;
@@ -285,7 +281,7 @@ export function mkError(ctx, message) {
  * Create an error based on the current token and location
  *
  * @param {TokenizeContext} ctx
- * @param {string | InvalidKdlError} message
+ * @param {string} message
  */
 export function pushError(ctx, message) {
 	(ctx.errorsInToken ??= []).push(mkError(ctx, message));

@@ -56,14 +56,7 @@ export class Tag {
 		 * @readonly
 		 * @hidden
 		 */
-		this.name;
-
-		Object.defineProperty(this, "name", {
-			enumerable: true,
-			configurable: true,
-			writable: false,
-			value: name,
-		});
+		this.name = name;
 	}
 
 	/**

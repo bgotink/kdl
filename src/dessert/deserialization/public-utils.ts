@@ -1,3 +1,5 @@
+import type {Node} from "../../index.js";
+
 import {
 	deserialize,
 	deserializeFromState,
@@ -5,26 +7,23 @@ import {
 	isDeserializerFromContext,
 } from "./deserialize.ts";
 import {KdlDeserializeError} from "./error.js";
-
-/** @import {Node} from "../../index.js" */
-
-/** @import {Deserialized, Deserializer, DeserializerFromContext} from "./types.js" */
+import type {
+	Deserialized,
+	Deserializer,
+	DeserializerFromContext,
+} from "./types.js";
 
 /**
  * Call the given function with the given arguments until it returns undefined
  *
  * This function returns all return values apart from the final undefined.
  * If the given function returned undefined on the first call, this function returns undefined.
- *
- * @template {unknown[]} A
- * @template T
- * @param {(...args: NoInfer<A>) => T | undefined} fn
- * @param {A} args
- * @returns {[T, ...T[]] | undefined}
  */
-export function repeat(fn, ...args) {
-	/** @type {T[]} */
-	const result = [];
+export function repeat<A extends unknown[], T>(
+	fn: (...args: NoInfer<A>) => T | undefined,
+	...args: A
+): [T, ...T[]] | undefined {
+	const result: T[] = [];
 
 	while (true) {
 		const item = fn(...args);
@@ -35,52 +34,40 @@ export function repeat(fn, ...args) {
 		}
 	}
 
-	return result.length ? /** @type {[T, ...T[]]} */ (result) : undefined;
+	return result.length ? (result as [T, ...T[]]) : undefined;
 }
 
 /**
  * Call the given function the given number of times with the given arguments.
- *
- * @template {unknown[]} A
- * @template T
- * @param {number} times
- * @param {(...args: A) => T} fn
- * @param {A} args
- * @returns {T[]}
  */
-repeat.times = (times, fn, ...args) => {
-	return Array.from({length: times}, () => fn(...args));
+repeat.times = function <A extends unknown[], T>(
+	times: number,
+	fn: (...args: [...A, index: number]) => T,
+	...args: A
+): T[] {
+	return Array.from({length: times}, (_, i) => fn(...args, i));
 };
 
 /**
  * Create a deserializer that tries all of the given deserializers until it finds one that doesn't throw an error.
  *
  * The returned deserializer throws an `AggregateError` if all of the given deserializers throw.
- *
- * @template {DeserializerFromContext<unknown>[]} T
- * @overload
- * @param {...T} deserializers
- * @returns {DeserializerFromContext<Deserialized<T[number]>>}
  */
-
+export function firstMatchingDeserializer<
+	T extends DeserializerFromContext<unknown>[],
+>(...deserializers: T): DeserializerFromContext<Deserialized<T[number]>>;
 /**
  * Create a deserializer that tries all of the given deserializers until it finds one that doesn't throw an error.
  *
  * The returned deserializer throws an `AggregateError` if all of the given deserializers throw.
- *
- * @template {Deserializer<unknown>[]} T
- * @overload
- * @param {...T} deserializers
- * @returns {Deserializer<Deserialized<T[number]>>}
  */
-
-/**
- * @param {Deserializer<unknown>[]} deserializers
- * @returns {Deserializer<unknown>}
- */
-export function firstMatchingDeserializer(...deserializers) {
-	/** @type {Set<Node>} */
-	const runningNodes = new Set();
+export function firstMatchingDeserializer<T extends Deserializer<unknown>[]>(
+	...deserializers: T
+): Deserializer<Deserialized<T[number]>>;
+export function firstMatchingDeserializer(
+	...deserializers: Deserializer<unknown>[]
+): Deserializer<unknown> {
+	const runningNodes = new Set<Node>();
 
 	if (deserializers.every(isDeserializerFromContext)) {
 		return {
@@ -96,9 +83,7 @@ export function firstMatchingDeserializer(...deserializers) {
 					try {
 						result = deserializeFromState(
 							stateClone,
-							/** @type {DeserializerFromContext<Deserialized<T[number]>>} */ (
-								deserializer
-							),
+							/** @type {DeserializerFromContext<Deserialized<T[number]>>} */ deserializer,
 						);
 					} catch (e) {
 						errors.push(e);
@@ -134,9 +119,7 @@ export function firstMatchingDeserializer(...deserializers) {
 					try {
 						return deserialize(
 							node,
-							/** @type {Deserializer<Deserialized<T[number]>>} */ (
-								deserializer
-							),
+							/** @type {Deserializer<Deserialized<T[number]>>} */ deserializer,
 						);
 					} catch (e) {
 						errors.push(e);

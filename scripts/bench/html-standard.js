@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/// <reference lib="esnext.iterator" />
 // @ts-check
 
 import {readFileSync} from "node:fs";
@@ -85,10 +86,7 @@ console.log(
 const query = parseQuery("span[class = secno]");
 
 start = performance.now();
-let count = 0;
-for (const _ of query.find(document)) {
-	count++;
-}
+const count = query.find(document).reduce((c) => c + 1, 0);
 console.log("query:", performance.now() - start);
 
 console.log("number of span[class=secno]:", count);

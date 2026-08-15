@@ -1,13 +1,9 @@
 import {InvalidKdlError} from "./error.js";
 import {resolveFlags} from "./flags.js";
 import {Document} from "./model/document.js";
+import {textToString, parse as parseV2} from "./parse.js";
 import {parseDocument as parseV1Document} from "./parser/parse-v1.js";
-import {
-	createParserCtx,
-	finalize,
-	parseDocument as parseV2Document,
-} from "./parser/parse.js";
-import {tokenize as tokenizeV2} from "./parser/tokenize.js";
+import {createParserCtx, finalize} from "./parser/parse.js";
 import {tokenize as tokenizeV1} from "./parser/tokenize/tokenize-v1.js";
 
 /** @import {format} from './index.js' */
@@ -47,20 +43,8 @@ export function parseAndTransform(text) {
  * @returns {Document}
  */
 export function parse(text, options = {}) {
-	if (typeof text !== "string") {
-		if (typeof TextDecoder !== "function") {
-			throw new TypeError(
-				"Uint8Array input is only supported on platforms that include TextDecoder",
-			);
-		}
-
-		const decoder = new TextDecoder("utf-8", {fatal: true});
-
-		text = decoder.decode(text);
-	}
-
+	text = textToString(text);
 	const tokens = tokenizeV1(text, options);
-
 	const ctx = createParserCtx(text, tokens, {
 		...options,
 		flags: {
@@ -107,74 +91,18 @@ export function parseCompat(
 	text,
 	{storeLocations, graphemeLocations, flags} = {},
 ) {
-	if (typeof text !== "string") {
-		if (typeof TextDecoder !== "function") {
-			throw new TypeError(
-				"Uint8Array input is only supported on platforms that include TextDecoder",
-			);
-		}
-
-		const decoder = new TextDecoder("utf-8", {fatal: true});
-
-		text = decoder.decode(text);
-	}
+	text = textToString(text);
 
 	let v2Error;
 	try {
-		const resolvedFlags = resolveFlags(flags);
-
-		const tokens = tokenizeV2(text, {
-			graphemeLocations,
-			flags: resolvedFlags,
-		});
-
-		const ctx = createParserCtx(text, tokens, {
-			storeLocations,
-			flags: resolvedFlags,
-		});
-
-		let value;
-		try {
-			value = parseV2Document(ctx);
-		} catch (e) {
-			finalize(ctx, e);
-		}
-
-		finalize(ctx);
-
-		if (!value) {
-			throw new InvalidKdlError(`Expected a document`);
-		}
-
-		return value;
+		return parseV2(text, {storeLocations, graphemeLocations, flags});
 	} catch (e) {
 		v2Error = e;
 	}
 
 	let v1Error;
 	try {
-		const tokens = tokenizeV1(text, {graphemeLocations});
-
-		const ctx = createParserCtx(text, tokens, {
-			flags: {
-				experimentalSuffixedNumbers: false,
-			},
-		});
-
-		let value;
-		try {
-			value = parseV1Document(ctx);
-		} catch (e) {
-			finalize(ctx, e);
-		}
-
-		finalize(ctx);
-
-		if (!value) {
-			throw new InvalidKdlError(`Expected a document`);
-		}
-
-		return value;
+		return parse(text, {storeLocations, graphemeLocations});
 	} catch (e) {
 		v1Error = e;
 	}
