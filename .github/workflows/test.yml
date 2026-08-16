@@ -72,3 +72,11 @@ jobs:
       - name: Run tests
         run: |
           yarn test
+
+      - name: Run kdl-test
+        run: |
+          gh release download -O- --repo kdl-org/kdl-test \
+            --pattern '*-linux-x86_64.tar.gz' \
+            | tar xvz
+
+          scripts/kdl-test.sh

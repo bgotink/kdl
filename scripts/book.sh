@@ -2,7 +2,7 @@
 
 set -e
 
-cd $(dirname "$0")/..
+cd "$(dirname "$0")/.."
 
 if ! command -v mdbook >/dev/null 2>&1; then
 	echo "Please install mdbook first" >&2
