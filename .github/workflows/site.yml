@@ -18,6 +18,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
           fetch-tags: true
+      - uses: yarnpkg/setup-action@c9778d0717d1b46cf29f06ae5ae5ad41c1bb1c1a
       - name: Setup Node
         uses: actions/setup-node@v7
         with:

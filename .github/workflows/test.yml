@@ -19,6 +19,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - uses: yarnpkg/setup-action@c9778d0717d1b46cf29f06ae5ae5ad41c1bb1c1a
       - uses: actions/setup-node@v7
         with:
           node-version: 24.x
@@ -60,6 +61,7 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+      - uses: yarnpkg/setup-action@c9778d0717d1b46cf29f06ae5ae5ad41c1bb1c1a
       - uses: actions/setup-node@v7
         with:
           node-version: ${{matrix.node}}
