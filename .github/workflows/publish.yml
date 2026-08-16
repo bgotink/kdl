@@ -17,11 +17,12 @@ jobs:
     steps:
       # Set up
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
+          persist-credentials: false
           submodules: true
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
           registry-url: "https://registry.npmjs.org"
@@ -54,7 +55,7 @@ jobs:
 
       # Release to GitHub Packages
       - name: Setup Node for GitHub Packages
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24.x
           registry-url: "https://npm.pkg.github.com"
