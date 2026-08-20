@@ -17,6 +17,7 @@ __metadata:
   resolution: "@bgotink/kdl@workspace:."
   dependencies:
     "@bgotink/kdl-v1": "npm:@bgotink/kdl@0.1.7"
+    "@rust-lang/mdbook": "github-release:^0.5.4"
     "@types/benchmark": "npm:^2.1.5"
     "@types/node": "npm:^22"
     benchmark: "npm:^2.1.4"
@@ -224,6 +225,88 @@ __metadata:
     "@shikijs/types": "npm:^3.23.0"
     "@shikijs/vscode-textmate": "npm:^10.0.2"
   checksum: 10c0/f9663e0e179edd2d7733207843f1bceda24311ab7b5495d50e0531305129fba8663388784c80645383ac6ae5e3a97c138faefeea8c328e7664da882f4ecb1c3a
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-darwin-arm64@github-release-asset:v0.5.4::id=468209418&binary=mdbook&platform=darwin&architecture=arm64":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-darwin-arm64@github-release-asset:v0.5.4::id=468209418&binary=mdbook&platform=darwin&architecture=arm64"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-darwin-x64@github-release-asset:v0.5.4::id=468210169&binary=mdbook&platform=darwin&architecture=x64":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-darwin-x64@github-release-asset:v0.5.4::id=468210169&binary=mdbook&platform=darwin&architecture=x64"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-linux-arm64@github-release-asset:v0.5.4::id=468210015&binary=mdbook&platform=linux&architecture=arm64":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-linux-arm64@github-release-asset:v0.5.4::id=468210015&binary=mdbook&platform=linux&architecture=arm64"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=linux & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-linux-x64-glibc@github-release-asset:v0.5.4::id=468209394&binary=mdbook&platform=linux&architecture=x64&libc=glibc":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-linux-x64-glibc@github-release-asset:v0.5.4::id=468209394&binary=mdbook&platform=linux&architecture=x64&libc=glibc"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-linux-x64-musl@github-release-asset:v0.5.4::id=468209670&binary=mdbook&platform=linux&architecture=x64&libc=musl":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-linux-x64-musl@github-release-asset:v0.5.4::id=468209670&binary=mdbook&platform=linux&architecture=x64&libc=musl"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook-win32-x64@github-release-asset:v0.5.4::id=468210971&binary=mdbook&platform=win32&architecture=x64":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook-win32-x64@github-release-asset:v0.5.4::id=468210971&binary=mdbook&platform=win32&architecture=x64"
+  bin:
+    mdbook: ./mdbook
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@rust-lang/mdbook@github-release:^0.5.4":
+  version: v0.5.4
+  resolution: "@rust-lang/mdbook@github-release:v0.5.4::id=349646650"
+  dependencies:
+    "@rust-lang/mdbook-darwin-arm64": "github-release-asset:v0.5.4::id=468209418&binary=mdbook&platform=darwin&architecture=arm64"
+    "@rust-lang/mdbook-darwin-x64": "github-release-asset:v0.5.4::id=468210169&binary=mdbook&platform=darwin&architecture=x64"
+    "@rust-lang/mdbook-linux-arm64": "github-release-asset:v0.5.4::id=468210015&binary=mdbook&platform=linux&architecture=arm64"
+    "@rust-lang/mdbook-linux-x64-glibc": "github-release-asset:v0.5.4::id=468209394&binary=mdbook&platform=linux&architecture=x64&libc=glibc"
+    "@rust-lang/mdbook-linux-x64-musl": "github-release-asset:v0.5.4::id=468209670&binary=mdbook&platform=linux&architecture=x64&libc=musl"
+    "@rust-lang/mdbook-win32-x64": "github-release-asset:v0.5.4::id=468210971&binary=mdbook&platform=win32&architecture=x64"
+  dependenciesMeta:
+    "@rust-lang/mdbook-darwin-arm64":
+      optional: true
+    "@rust-lang/mdbook-darwin-x64":
+      optional: true
+    "@rust-lang/mdbook-linux-arm64":
+      optional: true
+    "@rust-lang/mdbook-linux-x64-glibc":
+      optional: true
+    "@rust-lang/mdbook-linux-x64-musl":
+      optional: true
+    "@rust-lang/mdbook-win32-x64":
+      optional: true
+  bin:
+    mdbook: ./bin-0.js
   languageName: node
   linkType: hard
 
