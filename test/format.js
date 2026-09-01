@@ -32,7 +32,8 @@ suite("format", () => {
 					),
 				]),
 			),
-			`node value 2 #null #true #false {
+			`\
+node value 2 #null #true #false {
 	child
 	"child too"
 }

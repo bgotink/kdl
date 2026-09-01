@@ -318,10 +318,9 @@ export function handleSignCharacter(ctx) {
 export function handleSignCharacterAfterPop(ctx) {
 	if (isDecimalDigit(ctx.current)) {
 		return handleNumberCharacter(ctx);
-	} else if (consumeCodePoint(ctx, 0x2e)) {
-		// .
-
-		if (consume(ctx, isDecimalDigit)) {
+	} else {
+		if (consumeCodePoint(ctx, 0x2e) && consume(ctx, isDecimalDigit)) {
+			// . + digit
 			zerOrMore(ctx, isIdentifierChar);
 			return mkToken(
 				ctx,
@@ -330,10 +329,6 @@ export function handleSignCharacterAfterPop(ctx) {
 			);
 		}
 
-		zerOrMore(ctx, isIdentifierChar);
-
-		return mkToken(ctx, T_IDENTIFIER_STRING, null);
-	} else {
 		zerOrMore(ctx, isIdentifierChar);
 
 		return mkToken(ctx, T_IDENTIFIER_STRING, null);

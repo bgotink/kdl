@@ -363,4 +363,23 @@ suite("parse", () => {
 			]),
 		);
 	});
+
+	test("-. + digit", () => {
+		assert.throws(
+			() => parse("node -.02"),
+			/^InvalidKdlError: Invalid identifier or number.*at 1:6$/,
+		);
+	});
+
+	test("invalid tags", () => {
+		assert.throws(
+			() => parse("node (tag\n)lorem"),
+			/InvalidKdlError: This type of whitespace is not allowed inside a tag at 1:10/,
+		);
+
+		assert.throws(
+			() => parse("node (tag two)lorem"),
+			/InvalidKdlError: Invalid tag, did you forget to quote a string\? at 1:11/,
+		);
+	});
 });

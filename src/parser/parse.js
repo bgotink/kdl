@@ -284,6 +284,7 @@ function parseNonStringValue(ctx) {
 				} else {
 					switch (token.text.toLowerCase()) {
 						case "#nul":
+						case "#nil":
 						case "#nill":
 							ctx.errors.push(
 								ctx.mkError(
@@ -324,7 +325,7 @@ function parseNonStringValue(ctx) {
 						default:
 							ctx.errors.push(
 								ctx.mkError(
-									`Invalid keyword ${token.text}, surround it with quotes to use a string`,
+									`Invalid keyword ${token.text}, did you forget to quote a string?`,
 								),
 							);
 					}
@@ -651,9 +652,9 @@ export function parseTag(ctx) {
 					"This type of whitespace is not allowed inside a tag",
 				),
 			);
-		}
 
-		end = consume(ctx, T_CLOSE_PAREN);
+			end = consume(ctx, T_CLOSE_PAREN);
+		}
 	}
 
 	if (!end) {

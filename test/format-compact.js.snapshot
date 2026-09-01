@@ -1,0 +1,947 @@
+exports[`formatCompact > all_escapes.kdl 1`] = `
+"node \\"\\\\\\"\\\\\\\\\\\\b\\\\f\\\\n\\\\r\\\\t \\""
+`;
+
+exports[`formatCompact > all_node_fields.kdl 1`] = `
+"node prop=val arg{inner_node}"
+`;
+
+exports[`formatCompact > arg_and_prop_same_name.kdl 1`] = `
+"node arg=val arg"
+`;
+
+exports[`formatCompact > arg_bare.kdl 1`] = `
+"node a"
+`;
+
+exports[`formatCompact > arg_false_type.kdl 1`] = `
+"node (type)#false"
+`;
+
+exports[`formatCompact > arg_float_type.kdl 1`] = `
+"node (type)2.5"
+`;
+
+exports[`formatCompact > arg_hex_type.kdl 1`] = `
+"node (type)16"
+`;
+
+exports[`formatCompact > arg_null_type.kdl 1`] = `
+"node (type)#null"
+`;
+
+exports[`formatCompact > arg_raw_string_type.kdl 1`] = `
+"node (type)str"
+`;
+
+exports[`formatCompact > arg_string_type.kdl 1`] = `
+"node (type)str"
+`;
+
+exports[`formatCompact > arg_true_type.kdl 1`] = `
+"node (type)#true"
+`;
+
+exports[`formatCompact > arg_type.kdl 1`] = `
+"node (type)arg"
+`;
+
+exports[`formatCompact > arg_zero_type.kdl 1`] = `
+"node (type)0"
+`;
+
+exports[`formatCompact > asterisk_in_block_comment.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > bare_emoji.kdl 1`] = `
+"😁 happy!"
+`;
+
+exports[`formatCompact > bare_ident_dot.kdl 1`] = `
+"node ."
+`;
+
+exports[`formatCompact > bare_ident_sign.kdl 1`] = `
+"node +"
+`;
+
+exports[`formatCompact > bare_ident_sign_dot.kdl 1`] = `
+"node +."
+`;
+
+exports[`formatCompact > binary.kdl 1`] = `
+"node 2"
+`;
+
+exports[`formatCompact > binary_trailing_underscore.kdl 1`] = `
+"node 2"
+`;
+
+exports[`formatCompact > binary_underscore.kdl 1`] = `
+"node 2"
+`;
+
+exports[`formatCompact > blank_arg_type.kdl 1`] = `
+"node (\\"\\")10"
+`;
+
+exports[`formatCompact > blank_node_type.kdl 1`] = `
+"(\\"\\")node"
+`;
+
+exports[`formatCompact > blank_prop_type.kdl 1`] = `
+"node key=(\\"\\")#true"
+`;
+
+exports[`formatCompact > block_comment.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > block_comment_after_node.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > block_comment_before_node.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > block_comment_before_node_no_space.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > block_comment_newline.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > bom_initial.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > boolean_arg.kdl 1`] = `
+"node #false #true"
+`;
+
+exports[`formatCompact > boolean_prop.kdl 1`] = `
+"node prop1=#true prop2=#false"
+`;
+
+exports[`formatCompact > braces_in_bare_id.kdl 1`] = `
+"foo123{bar}"
+`;
+
+exports[`formatCompact > chevrons_in_bare_id.kdl 1`] = `
+"foo123<bar>foo weeee"
+`;
+
+exports[`formatCompact > comma_in_bare_id.kdl 1`] = `
+"foo123,bar weeee"
+`;
+
+exports[`formatCompact > comment_after_arg_type.kdl 1`] = `
+"node (type)10"
+`;
+
+exports[`formatCompact > comment_after_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > comment_after_prop_type.kdl 1`] = `
+"node key=(type)10"
+`;
+
+exports[`formatCompact > comment_and_newline.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > comment_in_arg_type.kdl 1`] = `
+"node (type)10"
+`;
+
+exports[`formatCompact > comment_in_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > comment_in_prop_type.kdl 1`] = `
+"node key=(type)10"
+`;
+
+exports[`formatCompact > commented_arg.kdl 1`] = `
+"node arg2"
+`;
+
+exports[`formatCompact > commented_child.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > commented_line.kdl 1`] = `
+"node_2"
+`;
+
+exports[`formatCompact > commented_node.kdl 1`] = `
+"node_2"
+`;
+
+exports[`formatCompact > commented_prop.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > crlf_between_nodes.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > dash_dash.kdl 1`] = `
+"node --"
+`;
+
+exports[`formatCompact > emoji.kdl 1`] = `
+"node 😀"
+`;
+
+exports[`formatCompact > empty.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > empty_child.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > empty_child_different_lines.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > empty_child_same_line.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > empty_child_whitespace.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > empty_line_comment.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > empty_quoted_node_id.kdl 1`] = `
+"\\"\\" arg"
+`;
+
+exports[`formatCompact > empty_quoted_prop_key.kdl 1`] = `
+"node \\"\\"=empty"
+`;
+
+exports[`formatCompact > empty_string_arg.kdl 1`] = `
+"node \\"\\""
+`;
+
+exports[`formatCompact > eof_after_escape.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > esc_multiple_newlines.kdl 1`] = `
+"node \\"12\\""
+`;
+
+exports[`formatCompact > esc_newline_in_string.kdl 1`] = `
+"node \\"hello\\\\nworld\\""
+`;
+
+exports[`formatCompact > esc_unicode_in_string.kdl 1`] = `
+"node \\"hello\\\\nworld\\""
+`;
+
+exports[`formatCompact > escaped_whitespace.kdl 1`] = `
+"node \\"Hello\\\\n\\\\tWorld\\" \\"Hello\\\\n\\\\tWorld\\" \\"Hello\\\\n\\\\tWorld\\" \\"Hello\\\\n\\\\tWorld\\" \\"Hello\\\\n\\\\tWorld\\""
+`;
+
+exports[`formatCompact > escline.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > escline_after_semicolon.kdl 1`] = `
+"node;node"
+`;
+
+exports[`formatCompact > escline_alone.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > escline_empty_line.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > escline_end_of_node.kdl 1`] = `
+"a;b"
+`;
+
+exports[`formatCompact > escline_in_child_block.kdl 1`] = `
+"parent{child;child}"
+`;
+
+exports[`formatCompact > escline_line_comment.kdl 1`] = `
+"node arg arg2"
+`;
+
+exports[`formatCompact > escline_node.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > escline_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > escline_slashdash.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > false_prefix_in_bare_id.kdl 1`] = `
+"false_id"
+`;
+
+exports[`formatCompact > false_prefix_in_prop_key.kdl 1`] = `
+"node false_id=1"
+`;
+
+exports[`formatCompact > floating_point_keywords.kdl 1`] = `
+"floats #inf #-inf #nan"
+`;
+
+exports[`formatCompact > hex_int_underscores.kdl 1`] = `
+"node 737894400291"
+`;
+
+exports[`formatCompact > hex_leading_zero.kdl 1`] = `
+"node 1"
+`;
+
+exports[`formatCompact > initial_slashdash.kdl 1`] = `
+"another-node"
+`;
+
+exports[`formatCompact > int_multiple_underscore.kdl 1`] = `
+"node 1234"
+`;
+
+exports[`formatCompact > just_block_comment.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > just_child.kdl 1`] = `
+"node{inner_node}"
+`;
+
+exports[`formatCompact > just_newline.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > just_node_id.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > just_space.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > leading_newline.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > leading_zero_binary.kdl 1`] = `
+"node 1"
+`;
+
+exports[`formatCompact > leading_zero_int.kdl 1`] = `
+"node 11"
+`;
+
+exports[`formatCompact > leading_zero_oct.kdl 1`] = `
+"node 1"
+`;
+
+exports[`formatCompact > multiline_comment.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > multiline_nodes.kdl 1`] = `
+"node arg1 arg2"
+`;
+
+exports[`formatCompact > multiline_raw_string.kdl 1`] = `
+"node \\"hey\\\\neveryone\\\\nhow goes?\\""
+`;
+
+exports[`formatCompact > multiline_raw_string_containing_quotes.kdl 1`] = `
+"node \\"\\\\\\"\\\\\\"\\\\\\"triple-quote\\\\\\"\\\\\\"\\\\\\"\\\\n##\\\\\\"too few quotes\\\\\\"##\\\\n#\\\\\\"\\\\\\"\\\\\\"too few #\\\\\\"\\\\\\"\\\\\\"#\\""
+`;
+
+exports[`formatCompact > multiline_raw_string_empty.kdl 1`] = `
+"node \\"\\""
+`;
+
+exports[`formatCompact > multiline_raw_string_empty_indented.kdl 1`] = `
+"node \\"\\""
+`;
+
+exports[`formatCompact > multiline_raw_string_indented.kdl 1`] = `
+"node \\"  hey\\\\n everyone\\\\n   how goes?\\""
+`;
+
+exports[`formatCompact > multiline_string.kdl 1`] = `
+"node \\"hey\\\\neveryone\\\\nhow goes?\\""
+`;
+
+exports[`formatCompact > multiline_string_containing_quotes.kdl 1`] = `
+"node \\"this string contains \\\\\\"quotes\\\\\\", twice\\\\\\"\\\\\\"\\""
+`;
+
+exports[`formatCompact > multiline_string_double_backslash.kdl 1`] = `
+"node \\"a\\\\\\\\ b\\\\na\\\\\\\\b\\""
+`;
+
+exports[`formatCompact > multiline_string_empty.kdl 1`] = `
+"node \\"\\""
+`;
+
+exports[`formatCompact > multiline_string_empty_indented.kdl 1`] = `
+"node \\"\\""
+`;
+
+exports[`formatCompact > multiline_string_escape_delimiter.kdl 1`] = `
+"node \\"\\\\\\"\\\\\\"\\\\\\"\\""
+`;
+
+exports[`formatCompact > multiline_string_escape_in_closing_line.kdl 1`] = `
+"node \\"foo bar\\\\nbaz\\""
+`;
+
+exports[`formatCompact > multiline_string_escape_in_closing_line_shallow.kdl 1`] = `
+"node \\"  foo bar\\\\n  baz\\""
+`;
+
+exports[`formatCompact > multiline_string_escape_newline_at_end.kdl 1`] = `
+"node \\" a\\""
+`;
+
+exports[`formatCompact > multiline_string_indented.kdl 1`] = `
+"node \\"  hey\\\\n everyone\\\\n   how goes?\\""
+`;
+
+exports[`formatCompact > multiline_string_whitespace_only.kdl 1`] = `
+"node \\"\\" \\"\\" \\"\\" \\"\\\\n\\\\n    \\" \\"\\\\n\\""
+`;
+
+exports[`formatCompact > multiline_string_wrapped_binary.kdl 1`] = `
+"node deadbeef"
+`;
+
+exports[`formatCompact > negative_exponent.kdl 1`] = `
+"node 0.0000000001"
+`;
+
+exports[`formatCompact > negative_float.kdl 1`] = `
+"node key=-10 -1"
+`;
+
+exports[`formatCompact > negative_int.kdl 1`] = `
+"node prop=-15 -10"
+`;
+
+exports[`formatCompact > nested_block_comment.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > nested_children.kdl 1`] = `
+"node1{node2{node}}"
+`;
+
+exports[`formatCompact > nested_comments.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > nested_multiline_block_comment.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > newline_between_nodes.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > newlines_in_block_comment.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > no_decimal_exponent.kdl 1`] = `
+"node 10000000000"
+`;
+
+exports[`formatCompact > node_false.kdl 1`] = `
+"node #false"
+`;
+
+exports[`formatCompact > node_true.kdl 1`] = `
+"node #true"
+`;
+
+exports[`formatCompact > node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > null_arg.kdl 1`] = `
+"node #null"
+`;
+
+exports[`formatCompact > null_prefix_in_bare_id.kdl 1`] = `
+"null_id"
+`;
+
+exports[`formatCompact > null_prefix_in_prop_key.kdl 1`] = `
+"node null_id=1"
+`;
+
+exports[`formatCompact > null_prop.kdl 1`] = `
+"node prop=#null"
+`;
+
+exports[`formatCompact > numeric_arg.kdl 1`] = `
+"node 15.7"
+`;
+
+exports[`formatCompact > numeric_prop.kdl 1`] = `
+"node prop=10"
+`;
+
+exports[`formatCompact > octal.kdl 1`] = `
+"node 16434824"
+`;
+
+exports[`formatCompact > only_cr.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > only_line_comment.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > only_line_comment_crlf.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > only_line_comment_newline.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > optional_child_semicolon.kdl 1`] = `
+"node{foo;bar;baz}"
+`;
+
+exports[`formatCompact > parse_all_arg_types.kdl 1`] = `
+"node 1 1 10000000000 0.0000000001 1 7 2 arg arg \\"arg\\\\\\\\\\" #true #false #null"
+`;
+
+exports[`formatCompact > positive_exponent.kdl 1`] = `
+"node 10000000000"
+`;
+
+exports[`formatCompact > positive_int.kdl 1`] = `
+"node 10"
+`;
+
+exports[`formatCompact > preserve_duplicate_nodes.kdl 1`] = `
+"node;node"
+`;
+
+exports[`formatCompact > preserve_node_order.kdl 1`] = `
+"node2;node5;node1"
+`;
+
+exports[`formatCompact > prop_false_type.kdl 1`] = `
+"node key=(type)#false"
+`;
+
+exports[`formatCompact > prop_float_type.kdl 1`] = `
+"node key=(type)25000000000"
+`;
+
+exports[`formatCompact > prop_hex_type.kdl 1`] = `
+"node key=(type)16"
+`;
+
+exports[`formatCompact > prop_identifier_type.kdl 1`] = `
+"node key=(type)str"
+`;
+
+exports[`formatCompact > prop_null_type.kdl 1`] = `
+"node key=(type)#null"
+`;
+
+exports[`formatCompact > prop_raw_string_type.kdl 1`] = `
+"node key=(type)str"
+`;
+
+exports[`formatCompact > prop_string_type.kdl 1`] = `
+"node key=(type)str"
+`;
+
+exports[`formatCompact > prop_true_type.kdl 1`] = `
+"node key=(type)#true"
+`;
+
+exports[`formatCompact > prop_type.kdl 1`] = `
+"node key=(type)#true"
+`;
+
+exports[`formatCompact > prop_zero_type.kdl 1`] = `
+"node key=(type)0"
+`;
+
+exports[`formatCompact > question_mark_before_number.kdl 1`] = `
+"node ?15"
+`;
+
+exports[`formatCompact > quoted_arg_type.kdl 1`] = `
+"node (\\"type/\\")10"
+`;
+
+exports[`formatCompact > quoted_node_name.kdl 1`] = `
+"\\"0node\\""
+`;
+
+exports[`formatCompact > quoted_node_type.kdl 1`] = `
+"(\\"type/\\")node"
+`;
+
+exports[`formatCompact > quoted_numeric.kdl 1`] = `
+"node prop=\\"10.0\\""
+`;
+
+exports[`formatCompact > quoted_prop_name.kdl 1`] = `
+"node \\"0prop\\"=val"
+`;
+
+exports[`formatCompact > quoted_prop_type.kdl 1`] = `
+"node key=(\\"type/\\")#true"
+`;
+
+exports[`formatCompact > r_node.kdl 1`] = `
+"r arg"
+`;
+
+exports[`formatCompact > raw_arg_type.kdl 1`] = `
+"node (type)#true"
+`;
+
+exports[`formatCompact > raw_node_name.kdl 1`] = `
+"\\"\\\\\\\\node\\""
+`;
+
+exports[`formatCompact > raw_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > raw_prop_type.kdl 1`] = `
+"node key=(type)#true"
+`;
+
+exports[`formatCompact > raw_string_arg.kdl 1`] = `
+"node_1 \\"\\\\\\"arg\\\\\\\\n\\\\\\"and #stuff\\";node_2 \\"#\\\\\\"arg\\\\\\\\n\\\\\\"#and #stuff\\""
+`;
+
+exports[`formatCompact > raw_string_backslash.kdl 1`] = `
+"node \\"\\\\\\\\n\\""
+`;
+
+exports[`formatCompact > raw_string_hash_no_esc.kdl 1`] = `
+"node \\"#\\""
+`;
+
+exports[`formatCompact > raw_string_just_backslash.kdl 1`] = `
+"node \\"\\\\\\\\\\""
+`;
+
+exports[`formatCompact > raw_string_multiple_hash.kdl 1`] = `
+"node \\"\\\\\\"#\\\\\\"##\\""
+`;
+
+exports[`formatCompact > raw_string_newline.kdl 1`] = `
+"node \\"hello\\\\nworld\\""
+`;
+
+exports[`formatCompact > raw_string_prop.kdl 1`] = `
+"node_1 prop=\\"\\\\\\"arg#\\\\\\"\\\\\\\\n\\";node_2 prop=\\"#\\\\\\"arg#\\\\\\"#\\\\\\\\n\\""
+`;
+
+exports[`formatCompact > raw_string_quote.kdl 1`] = `
+"node \\"a\\\\\\"b\\""
+`;
+
+exports[`formatCompact > repeated_arg.kdl 1`] = `
+"node arg arg"
+`;
+
+exports[`formatCompact > repeated_prop.kdl 1`] = `
+"node prop=11"
+`;
+
+exports[`formatCompact > same_name_nodes.kdl 1`] = `
+"node;node"
+`;
+
+exports[`formatCompact > semicolon_after_child.kdl 1`] = `
+"node{childnode}"
+`;
+
+exports[`formatCompact > semicolon_in_child.kdl 1`] = `
+"node1{node2}"
+`;
+
+exports[`formatCompact > semicolon_separated.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > semicolon_separated_nodes.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > semicolon_terminated.kdl 1`] = `
+"node1"
+`;
+
+exports[`formatCompact > single_arg.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > single_prop.kdl 1`] = `
+"node prop=val"
+`;
+
+exports[`formatCompact > slashdash_arg_after_newline_esc.kdl 1`] = `
+"node arg2"
+`;
+
+exports[`formatCompact > slashdash_arg_before_newline_esc.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > slashdash_child.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > slashdash_empty_child.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > slashdash_escline_before_arg_type.kdl 1`] = `
+"node arg2"
+`;
+
+exports[`formatCompact > slashdash_escline_before_children.kdl 1`] = `
+"node arg1"
+`;
+
+exports[`formatCompact > slashdash_escline_before_node.kdl 1`] = `
+"node2"
+`;
+
+exports[`formatCompact > slashdash_false_node.kdl 1`] = `
+"node foo bar"
+`;
+
+exports[`formatCompact > slashdash_full_node.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > slashdash_in_slashdash.kdl 1`] = `
+"node2"
+`;
+
+exports[`formatCompact > slashdash_multi_line_comment_entry.kdl 1`] = `
+"node 1 3"
+`;
+
+exports[`formatCompact > slashdash_multi_line_comment_inline.kdl 1`] = `
+"node 1 3"
+`;
+
+exports[`formatCompact > slashdash_multiple_child_blocks.kdl 1`] = `
+"node foo{three}"
+`;
+
+exports[`formatCompact > slashdash_negative_number.kdl 1`] = `
+"node 2"
+`;
+
+exports[`formatCompact > slashdash_newline_before_children.kdl 1`] = `
+"node 1 2"
+`;
+
+exports[`formatCompact > slashdash_newline_before_entry.kdl 1`] = `
+"node 1 3"
+`;
+
+exports[`formatCompact > slashdash_newline_before_node.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > slashdash_node_in_child.kdl 1`] = `
+"node1"
+`;
+
+exports[`formatCompact > slashdash_node_with_child.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > slashdash_only_node.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > slashdash_only_node_with_space.kdl 1`] = `
+""
+`;
+
+exports[`formatCompact > slashdash_prop.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > slashdash_raw_prop_key.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > slashdash_repeated_prop.kdl 1`] = `
+"node arg=correct"
+`;
+
+exports[`formatCompact > slashdash_single_line_comment_entry.kdl 1`] = `
+"node 1 3"
+`;
+
+exports[`formatCompact > slashdash_single_line_comment_node.kdl 1`] = `
+"node2"
+`;
+
+exports[`formatCompact > space_after_arg_type.kdl 1`] = `
+"node (type)10"
+`;
+
+exports[`formatCompact > space_after_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > space_after_prop_type.kdl 1`] = `
+"node key=(type)#false"
+`;
+
+exports[`formatCompact > space_around_prop_marker.kdl 1`] = `
+"node foo=bar"
+`;
+
+exports[`formatCompact > space_in_arg_type.kdl 1`] = `
+"node (type)#false"
+`;
+
+exports[`formatCompact > space_in_node_type.kdl 1`] = `
+"(type)node"
+`;
+
+exports[`formatCompact > space_in_prop_type.kdl 1`] = `
+"node key=(type)#false"
+`;
+
+exports[`formatCompact > string_arg.kdl 1`] = `
+"node arg"
+`;
+
+exports[`formatCompact > string_escaped_literal_whitespace.kdl 1`] = `
+"node \\"Hello World Stuff\\""
+`;
+
+exports[`formatCompact > string_prop.kdl 1`] = `
+"node prop=val"
+`;
+
+exports[`formatCompact > tab_space.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > trailing_crlf.kdl 1`] = `
+"node"
+`;
+
+exports[`formatCompact > trailing_underscore_hex.kdl 1`] = `
+"node 1194684"
+`;
+
+exports[`formatCompact > trailing_underscore_octal.kdl 1`] = `
+"node 83"
+`;
+
+exports[`formatCompact > true_prefix_in_bare_id.kdl 1`] = `
+"true_id"
+`;
+
+exports[`formatCompact > true_prefix_in_prop_key.kdl 1`] = `
+"node true_id=1"
+`;
+
+exports[`formatCompact > two_nodes.kdl 1`] = `
+"node1;node2"
+`;
+
+exports[`formatCompact > underscore_before_number.kdl 1`] = `
+"node _15"
+`;
+
+exports[`formatCompact > underscore_in_exponent.kdl 1`] = `
+"node 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+`;
+
+exports[`formatCompact > underscore_in_float.kdl 1`] = `
+"node 11"
+`;
+
+exports[`formatCompact > underscore_in_fraction.kdl 1`] = `
+"node 1.02"
+`;
+
+exports[`formatCompact > underscore_in_int.kdl 1`] = `
+"node 10"
+`;
+
+exports[`formatCompact > underscore_in_octal.kdl 1`] = `
+"node 342391"
+`;
+
+exports[`formatCompact > unicode_silly.kdl 1`] = `
+"ノード お名前=ฅ^•ﻌ•^ฅ"
+`;
+
+exports[`formatCompact > unusual_bare_id_chars_in_quoted_id.kdl 1`] = `
+"foo123~!@$%^&*.:'|?+<>,\`-_ weeee"
+`;
+
+exports[`formatCompact > unusual_chars_in_bare_id.kdl 1`] = `
+"foo123~!@$%^&*.:'|?+<>,\`-_ weeee"
+`;
+
+exports[`formatCompact > vertical_tab_whitespace.kdl 1`] = `
+"node arg;node2 arg2"
+`;
+
+exports[`formatCompact > zero_float.kdl 1`] = `
+"node 0"
+`;
+
+exports[`formatCompact > zero_int.kdl 1`] = `
+"node 0"
+`;
+
+exports[`formatCompact > zero_space_before_slashdash_arg.kdl 1`] = `
+"node string"
+`;
+
+exports[`formatCompact > zero_space_before_slashdash_children.kdl 1`] = `
+"node string;node string"
+`;
+
+exports[`formatCompact > zero_space_before_slashdash_prop.kdl 1`] = `
+"node string"
+`;

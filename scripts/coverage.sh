@@ -9,8 +9,17 @@ if ! command -v genhtml &>/dev/null; then
 	exit 1
 fi
 
+opts=()
+
+genhtml_location="$(dirname "$(dirname "$(command -v genhtml)")")"
+if [[ -x "$genhtml_location/share/lcov/support-scripts/gitblame.pm" ]]; then
+	opts+=("--annotate-script" "$genhtml_location/share/lcov/support-scripts/gitblame.pm")
+fi
+
 exec genhtml \
 	-o coverage \
-	--ignore-errors inconsistent \
+	--ignore-errors package,package,inconsistent,inconsistent \
+	--num-spaces 4 \
+	"${opts[@]}" \
 	lcov.info \
 	"$@"

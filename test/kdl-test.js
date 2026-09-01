@@ -13,6 +13,10 @@ suite("kdl-test", () => {
 		// the KDL tests expect
 		"hex.kdl",
 		"hex_int.kdl",
+
+		// These tests use numbers that require a bigdecimal
+		// implementation to represent the value, which our
+		// javascript engine doesn't provide (yet?)
 		"sci_notation_large.kdl",
 		"sci_notation_small.kdl",
 	]);

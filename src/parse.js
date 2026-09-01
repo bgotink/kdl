@@ -42,6 +42,7 @@ export function textToString(text) {
 		return text;
 	}
 
+	/* node:coverage ignore next 5 */
 	if (typeof TextDecoder !== "function") {
 		throw new TypeError(
 			"Uint8Array input is only supported on platforms that include TextDecoder",

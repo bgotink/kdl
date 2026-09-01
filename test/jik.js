@@ -8,6 +8,7 @@ import {
 	Entry,
 	format,
 	Node,
+	Document,
 } from "../src/index.js";
 import {fromJson, parse, stringify, toJson} from "../src/json.js";
 
@@ -44,6 +45,14 @@ suite("jik", () => {
 			assert.deepEqual(parse(stringify(outputJson)), outputJson);
 		});
 	}
+
+	test("invalid number of nodes", () => {
+		assert.throws(() => toJson(new Document([])), /requires a single node/);
+		assert.throws(
+			() => toJson(new Document([Node.create("lorem"), Node.create("ipsum")])),
+			/requires a single node/,
+		);
+	});
 
 	test("toJson options", () => {
 		assert.equal(toJson(parseKdl("- 0")), 0);
