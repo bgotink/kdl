@@ -4,6 +4,7 @@ import {
 	Node,
 	parse as parseKdl,
 	format as formatKdl,
+	formatCompact as formatKdlCompact,
 } from "./index.js";
 import {
 	InvalidJsonInKdlError,
@@ -52,6 +53,7 @@ export function toJson(nodeOrDocument, options) {
  * @param {string | number} [options.indentation]
  * @param {(key: string | number, value: unknown, originalValue: unknown) => unknown} [options.replaceJsonValue]
  * @param {(key: string | number, value: Entry | Node, jsonValue: unknown, originalJsonValue: unknown) => Entry | Node | undefined} [options.replaceKdlValue]
+ * @param {boolean} [options.retainPropertyOrder]
  */
 export function fromJson(
 	value,
@@ -64,6 +66,7 @@ export function fromJson(
 		indentation: indentationStep,
 		replaceJsonValue,
 		replaceKdlValue,
+		retainPropertyOrder = false,
 	} = {},
 ) {
 	if (typeof indentationStep === "string") {
@@ -77,6 +80,7 @@ export function fromJson(
 	const result = /** @type {Node} */ (
 		fromJsonValue(value, "", true, {
 			nodeName,
+			propertyOrder: retainPropertyOrder ? "retain" : "default",
 			allowEntriesInArrays,
 			allowEntriesInObjects,
 			allowEntriesInCurrent: allowEntriesInRoot,
@@ -162,6 +166,38 @@ export function stringify(value, replacer = {}, indentation) {
 	}
 
 	return formatKdl(
-		fromJson(value, {indentation, replaceJsonValue, replaceKdlValue}),
+		fromJson(value, {
+			indentation,
+			retainPropertyOrder: true,
+			replaceJsonValue,
+			replaceKdlValue,
+		}),
+	);
+}
+
+/**
+ * @param {unknown} value
+ * @param {Omit<StringifyOptions, 'indentation'> | StringifyOptions['replaceJsonValue']} [replacer]
+ */
+export function stringifyCompact(value, replacer = {}) {
+	let replaceJsonValue, replaceKdlValue;
+
+	if (typeof replacer === "function") {
+		replaceJsonValue = replacer;
+	} else if (typeof replacer === "object" && replacer != null) {
+		({replaceJsonValue, replaceKdlValue} = replacer);
+	}
+
+	return formatKdlCompact(
+		/** @type {Node} */ (
+			fromJsonValue(value, "", true, {
+				allowEntriesInArrays: true,
+				allowEntriesInObjects: true,
+				nodeName: arrayItemKey,
+				propertyOrder: "sort",
+				replaceJsonValue,
+				replaceKdlValue,
+			})
+		),
 	);
 }

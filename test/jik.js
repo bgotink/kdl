@@ -10,7 +10,13 @@ import {
 	Node,
 	Document,
 } from "../src/index.js";
-import {fromJson, parse, stringify, toJson} from "../src/json.js";
+import {
+	fromJson,
+	parse,
+	stringify,
+	stringifyCompact,
+	toJson,
+} from "../src/json.js";
 
 const testCasesFolder = new URL("jik/", import.meta.url);
 
@@ -362,6 +368,27 @@ suite("jik", () => {
 				},
 			}),
 			"- {\n  - #true\n  - 0\n  - #false\n  - #null\n  - {\n    prop 0\n    other 2\n  }\n}",
+		);
+	});
+
+	test("property order", () => {
+		assert.deepEqual(
+			clearFormat(
+				fromJson({c: 0, b: [1, 2], a: 3}, {retainPropertyOrder: false}),
+			),
+			clearFormat(parseKdl(`- c=0 a=3{b 1 2}`, {as: "node"})),
+		);
+
+		assert.deepEqual(
+			clearFormat(
+				fromJson({c: 0, b: [1, 2], a: 3}, {retainPropertyOrder: true}),
+			),
+			clearFormat(parseKdl(`- c=0{b 1 2;a 3}`, {as: "node"})),
+		);
+
+		assert.deepEqual(
+			stringifyCompact({c: 0, b: [1, 2], a: 3}),
+			`- a=3 c=0{b 1 2}`,
 		);
 	});
 });

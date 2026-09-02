@@ -158,6 +158,22 @@ interface FromJsonOptions extends StringifyOptions {
 	nodeName?: string;
 
 	/**
+	 * Whether to retain the original property order of JSON objects
+	 *
+	 * If this is set to false (default) then properties might get re-ordered when some properties are scalar and others aren't.
+	 * An example:
+	 *
+	 * ```ts
+	 * fromJson({a: 0, b: [1, 2], c: 3}, {retainPropertyOrder: false})
+	 * // - a=0 c=3 { b 1 2 }
+	 *
+	 * fromJson({a: 0, b: [1, 2], c: 3}, {retainPropertyOrder: true})
+	 * // - a=0 { b 1 2; c 3 }
+	 * ```
+	 */
+	retainPropertyOrder?: boolean;
+
+	/**
 	 * Whether to allow literal children to be encoded into values or properties
 	 *
 	 * Defaults to `true`.
@@ -316,4 +332,22 @@ export function stringify(
 	value: unknown,
 	replacer?: StringifyOptions["replaceJsonValue"],
 	indentation?: string | number,
+): string;
+
+/**
+ * Stringify the given JSON value into compact JiK text
+ *
+ * The orders of properties in the JSON values are not respected, all properties are sorted alphabetically.
+ * This sorting explicitly does not take the locale into account to ensure that the result is stable, regardless of any settings on the system it's running on.
+ *
+ * The resulting KDL text results in stable, i.e. identical JSON values will result in identical KDL text.
+ * To given an example, the regular {@link stringify} function will yield differing results for `{"a": 0, "b": 1}` and `{"b": 1, "a": 0}` but `stringifyCompact` will result in `- a=1 b=0` for both objects.
+ *
+ * @param value The JSON value to encode
+ * @param options Optional options
+ * @throws If the given JSON value contains cycles.
+ */
+export function stringifyCompact(
+	value: unknown,
+	options?: StringifyOptions["replaceJsonValue"] | StringifyOptions,
 ): string;

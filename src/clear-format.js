@@ -1,5 +1,6 @@
 import {InvalidKdlError} from "./index.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
+import {sortByFirstParameter} from "./string-utils.js";
 
 /**
  * @param {Value} value
@@ -80,9 +81,9 @@ function clearFormatNode(node) {
 
 	node.entries = [
 		...args,
-		...Array.from(properties.keys())
-			.sort()
-			.map((key) => /** @type {Entry} */ (properties.get(key))),
+		...Array.from(properties)
+			.sort(sortByFirstParameter)
+			.map(([, entry]) => entry),
 	];
 
 	if (node.children?.nodes.length) {

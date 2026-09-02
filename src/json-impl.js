@@ -1,4 +1,5 @@
 import {Node, Entry} from "./index.js";
+import {sortByFirstParameter} from "./string-utils.js";
 
 const arrayItemKey = "-";
 
@@ -204,6 +205,7 @@ function isLiteral(value) {
  * @param {true} alwaysReturnNode
  * @param {object} options
  * @param {string} options.nodeName
+ * @param {"retain" | "sort" | "default"} options.propertyOrder
  * @param {boolean} options.allowEntriesInArrays
  * @param {boolean} options.allowEntriesInObjects
  * @param {boolean} [options.allowEntriesInCurrent]
@@ -219,6 +221,7 @@ function isLiteral(value) {
  * @param {boolean} alwaysReturnNode
  * @param {object} options
  * @param {string} options.nodeName
+ * @param {"retain" | "sort" | "default"} options.propertyOrder
  * @param {boolean} options.allowEntriesInArrays
  * @param {boolean} options.allowEntriesInObjects
  * @param {boolean} [options.allowEntriesInCurrent]
@@ -233,6 +236,7 @@ function isLiteral(value) {
  * @param {boolean} alwaysReturnNode
  * @param {object} options
  * @param {string} options.nodeName
+ * @param {"retain" | "sort" | "default"} options.propertyOrder
  * @param {boolean} options.allowEntriesInArrays
  * @param {boolean} options.allowEntriesInObjects
  * @param {boolean} [options.allowEntriesInCurrent]
@@ -247,6 +251,7 @@ export function fromJsonValue(
 	alwaysReturnNode,
 	{
 		nodeName,
+		propertyOrder,
 		allowEntriesInArrays,
 		allowEntriesInObjects,
 		allowEntriesInCurrent,
@@ -313,6 +318,7 @@ export function fromJsonValue(
 					useChild,
 					{
 						nodeName: arrayItemKey,
+						propertyOrder,
 						allowEntriesInArrays,
 						allowEntriesInObjects,
 						replaceJsonValue,
@@ -336,10 +342,14 @@ export function fromJsonValue(
 				node.setTag("array");
 			}
 		} else {
-			const useChild = !(allowEntriesInCurrent ?? allowEntriesInObjects);
+			let useChild = !(allowEntriesInCurrent ?? allowEntriesInObjects);
 			const properties = Object.entries(
 				/** @type {Record<string, unknown>} */ (value),
 			);
+
+			if (propertyOrder === "sort") {
+				properties.sort(sortByFirstParameter);
+			}
 
 			/** @type {Set<string>} */
 			const appendedChildren = new Set();
@@ -351,6 +361,7 @@ export function fromJsonValue(
 					useChild,
 					{
 						nodeName: name,
+						propertyOrder,
 						allowEntriesInArrays,
 						allowEntriesInObjects,
 						replaceJsonValue,
@@ -365,6 +376,14 @@ export function fromJsonValue(
 
 				if (toAppend.type === "node") {
 					appendedChildren.add(name);
+
+					if (propertyOrder === "retain") {
+						// We have encountered a property that maps onto a node,
+						// and we are asked to retain the order of properties, so
+						// we are forced to now use properties for every other
+						// property.
+						useChild = true;
+					}
 				}
 
 				append(node, toAppend, allowEntriesInCurrent);

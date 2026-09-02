@@ -1,6 +1,6 @@
 import {InvalidKdlError} from "./index.js";
 import {Document, Entry, Identifier, Node, Tag, Value} from "./model.js";
-import {stringifyString} from "./string-utils.js";
+import {sortByFirstParameter, stringifyString} from "./string-utils.js";
 
 /**
  * @param {Tag | null} tag
@@ -97,7 +97,7 @@ function formatNode(node) {
 
 	const entries = [
 		...Array.from(properties)
-			.sort(([a], [b]) => a.localeCompare(b))
+			.sort(sortByFirstParameter)
 			.map(([, entry]) => entry),
 		...args,
 	];

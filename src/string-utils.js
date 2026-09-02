@@ -544,3 +544,19 @@ function computeStartLocation(token, value, offset) {
 			:	1 + linesBeforeOffset[linesBeforeOffset.length - 1].length,
 	};
 }
+
+/**
+ * Sort by the first value of the tuple/array
+ *
+ * @param {[string, ...unknown[]]} param0
+ * @param {[string, ...unknown[]]} param1
+ */
+export function sortByFirstParameter([a], [b]) {
+	if (a < b) {
+		return -1;
+	} else if (a > b) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
