@@ -30,57 +30,52 @@ suite("suffix", () => {
 		assert.throws(
 			() =>
 				parse(String.raw`
-		node \
-			1b0 \
-			1o0 \
-			1x0 \
-			1m0 \
-			1e0e0 \
-			1e_0 \
-			1e_a \
-			1e-_0 \
-			1e-_a \
-	`),
+					node \
+						0beer \
+						0owl \
+						0xylophone \
+						1e0e0 \
+						1e_0 \
+						1e+a \
+						1e-_0 \
+						1e-_a \
+				`),
 			(error) => {
 				assert(error instanceof InvalidKdlError);
 				assert(error.errors != null);
-				assert.equal(error.errors.length, 9);
+				assert.equal(error.errors.length, 8);
 
 				assert.match(
 					error.errors[0].message,
-					/Invalid number with suffix, a suffix cannot start with a letter followed by a digit at 3/,
+					/Invalid number with suffix, a suffix mustn't start with b if the value is 0 at 3/,
 				);
 				assert.match(
 					error.errors[1].message,
-					/Invalid number with suffix, a suffix cannot start with a letter followed by a digit at 4/,
+					/Invalid number with suffix, a suffix mustn't start with o if the value is 0 at 4/,
 				);
 				assert.match(
 					error.errors[2].message,
-					/Invalid number with suffix, a suffix cannot start with an x followed by a hexidecimal number at 5/,
+					/Invalid number with suffix, a suffix mustn't start with x if the value is 0 at 5/,
 				);
 				assert.match(
 					error.errors[3].message,
-					/Invalid number with suffix, a suffix cannot start with a letter followed by a digit at 6/,
+					/Invalid number with suffix, a number with an exponent cannot have a suffix at 6/,
 				);
 				assert.match(
 					error.errors[4].message,
-					/Invalid number with suffix, a number with an exponent cannot have a suffix at 7/,
+					/Invalid decimal number, the number after the exponent mustn't start on an underscore at 7/,
 				);
 				assert.match(
 					error.errors[5].message,
-					/Invalid decimal number, the number after the exponent mustn't start on an underscore at 8/,
+					/Invalid suffixed number, a suffix can't start with e\+ at 8/,
 				);
 				assert.match(
 					error.errors[6].message,
-					/Invalid number with suffix, a suffix cannot start with a letter followed by an underscore at 9/,
+					/Invalid decimal number, the number after the exponent mustn't start on an underscore at 9/,
 				);
 				assert.match(
 					error.errors[7].message,
-					/Invalid decimal number, the number after the exponent mustn't start on an underscore at 10/,
-				);
-				assert.match(
-					error.errors[8].message,
-					/Invalid number with suffix, a suffix cannot start with a letter followed by an underscore at 11/,
+					/Invalid suffixed number, a suffix can't start with e- at 10/,
 				);
 
 				return true;

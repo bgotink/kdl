@@ -32,10 +32,7 @@ function formatTag(tag) {
  * @returns {string?}
  */
 function formatTagAsSuffix(valueRepresentation, tag) {
-	let representation = tag.representation;
-	if (!representation) {
-		representation = stringifyString(tag.name);
-	}
+	const representation = tag.representation ?? stringifyString(tag.name);
 
 	if (
 		representation[0] === '"' ||
@@ -45,21 +42,24 @@ function formatTagAsSuffix(valueRepresentation, tag) {
 		return null;
 	}
 
-	let useHash = false;
-
-	if (representation?.[0] === "#") {
-		useHash = true;
-		representation = representation.slice(1);
+	if (representation[0] === "#") {
+		return representation;
 	}
 
-	if (!useHash) {
-		useHash =
-			valueRepresentation.startsWith("0b") ||
-			valueRepresentation.startsWith("0o") ||
-			valueRepresentation.startsWith("0x") ||
-			/^[,._]|^[a-zA-Z][0-9_]|^[eE][+-][0-9_]|[xX][a-fA-F]/.test(
-				representation,
-			);
+	let useHash;
+	if (
+		(valueRepresentation[0] === "0" &&
+			"bBoOxX".includes(valueRepresentation[1])) ||
+		valueRepresentation.includes("e") ||
+		valueRepresentation.includes("E")
+	) {
+		// bare identifers are only allowed on decimals without exponent
+		useHash = true;
+	} else if (/^[.,]|^[eE][-+0-9_]/.test(representation)) {
+		// bare identifers can't start with a decimal point, a comma, or ('e' | 'E') (sign | digit | '_')
+		useHash = true;
+	} else {
+		useHash = false;
 	}
 
 	return useHash ? "#" + representation : representation;

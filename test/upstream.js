@@ -38,7 +38,7 @@ suite("upstream", () => {
 	/**
 	 * Format the given KDL text in the format the upstream test suite expects.
 	 *
-	 * @param {Parameters<parse>[0]} text
+	 * @param {Parameters<typeof parse>[0]} text
 	 */
 	function parseAndFormat(text) {
 		const document = parse(text, options);
