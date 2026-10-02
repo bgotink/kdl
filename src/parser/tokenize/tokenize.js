@@ -489,6 +489,7 @@ export function handleNumberCharacter(ctx) {
 				);
 			}
 
+			zerOrMore(ctx, isIdentifierChar);
 			return mkToken(ctx, T_NUMBER_WITH_SUFFIX, null);
 		} else {
 			if (ctx.current === 0x5f) {

@@ -138,4 +138,9 @@ suite("suffix", () => {
 			/Unexpected hashed suffix on a string, you can only place suffixes on numbers/,
 		);
 	});
+
+	test("kdl-org/kdl#513", () => {
+		// https://github.com/kdl-org/kdl/pull/513#discussion_r4164723583
+		assert.doesNotThrow(() => parse("node 3em"));
+	});
 });
