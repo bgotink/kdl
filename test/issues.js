@@ -98,4 +98,11 @@ test("issue #11: v1 style raw strings", () => {
 	assert.throws(() => parse('/-node {a x=r#"123"#}'), /Invalid raw string/);
 });
 
+test("mentions in kdl-org/kdl#513", () => {
+	// https://github.com/kdl-org/kdl/pull/513#issuecomment-6068367674
+	// Not directly mentioned, but came up via the other issues:
+	// tokenizer errors in the first token are ignored
+	assert.throws(() => parse(`-.1bar`));
+});
+
 test.run();

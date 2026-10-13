@@ -110,31 +110,38 @@ export function concatenate(one = "", two = "", three = "") {
  * @returns {ParserCtx}
  */
 export function createParserCtx(text, tokens, {storeLocations = false, flags}) {
-	const iterator = tokens[Symbol.iterator]();
-
-	return {
-		text,
-		tokens: iterator,
-		current: iterator.next(),
-		storeLocations,
-		lastToken: {
-			type: -1,
-			text: "",
-			start: {
-				offset: 0,
-				line: 1,
-				column: 1,
-			},
-			end: {
-				offset: 0,
-				line: 1,
-				column: 1,
-			},
-			errors: null,
+	/** @type {Token} */
+	const dummyToken = {
+		type: -1,
+		text: "",
+		start: {
+			offset: 0,
+			line: 1,
+			column: 1,
 		},
+		end: {
+			offset: 0,
+			line: 1,
+			column: 1,
+		},
+		errors: null,
+	};
+
+	/** @type {ParserCtx} */
+	const ctx = {
+		text,
+		tokens: tokens[Symbol.iterator](),
+		current: {done: false, value: dummyToken},
+		storeLocations,
+		lastToken: dummyToken,
 		errors: [],
 		flags,
 	};
+
+	// Load the first token
+	pop(ctx);
+
+	return ctx;
 }
 
 /**
