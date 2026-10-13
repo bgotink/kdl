@@ -233,7 +233,12 @@ function parseNonStringValue(ctx) {
 	let representation;
 	let suffixTag;
 	let suffixTagRepresentation;
+	let sign;
 	let checkSeparatedSuffix = false;
+
+	if (token?.text[0] === "-" || token?.text[0] === "+") {
+		sign = /** @type {'-' | '+'} */ (token.text[0]);
+	}
 
 	switch (token?.type) {
 		case T_NUMBER_WITH_SUFFIX:
@@ -245,11 +250,12 @@ function parseNonStringValue(ctx) {
 					);
 				}
 
-				const startOfSuffix = token.text.search(/[^0-9._]/);
+				const text = sign ? token.text.slice(1) : token.text;
+				const startOfSuffix = text.search(/[^0-9._]/);
 
-				representation = token.text.slice(0, startOfSuffix);
+				representation = (sign ?? "") + text.slice(0, startOfSuffix);
 				value = Number.parseFloat(representation.replaceAll("_", ""));
-				suffixTagRepresentation = suffixTag = token.text.slice(startOfSuffix);
+				suffixTagRepresentation = suffixTag = text.slice(startOfSuffix);
 
 				if (isKeywordlikeIdent(suffixTag)) {
 					ctx.errors.push(
@@ -262,11 +268,15 @@ function parseNonStringValue(ctx) {
 			break;
 		case T_NUMBER_BINARY:
 			checkSeparatedSuffix = true;
-			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 2);
+			value =
+				(sign === "-" ? -1 : 1) *
+				Number.parseInt(token.text.slice(sign ? 3 : 2).replaceAll("_", ""), 2);
 			break;
 		case T_NUMBER_OCTAL:
 			checkSeparatedSuffix = true;
-			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 8);
+			value =
+				(sign === "-" ? -1 : 1) *
+				Number.parseInt(token.text.slice(sign ? 3 : 2).replaceAll("_", ""), 8);
 			break;
 		case T_NUMBER_DECIMAL:
 			checkSeparatedSuffix = true;
@@ -274,7 +284,9 @@ function parseNonStringValue(ctx) {
 			break;
 		case T_NUMBER_HEXADECIMAL:
 			checkSeparatedSuffix = true;
-			value = Number.parseInt(token.text.slice(2).replaceAll("_", ""), 16);
+			value =
+				(sign === "-" ? -1 : 1) *
+				Number.parseInt(token.text.slice(sign ? 3 : 2).replaceAll("_", ""), 16);
 			break;
 		case T_KEYWORD_OR_HASHED_IDENT:
 			value = getKeywordValue(token.text);
