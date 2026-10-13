@@ -216,18 +216,30 @@ export function handleHashCharacter(ctx) {
 		// #<something>, either a keyword or # + an ident for a number suffix
 
 		let token;
-		if (ctx.current < 0xff) {
-			const handler = characterHandlers[ctx.current];
-			token = handler(ctx);
+		if (ctx.currentIter.done) {
+			token = null;
+		} else if (ctx.current < 0xff) {
+			if (!isIdentifierChar(ctx.current)) {
+				token = null;
+			} else {
+				const handler = characterHandlers[ctx.current];
+				token = handler(ctx);
+			}
 		} else {
-			if (isUnicodeSpace(ctx.current)) {
-				token = handleWhitespaceCharacter(ctx);
-			} else if (isNewLine(ctx.current)) {
-				token = handleNewlineCharacter(ctx);
+			if (isUnicodeSpace(ctx.current) || isNewLine(ctx.current)) {
+				token = null;
 			} else {
 				// All non-whitespace non-identifier characters are ASCII, which is already filtered out
 				token = handleIdentifierCharacter(ctx);
 			}
+		}
+
+		if (!token) {
+			return mkToken(
+				ctx,
+				T_KEYWORD_OR_HASHED_IDENT,
+				"Expected a valid identifier",
+			);
 		}
 
 		if (token.type !== T_IDENTIFIER_STRING) {
@@ -527,6 +539,13 @@ export function handleNumberCharacter(ctx) {
 				ctx,
 				T_NUMBER_WITH_SUFFIX,
 				"Invalid number with suffix, a suffix cannot start with a dot",
+			);
+		} else if (consume(ctx, isNumberSign)) {
+			zerOrMore(ctx, isIdentifierChar);
+			return mkToken(
+				ctx,
+				T_NUMBER_WITH_SUFFIX,
+				"Invalid number with suffix, a suffix cannot start with a sign",
 			);
 		} else if (consume(ctx, isIdentifierChar)) {
 			zerOrMore(ctx, isIdentifierChar);

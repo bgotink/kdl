@@ -8,6 +8,7 @@ import {
 	clearFormat,
 	format,
 	parse as _parse,
+	formatCompact,
 } from "../src/index.js";
 
 /** @type {typeof _parse} */
@@ -142,5 +143,18 @@ suite("suffix", () => {
 	test("kdl-org/kdl#513", () => {
 		// https://github.com/kdl-org/kdl/pull/513#discussion_r4164723583
 		assert.doesNotThrow(() => parse("node 3em"));
+
+		// https://github.com/kdl-org/kdl/pull/513#issuecomment-6068367674
+		/** @param {string} text */
+		const roundTripValue = (text) => formatCompact(parse(text, {as: "value"}));
+		/* 1 */ assert.equal(roundTripValue("-5px"), "(px)-5");
+		/* 2 */ assert.equal(roundTripValue("-0x10"), "-16");
+		/* 3 */ assert.throws(() => roundTripValue("0x-10"));
+		/* 4 */ assert.throws(() => roundTripValue("1-1"));
+		/* 5 */ assert.throws(() => roundTripValue("1+1"));
+		/* 6 */ assert.throws(() => roundTripValue("1e_1"));
+		/* 7 */ assert.throws(() => roundTripValue("1#"));
+		/* 8 */ assert.throws(() => roundTripValue("1#.5"));
+		/* 9 */ assert.throws(() => roundTripValue("1._x"));
 	});
 });
