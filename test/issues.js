@@ -103,6 +103,23 @@ suite("issues", () => {
 		assert.throws(() => parse(`a b=/x c=d`));
 	});
 
+	test("issue #16: hexadecimal digits", () => {
+		const doc = parse("a 0x0A; b 5");
+		assert.equal(doc.nodes.length, 2);
+		assert.equal(doc.nodes[0].getArgument(0), 10);
+		assert.equal(doc.nodes[0].entries[0].value.representation, "0x0A");
+		assert.equal(doc.nodes[1].getArgument(0), 5);
+
+		assert.equal(
+			parse("a 0x0A;\nb").nodes[0].entries[0].value.representation,
+			"0x0A",
+		);
+
+		for (const char of ":<=>?") {
+			assert.throws(() => parse(`a 0x1${char}`), InvalidKdlError);
+		}
+	});
+
 	test("mentions in kdl-org/kdl#513", () => {
 		// https://github.com/kdl-org/kdl/pull/513#issuecomment-6068367674
 		// Not directly mentioned, but came up via the other issues:
