@@ -8,16 +8,20 @@ import {
 	T_BOM,
 	T_INLINE_WHITESPACE,
 	T_NEWLINE,
+	T_PIPE,
 	T_SLASHDASH,
 	tokenize,
 } from "./tokenize.js";
 import {
 	consume,
 	createParserCtx,
+	isCurrent,
 	mkError,
 	parseEscline,
 	parseMultilineComment,
 	parseBaseNode,
+	parseLineSpace as parseLineSpaceText,
+	parsePipeStages,
 	parseNodeChildren,
 	parseNodePropOrArg,
 	parseSingleLineComment,
@@ -125,6 +129,13 @@ export function parseWhitespaceInDocument(ctx) {
 	/** @type {import('../model/whitespace.js').WhitespaceInDocument} */
 	const result = [];
 
+	/**
+	 * The slashdash part a #> at the start of the next line continues, if any
+	 *
+	 * @type {import('../model/whitespace.js').SlashDashInDocument | import('../model/whitespace.js').SlashDashedPipeInDocument | undefined}
+	 */
+	let previous;
+
 	while (true) {
 		{
 			const part = parseLineSpace(ctx);
@@ -140,22 +151,68 @@ export function parseWhitespaceInDocument(ctx) {
 				let tmp;
 				const preface = repeat(ctx, parseNodeSpace) ?? [];
 
-				const node = parseBaseNode(ctx);
+				const pipe = consume(ctx, T_PIPE);
+				const leading = pipe && parseLineSpaceText(ctx);
+
+				let node = parseBaseNode(ctx);
 				if (!node) {
 					throw ctx.mkError("Invalid slashdash, expected a commented node");
 				}
 
+				node = parsePipeStages(ctx, node);
+				if (pipe) {
+					node.leading = leading;
+				}
+
+				const terminator = parseNodeTerminator(ctx);
 				node.trailing = concatenate(
 					node.trailing,
 					repeat(ctx, parseNodeSpace)
 						?.map((v) => v.text)
 						.join(""),
-					parseNodeTerminator(ctx),
+					terminator,
 				);
 
-				result.push({type: "slashdash", preface, value: node});
+				/** @type {NonNullable<typeof previous>} */
+				const slashdash =
+					pipe ?
+						{type: "slashdash", pipe: true, preface, value: node}
+					:	{type: "slashdash", preface, value: node};
+				result.push(slashdash);
+
+				// a semicolon ends the chain
+				previous = terminator === ";" ? undefined : slashdash;
 				continue;
 			}
+		}
+
+		if (previous && isCurrent(ctx, T_PIPE)) {
+			// #> at the start of a line continues the preceding slashdashed chain,
+			// only line space parts can follow the previous part
+			const between =
+				/** @type {import('../model/whitespace.js').LineSpace[]} */ (
+					result.splice(result.indexOf(previous) + 1)
+				);
+			previous.value.trailing = concatenate(
+				previous.value.trailing,
+				between.map((v) => v.text).join(""),
+			);
+
+			const node = parsePipeStages(ctx, previous.value);
+			const terminator = parseNodeTerminator(ctx);
+			node.trailing = concatenate(
+				node.trailing,
+				repeat(ctx, parseNodeSpace)
+					?.map((v) => v.text)
+					.join(""),
+				terminator,
+			);
+
+			previous.value = node;
+			if (terminator === ";") {
+				previous = undefined;
+			}
+			continue;
 		}
 
 		break;

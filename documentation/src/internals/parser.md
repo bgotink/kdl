@@ -118,6 +118,18 @@ The parser itself is greatly simplified and very lenient when it comes to string
 All multiline quoted and raw strings are post-processed to remove leading whitespace.
 All quoted strings are post-processed to replace any escapes.
 
+## Node pipes
+
+The experimental [node pipes](../api/node-pipes.md) add a `#>` token, which the tokenizer only yields if the `experimentalNodePipes` flag is enabled.
+If the `experimentalSuffixedNumbers` flag is enabled too, a `#>` directly following a number is tokenized as a hashed suffix instead.
+
+Pipe stages on a single line are parsed after the `base-node`, which doesn't require any look-ahead.
+After consuming a slashdash, `base-node` checks whether `#>` follows.
+If so, it leaves the pipe stage for its caller to parse.
+
+A `#>` at the start of a line continues the chain of the preceding node.
+Rather than looking ahead past the newline, the `document` parser reopens the node it already added: it removes that node from the document again and moves the whitespace it had consumed in between into the pipe formatting.
+
 <script type="module" src="./grammar.js"></script>
 <link rel="stylesheet" href="./grammar.css">
 

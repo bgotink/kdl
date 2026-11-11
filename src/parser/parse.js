@@ -32,6 +32,7 @@ import {
 	T_NUMBER_WITH_SUFFIX,
 	T_OPEN_BRACE,
 	T_OPEN_PAREN,
+	T_PIPE,
 	T_QUOTED_STRING,
 	T_RAW_STRING,
 	T_SEMICOLON,
@@ -48,6 +49,7 @@ import {
  * @prop {InvalidKdlError[]} errors
  * @prop {import('../flags.js').ParserFlags} flags
  * @prop {(message: string) => InvalidKdlError} mkError
+ * @prop {string} [slashdashBeforePipe] A slashdash consumed by parseBaseNode that comments out the following pipe stage
  */
 
 /** @param {ParserCtx} ctx */
@@ -62,6 +64,14 @@ export function pop(ctx) {
 	if (errors) {
 		ctx.errors.push(...errors);
 	}
+}
+
+/**
+ * @param {ParserCtx} ctx
+ * @param {Token['type']} tokenType
+ */
+export function isCurrent(ctx, tokenType) {
+	return !ctx.current.done && ctx.current.value.type === tokenType;
 }
 
 /**
@@ -589,7 +599,7 @@ export function parseEscline(ctx) {
 }
 
 /** @param {ParserCtx} ctx */
-function parseLineSpace(ctx) {
+export function parseLineSpace(ctx) {
 	const start = ctx.lastToken.end;
 
 	while (
@@ -981,6 +991,12 @@ export function parseBaseNode(ctx) {
 		const parsedChildren = parseNodeChildren(ctx);
 		if (!parsedChildren) {
 			if (slashdash) {
+				if (isCurrent(ctx, T_PIPE)) {
+					// slashdashed pipe stage, leave it to parsePipeStages
+					ctx.slashdashBeforePipe = slashdash;
+					break;
+				}
+
 				throw ctx.mkError(`Unexpected slashdash`);
 			}
 
@@ -1019,17 +1035,105 @@ export function parseBaseNode(ctx) {
 	return node;
 }
 
+/**
+ * Parse any `#> node` stages following the given node
+ *
+ * @param {ParserCtx} ctx
+ * @param {Node} node
+ * @returns {Node}
+ */
+export function parsePipeStages(ctx, node) {
+	let child = node;
+	/** @type {string=} */
+	let beforePipe;
+
+	while (true) {
+		const slashdash = ctx.slashdashBeforePipe;
+		ctx.slashdashBeforePipe = undefined;
+
+		const pipe = consume(ctx, T_PIPE);
+		if (!pipe) {
+			break;
+		}
+
+		const afterPipe = parseLineSpace(ctx);
+		const stage = parseBaseNode(ctx);
+		if (!stage) {
+			throw ctx.mkError(`Expected a node after #>`);
+		}
+
+		beforePipe = concatenate(beforePipe, child.trailing);
+		child.trailing = undefined;
+
+		if (slashdash) {
+			// Keep the slashdashed stage as text, but not the slashdash of the next
+			// stage which parseBaseNode might already have consumed
+			const nextSlashdash = /** @type {string=} */ (ctx.slashdashBeforePipe);
+			const end = ctx.lastToken.end.offset - (nextSlashdash?.length ?? 0);
+			beforePipe = concatenate(
+				beforePipe,
+				slashdash,
+				ctx.text.slice(pipe.start.offset, end),
+			);
+			continue;
+		}
+
+		if (stage.children) {
+			ctx.errors.push(
+				mkError(pipe, `A node following #> cannot have a children block`),
+			);
+		}
+
+		stage.children = new Document([child]);
+		stage.pipe = {
+			child,
+			beforePipe: beforePipe ?? "",
+			afterPipe: afterPipe ?? "",
+		};
+		stage.leading = child.leading;
+		child.leading = undefined;
+
+		beforePipe = undefined;
+		child = stage;
+	}
+
+	child.trailing = concatenate(beforePipe, child.trailing);
+	return child;
+}
+
 /** @param {ParserCtx} ctx */
 export function parseNodeWithSpace(ctx) {
 	const leading = parseLineSpace(ctx);
-	const node = parseBaseNode(ctx);
+	let node = parseBaseNode(ctx);
 	if (!node) {
 		// XXX ctx has been updated by the consumption of leading space...
 		// In theory this is bad, but in practice this function is only used in a
 		// way that the context is no longer used if we reach this code branch.
 		return;
 	}
-	const trailing = concatenate(parseNodeTerminator(ctx), parseLineSpace(ctx));
+	node = parsePipeStages(ctx, node);
+
+	let terminator = parseNodeTerminator(ctx);
+	let trailing = concatenate(terminator, parseLineSpace(ctx));
+
+	while (ctx.flags.experimentalNodePipes && terminator !== ";") {
+		// continue the chain if the next line starts with #>
+		const slashdash = parseSlashdash(ctx);
+		if (!isCurrent(ctx, T_PIPE)) {
+			if (slashdash) {
+				throw ctx.mkError(`Unexpected slashdash`);
+			}
+
+			break;
+		}
+
+		node.trailing = concatenate(node.trailing, trailing);
+		ctx.slashdashBeforePipe = slashdash;
+		node = parsePipeStages(ctx, node);
+
+		terminator = parseNodeTerminator(ctx);
+		trailing = concatenate(terminator, parseLineSpace(ctx));
+	}
 
 	node.leading = concatenate(leading, node.leading);
 	node.trailing = concatenate(node.trailing, trailing);
@@ -1067,23 +1171,57 @@ function _parseDocument(ctx) {
 
 	let space = parseLineSpace(ctx);
 
+	/**
+	 * The node a #> at the start of the next line continues: `null` if that node
+	 * is slashdashed, `undefined` if there is no such node
+	 *
+	 * @type {Node | null | undefined}
+	 */
+	let previous;
+
 	while (hasSeparator) {
 		const start = ctx.lastToken.end;
 		const slashdash = parseSlashdash(ctx);
 
-		const node = parseBaseNode(ctx);
-		if (!node) {
-			if (slashdash) {
-				throw ctx.mkError(`Unexpected slashdash`);
+		/** @type {Node | undefined} */
+		let node;
+		let isSlashdashed;
+
+		if (isCurrent(ctx, T_PIPE)) {
+			if (previous === undefined) {
+				throw ctx.mkError(`Unexpected #>, expected a node before it`);
 			}
 
-			break;
+			ctx.slashdashBeforePipe = slashdash;
+
+			if (previous === null) {
+				// continuation of a slashdashed chain, the entire text is dropped below
+				node = parsePipeStages(ctx, Node.create(""));
+				isSlashdashed = true;
+			} else {
+				node = /** @type {Node} */ (nodes.pop());
+				node.trailing = concatenate(node.trailing, space);
+				space = node.leading;
+				node = parsePipeStages(ctx, node);
+			}
+		} else {
+			node = parseBaseNode(ctx);
+			if (!node) {
+				if (slashdash) {
+					throw ctx.mkError(`Unexpected slashdash`);
+				}
+
+				break;
+			}
+
+			node = parsePipeStages(ctx, node);
+			isSlashdashed = slashdash != null;
 		}
 
 		const trailing = parseNodeSpace(ctx);
 		const terminator = parseNodeTerminator(ctx);
 
-		if (slashdash) {
+		if (isSlashdashed) {
 			space =
 				/** @type {string} */
 				(
@@ -1093,6 +1231,7 @@ function _parseDocument(ctx) {
 						parseLineSpace(ctx),
 					)
 				);
+			previous = null;
 		} else {
 			node.trailing = concatenate(node.trailing, trailing, terminator) ?? "";
 			nodes.push(node);
@@ -1100,6 +1239,11 @@ function _parseDocument(ctx) {
 			node.leading = space ?? "";
 
 			space = parseLineSpace(ctx);
+			previous = node;
+		}
+
+		if (terminator === ";") {
+			previous = undefined;
 		}
 
 		hasSeparator = terminator != null;

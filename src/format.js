@@ -150,18 +150,44 @@ function formatEntry(entry) {
  * @returns {string}
  */
 function formatNode(node, indentation) {
-	return `${node.leading ?? "\t".repeat(indentation)}${formatTag(node.tag)}${
+	return `${node.leading ?? "\t".repeat(indentation)}${formatNodeContent(
+		node,
+		indentation,
+	)}${node.trailing ?? "\n"}`;
+}
+
+/**
+ * Format the node without leading and trailing whitespace
+ *
+ * @param {Node} node
+ * @param {number} indentation
+ * @returns {string}
+ */
+function formatNodeContent(node, indentation) {
+	const {pipe} = node;
+	const isPipe =
+		pipe != null &&
+		node.children?.nodes.length === 1 &&
+		node.children.nodes[0] === pipe.child;
+
+	return `${
+		isPipe ?
+			`${formatNodeContent(pipe.child, indentation)}${
+				pipe.beforePipe ?? " "
+			}#>${pipe.afterPipe ?? " "}`
+		:	""
+	}${formatTag(node.tag)}${
 		node.betweenTagAndName ?? ""
 	}${formatIdentifier(node.name)}${node.entries
 		.map((entry) => formatEntry(entry))
 		.join("")}${
-		node.children ?
+		node.children && !isPipe ?
 			`${node.beforeChildren ?? " "}{${formatDocument(
 				node.children,
 				indentation + 1,
 			)}}`
 		:	""
-	}${node.trailing ?? "\n"}`;
+	}`;
 }
 
 /**

@@ -33,6 +33,7 @@ import {
 	T_NUMBER_WITH_SUFFIX,
 	T_OPEN_BRACE,
 	T_OPEN_PAREN,
+	T_PIPE,
 	T_QUOTED_STRING,
 	T_RAW_STRING,
 	T_SEMICOLON,
@@ -558,11 +559,42 @@ export function handleNumberCharacter(ctx) {
 	}
 }
 
+/**
+ * @param {TokenizeContext} ctx
+ * @param {number} previousTokenType
+ */
+function isPipe(ctx, previousTokenType) {
+	if (
+		!ctx.flags.experimentalNodePipes ||
+		ctx.current !== 0x23 /* # */ ||
+		ctx.text.codePointAt(ctx.offset + 1) !== 0x3e /* > */
+	) {
+		return false;
+	}
+
+	// A hashed number suffix takes precedence, e.g. `6#>`
+	return !(
+		ctx.flags.experimentalSuffixedNumbers &&
+		(previousTokenType === T_NUMBER_DECIMAL ||
+			previousTokenType === T_NUMBER_HEXADECIMAL ||
+			previousTokenType === T_NUMBER_OCTAL ||
+			previousTokenType === T_NUMBER_BINARY ||
+			previousTokenType === T_NUMBER_WITH_SUFFIX)
+	);
+}
+
+/** @param {TokenizeContext} ctx */
+function handlePipe(ctx) {
+	pop(ctx);
+	pop(ctx);
+	return mkToken(ctx, T_PIPE, null);
+}
+
 /** @param {TokenizeContext} ctx */
 function handleR(ctx) {
 	pop(ctx);
 
-	if (ctx.current != 0x23 /* # */) {
+	if (ctx.current != 0x23 /* # */ || isPipe(ctx, T_IDENTIFIER_STRING)) {
 		zerOrMore(ctx, isIdentifierChar);
 		return mkToken(ctx, T_IDENTIFIER_STRING, null);
 	}
@@ -659,25 +691,27 @@ export function* tokenize(t, opts) {
 	const ctx = createContext(t, opts);
 	yield* init(ctx);
 
+	let previousTokenType = -1;
+
 	while (!ctx.currentIter.done) {
-		if (ctx.current < 0xff) {
+		let token;
+
+		if (isPipe(ctx, previousTokenType)) {
+			token = handlePipe(ctx);
+		} else if (ctx.current < 0xff) {
 			const handler = characterHandlers[ctx.current];
-			yield handler(ctx);
-			continue;
+			token = handler(ctx);
+		} else if (isUnicodeSpace(ctx.current)) {
+			token = handleWhitespaceCharacter(ctx);
+		} else if (isNewLine(ctx.current)) {
+			token = handleNewlineCharacter(ctx);
+		} else {
+			// All non-whitespace non-identifier characters are ASCII, which is already filtered out
+			token = handleIdentifierCharacter(ctx);
 		}
 
-		if (isUnicodeSpace(ctx.current)) {
-			yield handleWhitespaceCharacter(ctx);
-			continue;
-		}
-
-		if (isNewLine(ctx.current)) {
-			yield handleNewlineCharacter(ctx);
-			continue;
-		}
-
-		// All non-whitespace non-identifier characters are ASCII, which is already filtered out
-		yield handleIdentifierCharacter(ctx);
+		previousTokenType = token.type;
+		yield token;
 	}
 
 	yield mkToken(ctx, T_EOF, null);

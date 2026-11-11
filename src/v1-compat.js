@@ -48,6 +48,7 @@ export function parse(text, options = {}) {
 	const ctx = createParserCtx(text, tokens, {
 		...options,
 		flags: {
+			experimentalNodePipes: false,
 			experimentalSuffixedNumbers: false,
 		},
 	});

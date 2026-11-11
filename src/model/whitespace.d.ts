@@ -152,6 +152,37 @@ export interface SlashDashInDocument {
 }
 
 /**
+ * A slashdash comment of a pipe stage, i.e. a slashdash commented `#> node`
+ *
+ * This is only used if the `experimentalNodePipes` flag is enabled.
+ */
+export interface SlashDashedPipeInDocument {
+	/**
+	 * A property to differentiate the different types of whitespace
+	 */
+	type: "slashdash";
+
+	/**
+	 * A property to differentiate this from a slashdash commented node
+	 */
+	pipe: true;
+
+	/**
+	 * Any whitespace between the slashdash token and the pipe
+	 */
+	preface: NodeSpace[];
+
+	/**
+	 * The commented-out node. Its leading whitespace contains the whitespace between `#>` and the node.
+	 */
+	value: Node;
+}
+
+/**
  * Whitespace in a document, i.e. before/after/between nodes
  */
-export type WhitespaceInDocument = (LineSpace | SlashDashInDocument)[];
+export type WhitespaceInDocument = (
+	| LineSpace
+	| SlashDashInDocument
+	| SlashDashedPipeInDocument
+)[];

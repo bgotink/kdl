@@ -37,6 +37,8 @@ export const T_QUERY_OPERATOR = 27;
 
 export const T_NUMBER_WITH_SUFFIX = 28;
 
+export const T_PIPE = 29;
+
 /** @param {number} codePoint  */
 export function isUnicodeSpace(codePoint) {
 	return (

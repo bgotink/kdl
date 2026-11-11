@@ -31,6 +31,7 @@ export {parse} from "./parse.js";
 /** @typedef {import('./model/whitespace.js').InlineWhitespace} InlineWhitespace */
 /** @typedef {import('./model/whitespace.js').LineSpace} LineSpace */
 /** @typedef {import('./model/whitespace.js').SlashDashInDocument} SlashDashInDocument */
+/** @typedef {import('./model/whitespace.js').SlashDashedPipeInDocument} SlashDashedPipeInDocument */
 /** @typedef {import('./model/whitespace.js').MultilineComment} MultilineComment */
 /** @typedef {import('./model/whitespace.js').Newline} Newline */
 /** @typedef {import('./model/whitespace.js').NodeSpace} NodeSpace */

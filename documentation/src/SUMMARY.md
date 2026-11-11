@@ -9,6 +9,7 @@
 - [JSON-in-KDL](./api/json.md)
 - [Compabitility with KDL v1](./api/v1-compat.md)
 - [(De)Serialization Tools](./api/dessert.md)
+- [Node pipes (experimental)](./api/node-pipes.md)
 
 # API Reference
 

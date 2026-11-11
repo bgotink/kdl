@@ -58,6 +58,7 @@ function clearFormatNode(node) {
 	node.beforeChildren = undefined;
 	node.betweenTagAndName = undefined;
 	node.trailing = undefined;
+	node.pipe = undefined;
 
 	if (node.tag) {
 		clearFormatTag(node.tag);

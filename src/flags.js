@@ -2,6 +2,16 @@
  * @typedef {object} ParserFlags
  * Flags to turn language features on or off
  *
+ * @prop {boolean} experimentalNodePipes
+ * Support node pipes using a proposal that is not part of the language
+ *
+ * If enabled, `A #> B` is equivalent to `B { A }`, i.e. the node on the left
+ * becomes the sole child of the node on the right. Chains are left-associative:
+ * `A #> B #> C` is equivalent to `C { B { A } }`.
+ *
+ * If combined with `experimentalSuffixedNumbers`, a `#>` directly following a
+ * number is parsed as a number suffix.
+ *
  * @prop {boolean} experimentalSuffixedNumbers
  * Support suffixed numbers using a proposal that might not make it into the language
  *
@@ -23,6 +33,9 @@
  * @param {Partial<Readonly<ParserFlags>>} [flags]
  * @returns {ParserFlags}
  */
-export function resolveFlags({experimentalSuffixedNumbers = false} = {}) {
-	return {experimentalSuffixedNumbers};
+export function resolveFlags({
+	experimentalNodePipes = false,
+	experimentalSuffixedNumbers = false,
+} = {}) {
+	return {experimentalNodePipes, experimentalSuffixedNumbers};
 }

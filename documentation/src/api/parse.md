@@ -55,8 +55,9 @@ There's also a 6.5x speed difference between the two methods, but even with `gra
 ## Parser flags
 
 The `parse` function accepts optional flags to define parser behaviour.
-There is currently a single flag:
+The following flags are supported:
 
+- [`experimentalNodePipes`](./node-pipes.md): if enabled, `A #> B` is equivalent to `B { A }`, allowing deeply nested single-child structures to be written as a chain, e.g. `text "Hello" #> padding 8 #> center` is equivalent to `center { padding 8 { text "Hello" } }`.
 - [`experimentalSuffixedNumbers`](./reference/index/index.md#experimentalsuffixednumbers): if enabled, numbers can have a suffix tag (e.g. `10px` is equivalent to `(px)10`).
   This suffix is used as tag for the value, which implies a number cannot have both a tag and a suffix.
   The following limitations apply unless a `#` is used as separator:

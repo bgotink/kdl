@@ -102,6 +102,16 @@ export class Node {
 	betweenTagAndName;
 
 	/**
+	 * Formatting of a node pipe, i.e. `child #> node`
+	 *
+	 * This formatting is only used if the node's children consist of just the given child.
+	 *
+	 * @type {{child: Node, beforePipe?: string, afterPipe?: string}=}
+	 * @hidden
+	 */
+	pipe;
+
+	/**
 	 * @param {Identifier} name
 	 * @param {Entry[]} [entries]
 	 * @param {Document | null} [children]
@@ -133,6 +143,15 @@ export class Node {
 		clone.betweenTagAndName = this.betweenTagAndName;
 		clone.beforeChildren = this.beforeChildren;
 		clone.trailing = this.trailing;
+
+		const pipeChild =
+			this.pipe &&
+			clone.children?.nodes[
+				this.children?.nodes.indexOf(this.pipe.child) ?? -1
+			];
+		if (pipeChild) {
+			clone.pipe = {...this.pipe, child: pipeChild};
+		}
 
 		return clone;
 	}

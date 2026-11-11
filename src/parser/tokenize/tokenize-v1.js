@@ -329,6 +329,7 @@ export function* tokenize(t, {graphemeLocations}) {
 	const ctx = createContext(t, {
 		graphemeLocations,
 		flags: {
+			experimentalNodePipes: false,
 			experimentalSuffixedNumbers: false,
 		},
 	});
