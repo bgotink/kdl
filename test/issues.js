@@ -98,6 +98,23 @@ test("issue #11: v1 style raw strings", () => {
 	assert.throws(() => parse('/-node {a x=r#"123"#}'), /Invalid raw string/);
 });
 
+test("issue #16: hexadecimal digits", () => {
+	const doc = parse("a 0x0A; b 5");
+	assert.equal(doc.nodes.length, 2);
+	assert.equal(doc.nodes[0].getArgument(0), 10);
+	assert.equal(doc.nodes[0].entries[0].value.representation, "0x0A");
+	assert.equal(doc.nodes[1].getArgument(0), 5);
+
+	assert.equal(
+		parse("a 0x0A;\nb").nodes[0].entries[0].value.representation,
+		"0x0A",
+	);
+
+	for (const char of ":<=>?") {
+		assert.throws(() => parse(`a 0x1${char}`), InvalidKdlError);
+	}
+});
+
 test("mentions in kdl-org/kdl#513", () => {
 	// https://github.com/kdl-org/kdl/pull/513#issuecomment-6068367674
 	assert.equal(format(clearFormat(parse("node -0x10"))), "node -16\n");

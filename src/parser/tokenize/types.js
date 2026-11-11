@@ -137,7 +137,7 @@ export function isAlpha(codePoint) {
 /** @param {number} codePoint */
 export function isHexadecimalDigit(codePoint) {
 	return (
-		(codePoint >= 0x30 && codePoint < 0x40) || // decimal
+		(codePoint >= 0x30 && codePoint < 0x3a) || // decimal
 		(codePoint >= 0x41 && codePoint < 0x47) || // A-F
 		(codePoint >= 0x61 && codePoint < 0x67) || // a-f
 		false
